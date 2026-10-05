@@ -325,7 +325,7 @@ SD카드 수명을 위해 디스크 스왑 대신 zram을 쓰고 log2ram을 설�
 - [x] 이름 확정: unattendant.dev, 에이전트 Huninn (후보와 탈락 과정은 첫 글감으로)
 - [x] Cloudflare에서 unattendant.dev 구매 (자동 갱신과 계정 2단계 인증 켜기)
 - [x] 기존 Pi 정리(콘솔 부팅, Samba·PackageKit 끄기, unattended-upgrades, zram·log2ram 확인) 후 Hugo·Caddy 설치, 기존 cloudflared에 unattendant.dev 추가 (방열판·팬 케이스도 준비)
-- [ ] `~/unattendant 만들고 GitHub 레포 2개 연결 (공개 site, 비공개 나머지`)
+- [x] `~/unattendant 만들고 GitHub 레포 2개 연결 (공개 site, 비공개 나머지`)
 - [ ] Anthropic API 키 발급하고 월 사용 한도 설정
 - [ ] 디스코드 서버와 봇 만들기 (#긴급, #승인, #일일요약)
 

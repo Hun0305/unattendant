@@ -43,6 +43,26 @@ cloudflared tunnel route dns unattendant unattendant.dev
 cloudflared --config ~/unattendant/ops/cloudflared/config.yml tunnel ingress validate
 ```
 
+## GitHub 레포
+
+| 레포 | 공개 | 로컬 | SSH 별칭 | 키 |
+| --- | --- | --- | --- | --- |
+| `Hun0305/unattendant.dev` | 공개 | `~/unattendant/site` | `github-unattendant-site` | `~/.ssh/unattendant_site` |
+| `Hun0305/unattendant` | 비공개 | `~/unattendant` | `github-unattendant-ops` | `~/.ssh/unattendant_ops` |
+
+키는 레포별 deploy key(쓰기 허용)라 각 레포에만 접근한다. 무인 push를 위해 passphrase가 없다. `~/.ssh/config`의 별칭이 키를 고른다.
+
+```
+Host github-unattendant-site
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/unattendant_site
+  IdentitiesOnly yes
+# github-unattendant-ops도 같은 형식
+```
+
+Pi를 새로 세우면 키를 새로 만들어 GitHub 레포 Settings → Deploy keys에 다시 등록한다.
+
 ## 버전 기록
 
 | 도구 | 버전 | 설치일 |

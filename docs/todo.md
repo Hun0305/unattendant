@@ -30,3 +30,4 @@
   - [x] unattendant-tunnel.service 등록 (sudo)
 - [x] 외부(LTE)에서 https://unattendant.dev 접속 확인 (2026-10-06)
 - [x] Cloudflare AI 크롤러 허용 확인: Search·Agent·Training 모두 Allow, Bot Preference Sync 끔, AI Labyrinth·Bot fight mode 끔 (2026-10-06)
+- [x] GitHub 레포 2개 연결 (2026-10-06): 공개 Hun0305/unattendant.dev ← site/, 비공개 Hun0305/unattendant ← 나머지. 레포별 deploy key(쓰기 권한), 설정은 ops/README.md
