@@ -41,8 +41,8 @@
 - [x] Cloudflare AI 크롤러 허용: Search·Agent·Training 모두 Allow, Bot Preference Sync 끔, AI Labyrinth·Bot fight mode 끔 (2026-10-06)
 - [x] GitHub 레포 2개 연결 (2026-10-06): 사이트 레포 Hun0305/unattendant.dev ← site/, 운영 레포 Hun0305/unattendant ← 나머지. 레포별 deploy key(쓰기 권한), 설정은 ops/README.md
 - [x] 레포 공개 범위 결정 (2026-10-06): 두 레포 모두 공개, 비밀값·원본 로그·미발행 초안만 비공개 (architecture.md 저장소 섹션)
-- [ ] 운영 레포 Public 전환 (GitHub Settings, 사람이 직접. 지금은 Private)
-- [ ] 두 레포 Secret Scanning + Push Protection 켜기 (Settings → Code security)
+- [x] 운영 레포 Public 전환 (2026-10-06). 전환 직전 두 레포 히스토리를 gitleaks 기본 규칙 222개 전체로 검사해 0건 (운영 7커밋, 사이트 1커밋)
+- [x] 두 레포 Secret Scanning + Push Protection 켜기 (2026-10-06)
 - [x] pre-commit 비밀키 스캐너 (gitleaks 8.30.1, 두 레포 공통 훅 ops/githooks/pre-commit, 2026-10-06). 기록은 docs/pre-commit.md
 - [ ] 검색엔진 3곳 등록: Google Search Console, 네이버 서치어드바이저, Bing Webmaster Tools (사이트맵 제출)
 - [ ] Anthropic API 키 발급하고 월 사용 한도 설정
