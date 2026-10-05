@@ -1,0 +1,22 @@
+# unattendant.dev 정적 사이트 서버 (127.0.0.1:8080)
+# 설치: sudo install -m 644 ops/systemd/unattendant-caddy.service /etc/systemd/system/
+#       sudo systemctl daemon-reload && sudo systemctl enable --now unattendant-caddy
+[Unit]
+Description=unattendant.dev static site (Caddy on 127.0.0.1:8080)
+After=network.target
+
+[Service]
+Type=simple
+User=hun
+Group=hun
+ExecStart=/home/hun/.local/bin/caddy run --config /home/hun/unattendant/ops/caddy/Caddyfile --adapter caddyfile
+Restart=on-failure
+RestartSec=5
+MemoryMax=200M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

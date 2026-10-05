@@ -1,0 +1,27 @@
+# unattendant.dev 정적 사이트. 외부 노출은 Cloudflare Tunnel만 쓰므로 127.0.0.1에만 붙는다.
+# TLS는 Cloudflare가 맡는다.
+{
+	admin off
+	auto_https off
+	persist_config off
+}
+
+http://:8080 {
+	bind 127.0.0.1
+	root * /home/hun/unattendant/site/public
+	encode zstd gzip
+	file_server
+
+	header /css/* Cache-Control "public, max-age=31536000, immutable"
+
+	handle_errors 404 {
+		handle /en/* {
+			rewrite * /en/404.html
+			file_server
+		}
+		handle {
+			rewrite * /404.html
+			file_server
+		}
+	}
+}

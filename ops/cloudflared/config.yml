@@ -1,0 +1,8 @@
+# Named Tunnel "unattendant" (로컬 관리형). 2026-10-06 생성.
+tunnel: bd749433-fd2f-48ba-b325-ff2115f1a40d
+credentials-file: /home/hun/.cloudflared/bd749433-fd2f-48ba-b325-ff2115f1a40d.json
+
+ingress:
+  - hostname: unattendant.dev
+    service: http://127.0.0.1:8080
+  - service: http_status:404

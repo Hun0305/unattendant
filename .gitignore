@@ -1,0 +1,14 @@
+# 공개 레포로 따로 관리
+site/
+
+# 비밀값
+.env
+.env.*
+*.pem
+*credentials*.json
+
+# 런타임 산출물
+logs/
+__pycache__/
+.venv/
+*.pyc

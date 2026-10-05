@@ -1,0 +1,24 @@
+# unattendant.dev Cloudflare Named Tunnel → 127.0.0.1:8080
+# 설치: sudo install -m 644 ops/systemd/unattendant-tunnel.service /etc/systemd/system/
+#       sudo systemctl daemon-reload && sudo systemctl enable --now unattendant-tunnel
+# 자격증명(~/.cloudflared/<UUID>.json, cert.pem)은 레포에 넣지 않는다.
+[Unit]
+Description=Cloudflare Tunnel for unattendant.dev
+After=network-online.target unattendant-caddy.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hun
+Group=hun
+ExecStart=/usr/bin/cloudflared --no-autoupdate --config /home/hun/unattendant/ops/cloudflared/config.yml tunnel run
+Restart=on-failure
+RestartSec=5
+MemoryMax=200M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target
