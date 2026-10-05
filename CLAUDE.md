@@ -53,7 +53,8 @@ type
 - content: Huninn이 발행한 글 (사람이 직접 쓰지 않음)
 - exp: 실험 템플릿과 결과 데이터
 
-scope: site, agent, mcp, bot, dashboard, exp, ops 중 하나 (애매하면 생략)
+scope: site, agent, mcp, bot, dashboard, exp 중 하나 (애매하면 생략)
+- ops는 scope가 아니라 type이다. 서버·배포 설정은 `chore(ops):`가 아니라 `ops:`로 쓴다
 
 작성 규칙
 - 요약은 50자 안쪽, 마침표 없이, 무엇을 했는지 쓴다
