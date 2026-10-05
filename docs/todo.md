@@ -24,8 +24,8 @@
   - [x] 콘솔 부팅 (`multi-user.target`)
   - [x] Samba 끄기 (smbd·nmbd disabled)
   - [x] PackageKit (inactive. static 유닛이라 요청이 있을 때만 뜬다)
-  - [ ] Bluetooth 끄기 (지금 inactive지만 enabled라 부팅 때 다시 뜬다)
-  - [ ] unattended-upgrades 설치 (자동 재부팅 없음, 재부팅 필요 시 #일일요약 알림)
+  - ~~Bluetooth 자동 시작 끄기~~ 하지 않기로 함 (2026-10-06). 지금은 inactive, enabled 상태 그대로
+  - ~~unattended-upgrades 설치~~ 하지 않기로 함 (2026-10-06). 보안 업데이트는 사람이 `apt upgrade`로 직접
   - [x] zram 스왑 (`/dev/zram0` 2GB)
   - [ ] log2ram 설치
   - [x] 방열판·팬 케이스

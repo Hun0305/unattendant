@@ -114,7 +114,7 @@ Pi 4 4GB에서 OpenClaw가 메모리 부족으로 멈춘 [사례](https://travis
 
 ### 실험 중에도 SSH와 블로그를 지키는 설정
 
-- **OS 정리**: 콘솔 부팅으로 바꿔 데스크톱(labwc, 패널 등 200\~300MB)을 끄고, Samba·PackageKit·Bluetooth도 끈다. 보안 업데이트는 unattended-upgrades로 받되 자동 재부팅은 하지 않고, 재부팅이 필요하면 디스코드 #일일요약으로 알린다.
+- **OS 정리**: 콘솔 부팅으로 바꿔 데스크톱(labwc, 패널 등 200\~300MB)을 끄고, Samba·PackageKit도 끈다. Bluetooth는 꺼진 상태(inactive)로 두고 자동 시작 설정은 건드리지 않는다. 보안 업데이트는 자동으로 받지 않고 사람이 `apt upgrade`로 직접 한다.
 - **스왑**: 디스크 스왑 대신 zram을 쓴다. 현재 스왑(2GB)이 zram인지 SD 파일인지 `swapon --show`로 확인해 필요하면 바꾼다.
 - **포트**: 블로그용 Caddy는 8080에 띄워 다른 프로젝트 포트(TrueETA 8099 등)와 겹치지 않게 한다.
 - **실험 격리**: 실험은 별도 systemd 서비스로 돌리고 메모리 상한(MemoryMax)을 건다. 한도를 넘으면 실험만 종료된다.
