@@ -1,33 +1,55 @@
-# AI 자율운영 블로그 — 진행 상황 (2026-10-06 기준)
+# unattendant.dev — 로드맵과 진행 상황
 
-설계 문서: https://claude.ai/code/artifact/c5cf2218-acfe-4130-996d-4204c9854189
-- 탭 1 "AI 자율운영 블로그 — 아키텍처 & MCP 툴 스펙" (설계)
-- 탭 2 "시장 조사" (1~5차 조사 반영, 조사 종료)
+이 문서는 **언제, 무엇을, 어디까지 했는지**를 다룬다. 로드맵, 단계별 체크리스트, 열린 질문이 여기 있다.
+**무엇을 왜 그렇게 만드는지**(설계, 스택, 툴 스펙, 가드레일)는 [architecture.md](architecture.md)에 있다.
 
-## 정해진 방향
-- 이름: 블로그 unattendant.dev (2026-10-06 구매 완료, 자동 갱신 켬, 만료 2027-10-06), 에이전트 Huninn (Huginn + Muninn)
-  - 태그라인 EN: "unattendant — the attendant who isn't there. A blog run by Huninn, an AI living on a Raspberry Pi."
-  - 태그라인 KO: "unattendant — 자리에 없는 당번. 라즈베리파이 위에서 AI 'Huninn'이 혼자 운영하는 블로그."
-  - 이름 짓는 과정(탈락 후보: nobodywrites, daysunattended, lefttorun, pilog, unattended.*, araseo, untended.garden 등)은 첫 글감
-- 정체성은 메타 컨셉, 검색 유입은 Pi 실측 데이터. 포지셔닝 확정: AI가 직접 실측해 정기 발행 + 운영 지표 상시 공개 + 한국어(영어 병행)
-- 언어: 한국어 /, 주간 보고서·실험 글은 /en/ 영어판도. 링크드인 공유는 사람이 직접
-- 알림: Pi에서 도는 디스코드 봇(이름 Huninn). #긴급 / #승인 / #일일요약
-- 스택: Hugo + git을 Pi에서 서빙(Caddy 8080), Cloudflare Named Tunnel(기존 cloudflared 재사용), Messages API 자체 루프
-- 프로젝트 폴더: ~/unattendant/{site, agent, experiments, state, logs, ops}. site/는 공개 레포, 나머지는 비공개 레포
-- 하드웨어: Raspberry Pi 4B 4GB 메인. OS는 재설치하지 않고 기존 Raspberry Pi OS 64비트(trixie) 유지
-  - TrueETA(키오스크 포함)는 끔. 이 상태에서 SSH만 붙였을 때 메모리 414MB (2026-10-06 실측)
-  - 계획: 콘솔 부팅, Samba·PackageKit·Bluetooth 끄기, unattended-upgrades(자동 재부팅 없음), 스왑 종류 확인 후 zram
-  - 같은 Pi의 다른 프로젝트 폴더(Pi_Server, TrueETA 등)는 건드리지 않음
-- 노트북(i5-8250U + MX150 + 16GB)은 보조 실험 장비
+설계 원본: https://claude.ai/code/artifact/c5cf2218-acfe-4130-996d-4204c9854189 (탭 1 설계, 탭 2 시장 조사)
 
-## 현재 단계: Phase 0 (사이트 띄우기)
+## 로드맵
+
+네 단계로 나누고, 각 단계는 게이트를 통과해야 다음으로 넘어간다. 기간은 예상치다. 핵심은 승인 모드를 해제하는 게이트 3이다.
+
+| 단계 | 기간 | 내용 | 다음 단계로 가는 게이트 |
+| --- | --- | --- | --- |
+| Phase 0 · 기반 준비 | 약 1주 | 도메인 구매(B1), Cloudflare Named Tunnel, Hugo 사이트와 테마, Caddy 서빙. 검색엔진 3곳 등록, AI 크롤러 허용, GitHub 레포 2개 | 1: 도메인으로 사이트가 열리고 첫 글(사람이 직접 쓴 소개글)이 색인된다 |
+| Phase 1 · 반자동 루프 (C3) | 1\~2주 | blogops 핵심 툴(`create_draft`, `check_quality`, `publish_post`, `request_indexing`). Claude Code headless로 일간 루프 검증, 모든 글은 사람이 승인 | 2: AI가 쓴 글 5개 발행, 품질 게이트 통과율 기록 시작 |
+| Phase 2 · 자율 루프 (C2) | 2\~4주 | 자체 루프와 예산 상한, 실험 러너(비전·LLM)와 공통 로거, JSONL 로깅, 운영 대시보드, 디스코드 알림. 주간 보고서 자동 발행, 전략 문서 자동 갱신 | 3: 2주 연속 사람 개입 0회, 품질 첫 통과율 80% 이상 → 승인 모드 해제 |
+| Phase 3 · 완전 자율과 확장 | 이후 상시 | 자동 발행, 공개 운영 현황 페이지, blog-mcp 오픈소스 공개, 커뮤니티 배포. WOL로 작업 장비 연동(양자화·오프로딩), 필요하면 SSD 이전·Cloudflare Pages 대기 미러 | — |
+
+## 현재 단계: Phase 0 (기반 준비)
+
+- [x] 이름 확정: unattendant.dev, 에이전트 Huninn (탈락 후보 nobodywrites, daysunattended, lefttorun, pilog, unattended.\*, araseo, untended.garden 등과 이름 짓는 과정은 첫 글감)
+- [x] Cloudflare에서 unattendant.dev 구매 (자동 갱신, 계정 2단계 인증. 만료 2027-10-06)
+- [ ] 기존 Pi 정리 (2026-10-06 확인)
+  - [x] 콘솔 부팅 (`multi-user.target`)
+  - [x] Samba 끄기 (smbd·nmbd disabled)
+  - [x] PackageKit (inactive. static 유닛이라 요청이 있을 때만 뜬다)
+  - [ ] Bluetooth 끄기 (지금 inactive지만 enabled라 부팅 때 다시 뜬다)
+  - [ ] unattended-upgrades 설치 (자동 재부팅 없음, 재부팅 필요 시 #일일요약 알림)
+  - [x] zram 스왑 (`/dev/zram0` 2GB)
+  - [ ] log2ram 설치
+  - [ ] 방열판·팬 케이스 (상태 미확인)
 - [x] Hugo(extended, arm64), Caddy 설치 (Hugo 0.167.0, Caddy 2.11.7 → ~/.local/bin, ops/install-site-tools.sh)
 - [x] site/에 다국어 Hugo 뼈대 + "곧 시작" 페이지 (태그라인 포함)
+- [ ] 글 템플릿 (단일 글·목록 페이지, AI 작성 표시, 영어판 배너). 게이트 1의 첫 글에 필요
 - [x] Caddy로 site/public을 8080에 서빙 (unattendant-caddy.service, 127.0.0.1:8080)
 - [x] ~~기존 cloudflared 터널에~~ unattendant.dev → localhost:8080 추가
   - 2026-10-06 확인: 기존은 TrueETA Quick Tunnel뿐이고 Named Tunnel이 없어서 새로 만듦
   - [x] Named Tunnel `unattendant` 생성 (id bd749433-…), DNS CNAME 연결, 임시 실행으로 https 200 확인
-  - [x] unattendant-tunnel.service 등록 (sudo)
+  - [x] unattendant-tunnel.service 등록
 - [x] 외부(LTE)에서 https://unattendant.dev 접속 확인 (2026-10-06)
-- [x] Cloudflare AI 크롤러 허용 확인: Search·Agent·Training 모두 Allow, Bot Preference Sync 끔, AI Labyrinth·Bot fight mode 끔 (2026-10-06)
+- [x] Cloudflare AI 크롤러 허용: Search·Agent·Training 모두 Allow, Bot Preference Sync 끔, AI Labyrinth·Bot fight mode 끔 (2026-10-06)
 - [x] GitHub 레포 2개 연결 (2026-10-06): 공개 Hun0305/unattendant.dev ← site/, 비공개 Hun0305/unattendant ← 나머지. 레포별 deploy key(쓰기 권한), 설정은 ops/README.md
+- [ ] 검색엔진 3곳 등록: Google Search Console, 네이버 서치어드바이저, Bing Webmaster Tools (사이트맵 제출)
+- [ ] Anthropic API 키 발급하고 월 사용 한도 설정
+- [ ] 디스코드 서버와 봇 만들기 (#긴급, #승인, #일일요약)
+
+**게이트 1**
+- [x] 도메인으로 사이트가 열린다
+- [ ] 첫 글(사람이 직접 쓴 소개글) 발행
+- [ ] 첫 글 색인 확인
+
+## 열린 질문
+
+- 승인 모드 해제 기준(2주 무개입, 첫 통과율 80%)은 제안값이다. 운영하면서 조정한다.
+- 레포 공개 범위: 지금은 site/만 공개다. 운영 코드(agent/, experiments/, ops/), 설계 문서, 가공한 운영 로그도 공개할지 정해야 한다. Phase 3의 "blog-mcp 오픈소스 공개"와도 겹친다. agent/ 코드를 쓰기 전에 정하고, 공개 레포에는 pre-commit 비밀키 스캐너를 먼저 붙인다.

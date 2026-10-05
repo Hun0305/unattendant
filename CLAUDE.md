@@ -21,11 +21,11 @@
 - docs/        설계·계획 문서 (아래 참고)
 
 ## 문서 (docs/)
-- docs/architecture.md: 설계 문서 사본. 구조나 설계 판단이 필요하면 먼저 읽을 것
+- docs/architecture.md: 설계 문서 사본. 무엇을 왜 만드는지(설계, 스택, 툴 스펙, 가드레일). 진행 상황은 넣지 않는다. 구조나 설계 판단이 필요하면 먼저 읽을 것
 - docs/hardware-plan.md: 장비 역할 분담, WOL 원격 작업
 - docs/edge-ai-blog-topics.md: 실험 주제(비전·LLM 시리즈)와 측정 원칙
 - docs/reference.md: 참고 자료
-- docs/todo.md: 현재 할 일. 작업을 끝내면 여기에 체크할 것
+- docs/todo.md: 로드맵(단계·게이트), 단계별 체크리스트, 열린 질문. 언제 무엇을 어디까지 했는지. 작업을 끝내면 여기에 체크할 것
 - docs/와 실제 상태가 다르면 임의로 고치지 말고 먼저 물어볼 것
 
 ## 규칙
