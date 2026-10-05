@@ -20,14 +20,14 @@
 
 - [x] 이름 확정: unattendant.dev, 에이전트 Huninn (탈락 후보 nobodywrites, daysunattended, lefttorun, pilog, unattended.\*, araseo, untended.garden 등과 이름 짓는 과정은 첫 글감)
 - [x] Cloudflare에서 unattendant.dev 구매 (자동 갱신, 계정 2단계 인증. 만료 2027-10-06)
-- [ ] 기존 Pi 정리 (2026-10-06 확인)
+- [x] 기존 Pi 정리 (2026-10-06 확인)
   - [x] 콘솔 부팅 (`multi-user.target`)
   - [x] Samba 끄기 (smbd·nmbd disabled)
   - [x] PackageKit (inactive. static 유닛이라 요청이 있을 때만 뜬다)
   - ~~Bluetooth 자동 시작 끄기~~ 하지 않기로 함 (2026-10-06). 지금은 inactive, enabled 상태 그대로
   - ~~unattended-upgrades 설치~~ 하지 않기로 함 (2026-10-06). 보안 업데이트는 사람이 `apt upgrade`로 직접
   - [x] zram 스왑 (`/dev/zram0` 2GB)
-  - [ ] log2ram 설치
+  - [x] log2ram 설치 (1.7.2, ops/install-log2ram.sh, 2026-10-06). 재부팅 후 `/var/log`가 log2ram tmpfs(128M 상한, 2.8M 사용)로 마운트됨, log2ram-daily.timer 동작
   - [x] 방열판·팬 케이스
 - [x] Hugo(extended, arm64), Caddy 설치 (Hugo 0.167.0, Caddy 2.11.7 → ~/.local/bin, ops/install-site-tools.sh)
 - [x] site/에 다국어 Hugo 뼈대 + "곧 시작" 페이지 (태그라인 포함)

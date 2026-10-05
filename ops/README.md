@@ -11,6 +11,7 @@ Pi에서 블로그를 띄우는 데 필요한 설정과 설치 기록. 다른 �
 | `systemd/unattendant-caddy.service` | Caddy 상시 실행 |
 | `cloudflared/config.yml` | Named Tunnel `unattendant` ingress (`unattendant.dev` → `127.0.0.1:8080`) |
 | `systemd/unattendant-tunnel.service` | 터널 상시 실행 |
+| `install-log2ram.sh` | log2ram 설치 (Debian 패키지, 기본 설정, sudo, 재부팅 필요) |
 | `install-gitleaks.sh` | gitleaks 설치 + 두 레포의 `core.hooksPath`를 `ops/githooks`로 연결 |
 | `githooks/pre-commit` | 커밋 직전 검사: 금지 파일(`.env`, `*.pem`, `*.key`, `logs/`, `state/drafts/`, `state/approvals/`, SSH 키) + gitleaks 비밀값 패턴 |
 | `test-pre-commit.sh` | 임시 레포에서 가짜 비밀값으로 훅 동작 확인 |
