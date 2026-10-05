@@ -11,6 +11,10 @@ Pi에서 블로그를 띄우는 데 필요한 설정과 설치 기록. 다른 �
 | `systemd/unattendant-caddy.service` | Caddy 상시 실행 |
 | `cloudflared/config.yml` | Named Tunnel `unattendant` ingress (`unattendant.dev` → `127.0.0.1:8080`) |
 | `systemd/unattendant-tunnel.service` | 터널 상시 실행 |
+| `install-gitleaks.sh` | gitleaks 설치 + 두 레포의 `core.hooksPath`를 `ops/githooks`로 연결 |
+| `githooks/pre-commit` | 커밋 직전 검사: 금지 파일(`.env`, `*.pem`, `*.key`, `logs/`, SSH 키) + gitleaks 비밀값 패턴 |
+| `test-pre-commit.sh` | 임시 레포에서 가짜 비밀값으로 훅 동작 확인 |
+| `gitleaks.toml` | gitleaks 규칙. 기본 규칙 중 18개 + 전용 규칙 5개(cloudflared 자격증명·인증서·토큰, 디스코드 봇 토큰·웹훅) |
 
 ## 사이트 빌드
 
@@ -63,10 +67,21 @@ Host github-unattendant-site
 
 Pi를 새로 세우면 키를 새로 만들어 GitHub 레포 Settings → Deploy keys에 다시 등록한다.
 
+## 비밀키 스캐너 (pre-commit)
+
+두 레포 모두 커밋 직전에 `ops/githooks/pre-commit`이 돈다. 걸리면 커밋이 만들어지지 않는다. 구성, 규칙, 실험 기록은 [docs/pre-commit.md](../docs/pre-commit.md)에 있다.
+
+- 기본 규칙 222개를 다 쓰면 Pi 4에서 검사 한 번에 약 35초가 걸려서, 관련 있는 규칙만 골랐다. 지금은 커밋당 4\~6초.
+- 새 서비스 키를 쓰게 되면 gitleaks 기본 config에서 그 서비스 규칙을 찾아 `gitleaks.toml`에 추가한다.
+- 오탐이면 그 줄 끝에 `gitleaks:allow` 주석을 단다. `--no-verify`로 건너뛰지 않는다.
+- 히스토리 전체 검사: `gitleaks git --redact --config ops/gitleaks.toml .` (site는 경로를 `site`로)
+- 확인(2026-10-06): 가짜 Anthropic 키, 디스코드 봇 토큰·웹훅, GitHub PAT, 터널 자격증명 json, cert.pem, SSH 개인 키, `.env` 모두 차단, 평범한 문서는 통과. 기존 히스토리(비공개 3커밋, site 1커밋)는 검출 0건.
+
 ## 버전 기록
 
 | 도구 | 버전 | 설치일 |
 | --- | --- | --- |
 | Hugo extended | 0.167.0 | 2026-10-06 |
 | Caddy | 2.11.7 | 2026-10-06 |
+| gitleaks | 8.30.1 | 2026-10-06 |
 | cloudflared | 2026.9.1 (deb, `/usr/bin`) | 기존 |

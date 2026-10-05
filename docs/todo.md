@@ -40,6 +40,7 @@
 - [x] 외부(LTE)에서 https://unattendant.dev 접속 확인 (2026-10-06)
 - [x] Cloudflare AI 크롤러 허용: Search·Agent·Training 모두 Allow, Bot Preference Sync 끔, AI Labyrinth·Bot fight mode 끔 (2026-10-06)
 - [x] GitHub 레포 2개 연결 (2026-10-06): 공개 Hun0305/unattendant.dev ← site/, 비공개 Hun0305/unattendant ← 나머지. 레포별 deploy key(쓰기 권한), 설정은 ops/README.md
+- [x] pre-commit 비밀키 스캐너 (gitleaks 8.30.1, 두 레포 공통 훅 ops/githooks/pre-commit, 2026-10-06). 기록은 docs/pre-commit.md
 - [ ] 검색엔진 3곳 등록: Google Search Console, 네이버 서치어드바이저, Bing Webmaster Tools (사이트맵 제출)
 - [ ] Anthropic API 키 발급하고 월 사용 한도 설정
 - [ ] 디스코드 서버와 봇 만들기 (#긴급, #승인, #일일요약)

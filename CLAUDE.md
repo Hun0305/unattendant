@@ -16,7 +16,7 @@
 - experiments/ 실험 템플릿과 결과 CSV
 - state/       strategy.md, 백로그, 초안, 승인 상태
 - logs/        JSONL 로그 (git 제외)
-- ops/         systemd 유닛, cloudflared 설정, 설치 스크립트
+- ops/         systemd 유닛, cloudflared 설정, 설치 스크립트, pre-commit 훅
 - 비밀값은 .env에만 둔다. .env, logs/, site/는 비공개 레포 .gitignore에 포함
 - docs/        설계·계획 문서 (아래 참고)
 
@@ -25,6 +25,7 @@
 - docs/hardware-plan.md: 장비 역할 분담, WOL 원격 작업
 - docs/edge-ai-blog-topics.md: 실험 주제(비전·LLM 시리즈)와 측정 원칙
 - docs/reference.md: 참고 자료
+- docs/pre-commit.md: 비밀키 스캐너(gitleaks pre-commit 훅) 구성, 규칙, 실험 기록
 - docs/todo.md: 로드맵(단계·게이트), 단계별 체크리스트, 열린 질문. 언제 무엇을 어디까지 했는지. 작업을 끝내면 여기에 체크할 것
 - docs/와 실제 상태가 다르면 임의로 고치지 말고 먼저 물어볼 것
 - 로컬 docs/가 유일한 기준이다. 온라인 설계 문서(claude.ai artifact)는 2026-10-06부터 갱신하지 않으므로 읽거나 동기화하지 말 것
@@ -60,6 +61,7 @@ scope: site, agent, mcp, bot, dashboard, exp, ops 중 하나 (애매하면 생�
   - 어떻게 확인했는지 (실행한 명령, 결과)
 - 하나의 커밋에는 하나의 논리적 변경만 담는다. 성격이 다르면 나눠서 커밋한다
 - 커밋 전에 git diff로 .env, 토큰, logs/가 포함되지 않았는지 확인한다
+- pre-commit 훅(gitleaks)을 `--no-verify`로 건너뛰지 않는다. 오탐이면 그 줄에 `gitleaks:allow`를 단다
 - 커밋과 push는 내가 요청했을 때만 한다
 
 예시

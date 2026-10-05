@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# 커밋 직전에 비밀값이 섞였는지 검사한다. 걸리면 커밋을 막는다.
+# 연결: ops/install-gitleaks.sh (core.hooksPath → ops/githooks). 두 레포가 같은 훅을 쓴다.
+set -euo pipefail
+
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GITLEAKS="$(command -v gitleaks || echo "$HOME/.local/bin/gitleaks")"
+
+# 1) 올라가면 안 되는 파일 이름 (.gitignore를 우회한 git add -f 대비)
+blocked="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '(^|/)\.env($|\.)|\.pem$|\.key$|(^|/)logs/|(^|/)id_(rsa|ed25519|ecdsa)$' || true)"
+if [ -n "$blocked" ]; then
+  echo "pre-commit: 커밋하면 안 되는 파일이 스테이징돼 있다:" >&2
+  echo "$blocked" | sed 's/^/  /' >&2
+  echo "git restore --staged <파일> 로 빼고 다시 커밋할 것." >&2
+  exit 1
+fi
+
+# 2) 스테이징된 변경 내용에서 비밀값 패턴 검사
+if [ ! -x "$GITLEAKS" ]; then
+  echo "pre-commit: gitleaks가 없다. ops/install-gitleaks.sh 를 실행할 것." >&2
+  exit 1
+fi
+if ! "$GITLEAKS" git --pre-commit --staged --redact --no-banner --log-level warn \
+      --config "$OPS_DIR/gitleaks.toml" .; then
+  echo "pre-commit: 비밀값으로 보이는 내용이 있어 커밋을 막았다 (값은 가려서 출력)." >&2
+  echo "오탐이면 해당 줄 끝에 'gitleaks:allow' 주석을 달 것." >&2
+  exit 1
+fi
