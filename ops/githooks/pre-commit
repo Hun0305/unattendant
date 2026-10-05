@@ -7,7 +7,7 @@ OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GITLEAKS="$(command -v gitleaks || echo "$HOME/.local/bin/gitleaks")"
 
 # 1) 올라가면 안 되는 파일 이름 (.gitignore를 우회한 git add -f 대비)
-blocked="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '(^|/)\.env($|\.)|\.pem$|\.key$|(^|/)logs/|(^|/)id_(rsa|ed25519|ecdsa)$' || true)"
+blocked="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '(^|/)\.env($|\.)|\.pem$|\.key$|(^|/)logs/|(^|/)state/(drafts|approvals)/|(^|/)id_(rsa|ed25519|ecdsa)$' || true)"
 if [ -n "$blocked" ]; then
   echo "pre-commit: 커밋하면 안 되는 파일이 스테이징돼 있다:" >&2
   echo "$blocked" | sed 's/^/  /' >&2

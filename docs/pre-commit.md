@@ -15,7 +15,7 @@
 
 ## 검사 순서
 
-1. **금지 파일 이름**: 스테이징된 파일 중 `.env`, `.env.*`, `*.pem`, `*.key`, `logs/` 아래 파일, SSH 키 파일(`id_rsa` 등)이 있으면 막는다. `.gitignore`를 `git add -f`로 우회한 경우에 대비한 것이다.
+1. **금지 파일 이름**: 스테이징된 파일 중 `.env`, `.env.*`, `*.pem`, `*.key`, `logs/` 아래 파일, `state/drafts/`·`state/approvals/` 아래 파일, SSH 키 파일(`id_rsa` 등)이 있으면 막는다. `.gitignore`를 `git add -f`로 우회한 경우에 대비한 것이다.
 2. **비밀값 패턴**: `gitleaks git --pre-commit --staged --redact`로 스테이징된 변경 내용을 검사한다. 걸린 값은 가려서 출력한다.
 
 오탐이면 그 줄 끝에 `gitleaks:allow` 주석을 단다. `git commit --no-verify`로 훅을 건너뛰지 않는다(CLAUDE.md 커밋 규칙).
@@ -59,7 +59,7 @@ gitleaks 기본 규칙 222개 중 이 프로젝트와 관련 있는 18개를 v8.
 
 | 대상 | 결과 |
 | --- | --- |
-| 비공개 레포 히스토리 (3커밋) | 검출 0건 |
+| 운영 레포 히스토리 (3커밋, 당시 Private) | 검출 0건 |
 | site 레포 히스토리 (1커밋) | 검출 0건 |
 | 커밋 전 작업 트리 전체 (약 106KB) | 검출 0건, 5.2초 |
 
@@ -79,14 +79,16 @@ gitleaks 기본 규칙 222개 중 이 프로젝트와 관련 있는 18개를 v8.
 | SSH 개인 키 | 차단 | 차단 | 4.9초 |
 | `.env` 파일 | 차단 | 차단 | 0.0초 |
 | `logs/` 아래 파일 | 차단 | 차단 | 0.0초 |
+| 미발행 초안 `state/drafts/` | 차단 | 차단 | 0.0초 |
+| 승인 상태 `state/approvals/` | 차단 | 차단 | 0.0초 |
 
-10개 경우 모두 기대대로 나왔다. 터널 UUID는 자격증명 파일 없이는 쓸 수 없는 값이라 통과하는 게 맞다. `.env`와 `logs/`는 1단계(파일 이름)에서 막혀서 gitleaks까지 가지 않는다.
+12개 경우 모두 기대대로 나왔다(초안·승인 상태 2개는 공개 범위 결정 후 추가). 터널 UUID는 자격증명 파일 없이는 쓸 수 없는 값이라 통과하는 게 맞다. `.env`, `logs/`, 초안·승인 상태는 1단계(파일 이름)에서 막혀서 gitleaks까지 가지 않는다.
 
 ## 다시 확인하는 법
 
 ```bash
 ops/test-pre-commit.sh                         # 동작 테스트 (결과 표 출력)
-gitleaks git --redact --config ops/gitleaks.toml .      # 비공개 레포 히스토리 전체
+gitleaks git --redact --config ops/gitleaks.toml .      # 운영 레포 히스토리 전체
 gitleaks git --redact --config ops/gitleaks.toml site   # site 레포 히스토리 전체
 ```
 

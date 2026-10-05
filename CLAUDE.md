@@ -17,7 +17,8 @@
 - state/       strategy.md, 백로그, 초안, 승인 상태
 - logs/        JSONL 로그 (git 제외)
 - ops/         systemd 유닛, cloudflared 설정, 설치 스크립트, pre-commit 훅
-- 비밀값은 .env에만 둔다. .env, logs/, site/는 비공개 레포 .gitignore에 포함
+- 레포 두 개(사이트 레포 Hun0305/unattendant.dev, 운영 레포 Hun0305/unattendant) 모두 공개다
+- 비공개는 비밀값(.env, ~/.cloudflared, ~/.ssh), 원본 로그(logs/), 미발행 초안(state/drafts/, state/approvals/)뿐이다. 모두 운영 레포 .gitignore로 빼고(site/도 포함), Pi와 백업에만 둔다
 - docs/        설계·계획 문서 (아래 참고)
 
 ## 문서 (docs/)

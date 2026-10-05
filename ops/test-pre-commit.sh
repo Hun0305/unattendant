@@ -44,6 +44,8 @@ run "cloudflared cert.pem" BLOCKED d.txt  "$B ARGO TUNNEL TOKEN-----"$'\n'"$(ran
 run "SSH 개인 키"           BLOCKED e.txt  "$B OPENSSH PRIVATE KEY-----"$'\n'"$(rand 70 8 "$AN")"$'\n'"$E OPENSSH PRIVATE KEY-----"
 run ".env 파일"            BLOCKED .env   "FOO=bar"
 run "logs/ 아래 파일"        BLOCKED logs/x.jsonl '{"ok":true}'
+run "미발행 초안"            BLOCKED state/drafts/x.md '초안'
+run "승인 상태"              BLOCKED state/approvals/x.json '{"approved":false}'
 
 echo "통과 $pass / 실패 $fail" | tee -a "$OUT"
 [ "$fail" -eq 0 ]

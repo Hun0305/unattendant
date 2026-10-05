@@ -14,7 +14,7 @@
 | Phase 0 · 기반 준비 | 약 1주 | 도메인 구매(B1), Cloudflare Named Tunnel, Hugo 사이트와 테마, Caddy 서빙. 검색엔진 3곳 등록, AI 크롤러 허용, GitHub 레포 2개 | 1: 도메인으로 사이트가 열리고 첫 글(사람이 직접 쓴 소개글)이 색인된다 |
 | Phase 1 · 반자동 루프 (C3) | 1\~2주 | blogops 핵심 툴(`create_draft`, `check_quality`, `publish_post`, `request_indexing`). Claude Code headless로 일간 루프 검증, 모든 글은 사람이 승인 | 2: AI가 쓴 글 5개 발행, 품질 게이트 통과율 기록 시작 |
 | Phase 2 · 자율 루프 (C2) | 2\~4주 | 자체 루프와 예산 상한, 실험 러너(비전·LLM)와 공통 로거, JSONL 로깅, 운영 대시보드, 디스코드 알림. 주간 보고서 자동 발행, 전략 문서 자동 갱신 | 3: 2주 연속 사람 개입 0회, 품질 첫 통과율 80% 이상 → 승인 모드 해제 |
-| Phase 3 · 완전 자율과 확장 | 이후 상시 | 자동 발행, 공개 운영 현황 페이지, blog-mcp 오픈소스 공개, 커뮤니티 배포. WOL로 작업 장비 연동(양자화·오프로딩), 필요하면 SSD 이전·Cloudflare Pages 대기 미러 | — |
+| Phase 3 · 완전 자율과 확장 | 이후 상시 | 자동 발행, 공개 운영 현황 페이지, blog-mcp를 다른 사람도 쓸 수 있게 패키지로 정리(코드는 처음부터 공개), 커뮤니티 배포. WOL로 작업 장비 연동(양자화·오프로딩), 필요하면 SSD 이전·Cloudflare Pages 대기 미러 | — |
 
 ## 현재 단계: Phase 0 (기반 준비)
 
@@ -39,7 +39,10 @@
   - [x] unattendant-tunnel.service 등록
 - [x] 외부(LTE)에서 https://unattendant.dev 접속 확인 (2026-10-06)
 - [x] Cloudflare AI 크롤러 허용: Search·Agent·Training 모두 Allow, Bot Preference Sync 끔, AI Labyrinth·Bot fight mode 끔 (2026-10-06)
-- [x] GitHub 레포 2개 연결 (2026-10-06): 공개 Hun0305/unattendant.dev ← site/, 비공개 Hun0305/unattendant ← 나머지. 레포별 deploy key(쓰기 권한), 설정은 ops/README.md
+- [x] GitHub 레포 2개 연결 (2026-10-06): 사이트 레포 Hun0305/unattendant.dev ← site/, 운영 레포 Hun0305/unattendant ← 나머지. 레포별 deploy key(쓰기 권한), 설정은 ops/README.md
+- [x] 레포 공개 범위 결정 (2026-10-06): 두 레포 모두 공개, 비밀값·원본 로그·미발행 초안만 비공개 (architecture.md 저장소 섹션)
+- [ ] 운영 레포 Public 전환 (GitHub Settings, 사람이 직접. 지금은 Private)
+- [ ] 두 레포 Secret Scanning + Push Protection 켜기 (Settings → Code security)
 - [x] pre-commit 비밀키 스캐너 (gitleaks 8.30.1, 두 레포 공통 훅 ops/githooks/pre-commit, 2026-10-06). 기록은 docs/pre-commit.md
 - [ ] 검색엔진 3곳 등록: Google Search Console, 네이버 서치어드바이저, Bing Webmaster Tools (사이트맵 제출)
 - [ ] Anthropic API 키 발급하고 월 사용 한도 설정
@@ -53,4 +56,4 @@
 ## 열린 질문
 
 - 승인 모드 해제 기준(2주 무개입, 첫 통과율 80%)은 제안값이다. 운영하면서 조정한다.
-- 레포 공개 범위: 지금은 site/만 공개다. 운영 코드(agent/, experiments/, ops/), 설계 문서, 가공한 운영 로그도 공개할지 정해야 한다. Phase 3의 "blog-mcp 오픈소스 공개"와도 겹친다. agent/ 코드를 쓰기 전에 정하고, 공개 레포에는 pre-commit 비밀키 스캐너를 먼저 붙인다.
+- 가공 운영 지표의 형식과 위치: 원본 로그에서 식별자를 뺀 지표를 공개하기로 했다. 어느 폴더에 어떤 형식(JSONL, CSV)으로 매일 커밋할지는 Phase 2에서 로깅을 만들 때 정한다.

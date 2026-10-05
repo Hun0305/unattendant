@@ -245,23 +245,36 @@ MCP 서버 `blog-mcp`는 5개 영역 20개 툴을 제공한다. 셸 실행 같�
 ### 디렉터리 구조
 
 ```
-~/unattendant/
-├── site/            # Hugo 사이트 (ko /, en /en/) → GitHub 공개 레포
+~/unattendant/       # 운영 레포 Hun0305/unattendant (공개)
+├── site/            # Hugo 사이트 (ko /, en /en/) → 사이트 레포 Hun0305/unattendant.dev (공개, 별도)
 ├── agent/           # Huninn 루프, blogops, MCP 서버, 디스코드 봇, 대시보드
 ├── experiments/     # 실험 템플릿과 결과 CSV
-├── state/           # strategy.md, 백로그, 초안, 승인 상태
-├── logs/            # 툴 호출·결정·비용 로그 (JSONL)
-└── ops/             # systemd 유닛, cloudflared 설정, 설치 스크립트
+├── state/           # strategy.md, 백로그
+│   ├── drafts/      #   미발행 초안 (git 제외)
+│   └── approvals/   #   승인 상태 (git 제외)
+├── logs/            # 툴 호출·결정·비용 원본 로그 JSONL (git 제외)
+├── docs/            # 설계·계획 문서
+└── ops/             # systemd 유닛, cloudflared 설정, 설치 스크립트, pre-commit 훅
 ```
 
-`site/`는 공개 레포로 따로 관리하고, 나머지는 비공개 레포 하나로 묶는다. 비공개 레포의 `.gitignore`에는 `site/`, `logs/`, `.env`를 넣는다. 같은 Pi의 다른 프로젝트 폴더(Pi\_Server, TrueETA 등)는 건드리지 않는다.
+레포는 두 개이고 **둘 다 공개한다**. `site/`는 사이트 레포로 따로 관리하고, 나머지는 운영 레포 하나로 묶는다. 코드는 시스템이 어떻게 동작하는지를, 커밋 히스토리와 가공한 운영 지표는 실제로 그렇게 돌았는지를 보여준다. 코드만 공개하면 "N주 무인 운영"은 확인할 수 없는 주장으로 남는다.
+
+**비공개로 두는 것은 비밀값, 원본 로그, 미발행 초안 세 가지뿐이다.**
+
+| 비공개 대상 | 경로 | 비공개인 이유 |
+| --- | --- | --- |
+| 비밀값 | `.env`, `~/.cloudflared/`, `~/.ssh/` | API 키, 봇 토큰, 터널 자격증명, deploy key |
+| 원본 로그 | `logs/` | 툴 호출 결과나 에러에 키·디스코드 ID 같은 식별자가 섞일 수 있다. 식별자를 뺀 가공 지표만 공개한다 |
+| 미발행 초안 | `state/drafts/`, `state/approvals/` | 품질 게이트와 승인을 아직 통과하지 않은 글과 그 승인 기록 |
+
+이 경로들은 운영 레포 `.gitignore`(`site/`도 포함)로 git에서 빼고, Pi와 백업에만 둔다. `git add -f`로 우회해도 pre-commit 훅이 경로를 보고 막고, 내용 속 키 패턴은 gitleaks가 막는다([pre-commit.md](pre-commit.md)). 같은 Pi의 다른 프로젝트 폴더(Pi\_Server, TrueETA 등)는 건드리지 않는다.
 
 ### 백업
 
 | 대상 | 방식 | 주기 |
 | --- | --- | --- |
-| 글, 실험 결과, 전략 문서 | GitHub에 push (글은 공개 레포, 운영 상태는 비공개 레포) | 발행·변경할 때마다 |
-| 로그 | 압축해서 비공개 레포 또는 SanDisk USB에 보관 | 매일 |
+| 글, 실험 결과, 전략 문서, 코드 | GitHub에 push (글은 사이트 레포, 나머지는 운영 레포) | 발행·변경할 때마다 |
+| 원본 로그, 미발행 초안 | git에 올리지 않고 압축해서 SanDisk USB에 보관 | 매일 |
 | 시스템 전체 | SD카드 이미지 (SSD 이전 전에도 사용) | 달마다 |
 | API 키, 토큰 | git에 올리지 않고 `.env`로만 보관, 별도 안전한 곳에 사본 | 변경할 때 |
 
@@ -314,7 +327,7 @@ SD카드 수명을 위해 디스크 스왑 대신 zram을 쓰고 log2ram을 설�
 | Pi 장애·SD 손상 | git 백업, 외부 업타임 모니터, Cloudflare Pages 대기 미러로 대비한다 |
 | 외부 공격 | Tunnel만 쓰므로 인바운드 포트를 열지 않는다. 대시보드는 접근을 제한하고, MCP에 셸 툴을 두지 않는다 |
 | 실험 중 과열·메모리 부족 | CPU 온도 상한을 넘으면 실험을 중단한다. 실험 서비스에는 메모리 상한(MemoryMax)을 걸어 SSH와 블로그를 지킨다. 블로그 서빙이 우선이다 |
-| 레포 공개로 인한 유출 | 글·사이트는 공개 레포, 로그·상태·설정은 비공개 레포로 분리하고, 커밋 전에 비밀키 스캐너를 돌린다 |
+| 레포 공개로 인한 유출 | 비밀값·원본 로그·미발행 초안은 `.gitignore`로 git에서 뺀다. 커밋 직전 pre-commit 훅이 금지 경로와 키 패턴(gitleaks)을 막고, GitHub Secret Scanning·Push Protection이 push 단계에서 한 번 더 막는다 |
 
 ## Sourcesㅌ
 
