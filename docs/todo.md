@@ -3,7 +3,7 @@
 이 문서는 **언제, 무엇을, 어디까지 했는지**를 다룬다. 로드맵, 단계별 체크리스트, 열린 질문이 여기 있다.
 **무엇을 왜 그렇게 만드는지**(설계, 스택, 툴 스펙, 가드레일)는 [architecture.md](architecture.md)에 있다.
 
-설계 원본: https://claude.ai/code/artifact/c5cf2218-acfe-4130-996d-4204c9854189 (탭 1 설계, 탭 2 시장 조사)
+기준은 로컬 `docs/`다. 이전에 쓰던 온라인 설계 문서(https://claude.ai/code/artifact/c5cf2218-acfe-4130-996d-4204c9854189)는 2026-10-06부터 갱신하지 않는다.
 
 ## 로드맵
 
@@ -28,7 +28,7 @@
   - [ ] unattended-upgrades 설치 (자동 재부팅 없음, 재부팅 필요 시 #일일요약 알림)
   - [x] zram 스왑 (`/dev/zram0` 2GB)
   - [ ] log2ram 설치
-  - [ ] 방열판·팬 케이스 (상태 미확인)
+  - [x] 방열판·팬 케이스
 - [x] Hugo(extended, arm64), Caddy 설치 (Hugo 0.167.0, Caddy 2.11.7 → ~/.local/bin, ops/install-site-tools.sh)
 - [x] site/에 다국어 Hugo 뼈대 + "곧 시작" 페이지 (태그라인 포함)
 - [ ] 글 템플릿 (단일 글·목록 페이지, AI 작성 표시, 영어판 배너). 게이트 1의 첫 글에 필요
