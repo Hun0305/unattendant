@@ -12,8 +12,8 @@
 | 단계 | 기간 | 내용 | 다음 단계로 가는 게이트 |
 | --- | --- | --- | --- |
 | Phase 0 · 기반 준비 | 약 1주 | 도메인 구매(B1), Cloudflare Named Tunnel, Hugo 사이트와 테마, Caddy 서빙. 검색엔진 3곳 등록, AI 크롤러 허용, GitHub 레포 2개 | 1: 도메인으로 사이트가 열리고 첫 글(사람이 직접 쓴 소개글)이 색인된다 |
-| Phase 1 · 반자동 루프 (C3) | 1\~2주 | blogops 핵심 툴(`create_draft`, `check_quality`, `publish_post`, `request_indexing`). Claude Code headless로 일간 루프 검증, 모든 글은 사람이 승인 | 2: AI가 쓴 글 5개 발행, 품질 게이트 통과율 기록 시작 |
-| Phase 2 · 자율 루프 (C2) | 2\~4주 | 자체 루프와 예산 상한, 실험 러너(비전·LLM)와 공통 로거, JSONL 로깅, 운영 대시보드, 디스코드 알림. 주간 보고서 자동 발행, 전략 문서 자동 갱신 | 3: 2주 연속 사람 개입 0회, 품질 첫 통과율 80% 이상 → 승인 모드 해제 |
+| Phase 1 · 반자동 루프 (C3) | 1\~2주 | blogops 핵심 툴(`create_draft`, `check_quality`, `publish_post`, `request_indexing`). Claude Code headless로 일간 루프 검증, 모든 글은 사람이 승인. Pro 구독으로 돌리고 크레딧은 결제하지 않는다 | 2: AI가 쓴 글 5개 발행, 품질 게이트 통과율 기록 시작 |
+| Phase 2 · 자율 루프 (C2) | 2\~4주 | API 크레딧 결제 시작. 자체 루프와 예산 상한, 실험 러너(비전·LLM)와 공통 로거, JSONL 로깅, 운영 대시보드, 디스코드 알림. 주간 보고서 자동 발행, 전략 문서 자동 갱신 | 3: 2주 연속 사람 개입 0회, 품질 첫 통과율 80% 이상 → 승인 모드 해제 |
 | Phase 3 · 완전 자율과 확장 | 이후 상시 | 자동 발행, 공개 운영 현황 페이지, blog-mcp를 다른 사람도 쓸 수 있게 패키지로 정리(코드는 처음부터 공개), 커뮤니티 배포. WOL로 작업 장비 연동(양자화·오프로딩), 필요하면 SSD 이전·Cloudflare Pages 대기 미러 | — |
 
 ## 현재 단계: Phase 0 (기반 준비)
@@ -49,7 +49,7 @@
   - [x] Bing Webmaster Tools: Search Console에서 가져오기 (인증·사이트맵 함께)
   - [x] 네이버 서치어드바이저: HTML 파일 인증(site/static/naver….html), sitemap.xml 제출
   - 인증용 DNS TXT 레코드와 네이버 HTML 파일은 지우지 않는다 (지우면 인증이 풀린다)
-- [ ] Anthropic API 키 발급하고 월 사용 한도 설정
+- ~~Anthropic API 키 발급하고 월 사용 한도 설정~~ Phase 2 준비로 옮김 (2026-10-06). Phase 1은 Pro 구독으로 돌린다 ([claude-billing.md](claude-billing.md))
 - [x] 디스코드 서버와 봇 만들기 (2026-10-06)
   - 서버 `unattendant`, 채널 #긴급 #승인 #일일요약, #긴급에 외부 감시용 웹훅
   - 봇: Public Bot 끔(Install Link None, Guild Install만), Privileged Intents 모두 끔, 권한 View Channels·Send Messages·Embed Links·Attach Files·Read Message History
@@ -61,6 +61,22 @@
 - [ ] 첫 글(사람이 직접 쓴 소개글) 발행
 - [ ] 네이버 서치어드바이저에 RSS(https://unattendant.dev/index.xml) 제출. 글이 0개면 피드에 item이 없어 거부되므로 첫 글 발행 뒤에 한다
 - [ ] 첫 글 색인 확인
+
+## 다음 단계 준비
+
+### Phase 1: Pro 구독으로 돌리기 (크레딧 없음)
+
+- [ ] claude.ai Settings → Usage에서 usage credits가 꺼져 있는지 확인. 켜져 있으면 한도를 넘은 사용량이 API 정가로 결제된다
+- [ ] gitleaks에 Claude Code 구독 토큰 규칙 추가하고 `ops/test-pre-commit.sh`에 경우 추가. 지금 규칙은 API 키(`sk-ant-api03-…`) 형식만 잡는다 (CLAUDE.md 규칙)
+- [ ] `claude setup-token`으로 1년 토큰 발급 → `.env`의 `CLAUDE_CODE_OAUTH_TOKEN`. 토큰은 터미널에만 한 번 출력되니 바로 저장하고, 만료일을 여기 적는다
+- [ ] Huninn 전용 `CLAUDE_CONFIG_DIR`. 사람이 쓰는 `~/.claude`의 hook·플러그인·설정을 Huninn이 읽지 않게 한다 (구독 토큰은 `--bare` 모드에서 쓸 수 없어서 따로 분리해야 한다)
+- [ ] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시. Phase 2의 실제 청구 비용과 섞지 않는다
+
+### Phase 2: API 크레딧으로 바꾸기
+
+- [ ] Anthropic Console: 크레딧 충전, 조직 월 한도, Huninn 전용 워크스페이스와 월 한도, 서비스 계정, 워크스페이스로 한정한 API 키 (절차는 [claude-billing.md](claude-billing.md))
+- [ ] 인증 전환: `.env`의 `CLAUDE_CODE_OAUTH_TOKEN` → `ANTHROPIC_API_KEY`. 구독 토큰은 지운다
+- [ ] Phase 1의 추정 비용과 Phase 2 실측 비용을 비교해 모델(Sonnet 5.5 / Opus 5.5)과 워크스페이스 한도를 정한다
 
 ## 열린 질문
 

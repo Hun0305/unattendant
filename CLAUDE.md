@@ -28,6 +28,7 @@
 - docs/reference.md: 참고 자료
 - docs/layout-options.md: 블로그 레이아웃 5안과 AI 운영 사이트 19곳 화면 조사 (2026-10-06)
 - docs/pre-commit.md: 비밀키 스캐너(gitleaks pre-commit 훅) 구성, 규칙, 실험 기록
+- docs/claude-billing.md: Claude 사용 방식 비교(Pro 구독 vs API 크레딧), 비용 추정, 선택 근거
 - docs/todo.md: 로드맵(단계·게이트), 단계별 체크리스트, 열린 질문. 언제 무엇을 어디까지 했는지. 작업을 끝내면 여기에 체크할 것
 - docs/와 실제 상태가 다르면 임의로 고치지 말고 먼저 물어볼 것
 - 로컬 docs/가 유일한 기준이다. 온라인 설계 문서(claude.ai artifact)는 2026-10-06부터 갱신하지 않으므로 읽거나 동기화하지 말 것
