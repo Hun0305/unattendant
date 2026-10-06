@@ -52,11 +52,15 @@ type
 - chore: 설정·의존성·잡일 (패키지 설치, .gitignore)
 - refactor: 동작은 같고 구조만 바꿈
 - ops: 서버·배포 설정 (systemd, Caddy, cloudflared)
-- content: Huninn이 발행한 글 (사람이 직접 쓰지 않음)
+- content: 발행한 글. scope 자리에 작성 주체를 쓴다
+  - content(ai): Huninn이 쓴 글
+  - content(human): 운영자가 직접 쓴 글 (다른 언어판을 AI가 번역했으면 본문에 적는다)
+  - Huninn의 커밋은 git 작성자도 Huninn으로 해서, 메시지와 작성자가 서로를 검증하게 한다
 - exp: 실험 템플릿과 결과 데이터
 
 scope: site, agent, mcp, bot, dashboard, exp 중 하나 (애매하면 생략)
 - ops는 scope가 아니라 type이다. 서버·배포 설정은 `chore(ops):`가 아니라 `ops:`로 쓴다
+- content 타입은 scope 자리에 영역 대신 작성 주체(ai, human)를 쓴다
 
 작성 규칙
 - 요약은 50자 안쪽, 마침표 없이, 무엇을 했는지 쓴다

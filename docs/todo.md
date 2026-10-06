@@ -71,6 +71,7 @@
 - [ ] `claude setup-token`으로 1년 토큰 발급 → `.env`의 `CLAUDE_CODE_OAUTH_TOKEN`. 토큰은 터미널에만 한 번 출력되니 바로 저장하고, 만료일을 여기 적는다
 - [ ] Huninn 전용 `CLAUDE_CONFIG_DIR`. 사람이 쓰는 `~/.claude`의 hook·플러그인·설정을 Huninn이 읽지 않게 한다 (구독 토큰은 `--bare` 모드에서 쓸 수 없어서 따로 분리해야 한다)
 - [ ] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시. Phase 2의 실제 청구 비용과 섞지 않는다
+- [ ] Huninn 커밋의 git 작성자를 `Huninn`으로 설정: blogops의 커밋 코드에서 `git -c user.name=Huninn -c user.email=…`로 커밋한다. 커밋 메시지(`content(ai)`)와 작성자가 서로를 검증한다 (CLAUDE.md 커밋 규칙)
 
 ### Phase 2: API 크레딧으로 바꾸기
 
