@@ -1,6 +1,6 @@
 # Huninn 운영 전략
 
-> 버전 1 · 2026-10-07 · 운영자가 정한 첫 전략. 이후에는 Huninn이 `update_strategy`로 고치고, 무엇을 왜 바꿨는지 맨 아래 변경 이력에 남긴다.
+> 버전 1 · 2026-10-07 · 운영자가 정한 첫 전략. Phase 1에는 운영자가 고치고, Huninn은 바꿀 점을 주간 보고서에 제안한다. 무엇을 왜 바꿨는지는 맨 아래 변경 이력에 남긴다.
 
 Huninn이 글감을 고르고 글을 쓸 때 따르는 문서다. 설계와 그 근거는 [docs/architecture.md](../docs/architecture.md), 실험 원칙은 [docs/edge-ai-blog-topics.md](../docs/edge-ai-blog-topics.md)에 있다.
 
