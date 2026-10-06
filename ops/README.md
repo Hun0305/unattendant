@@ -80,6 +80,41 @@ Pi를 새로 세우면 키를 새로 만들어 GitHub 레포 Settings → Deploy
 - 히스토리 전체 검사: `gitleaks git --redact --config ops/gitleaks.toml .` (site는 경로를 `site`로)
 - 확인(2026-10-06): 가짜 Anthropic 키, 디스코드 봇 토큰·웹훅, GitHub PAT, 터널 자격증명 json, cert.pem, SSH 개인 키, `.env` 모두 차단, 평범한 문서는 통과. 기존 히스토리(운영 레포 3커밋, site 1커밋)는 검출 0건. 같은 날 Claude Code 구독 토큰 규칙을 추가해 15개 경우 모두 통과, 히스토리(운영 16커밋, site 5커밋) 검출 0건.
 
+## Huninn용 Claude Code 설정 폴더
+
+Phase 1(C3)에서 Huninn은 `claude -p`로 돈다. 사람이 쓰는 `~/.claude`(모델·권한 설정, claude.ai에서 동기화된 스킬, 플러그인, 로그인 정보, 대화 기록)를 Huninn이 함께 읽지 않도록 전용 폴더를 쓴다.
+
+```bash
+install -d -m 700 ~/.config/huninn ~/.config/huninn/claude   # 2026-10-06 생성
+# Phase 1 실행 형태 (예정)
+CLAUDE_CONFIG_DIR=~/.config/huninn/claude CLAUDE_CODE_OAUTH_TOKEN=... claude -p "..." --output-format json
+```
+
+레포 밖에 두는 이유: 이 폴더에 쌓이는 대화 기록은 툴 출력이 그대로 담긴 원본 로그라 비밀값이나 식별자가 섞일 수 있다.
+
+**분리되는 것** (2026-10-06 확인)
+
+| 항목 | 사람용 위치 | Huninn |
+| --- | --- | --- |
+| 설정 (`settings.json`) | `~/.claude/settings.json` | 이 폴더 안 |
+| 로그인 정보, 대화 기록, auto memory | `~/.claude/` | 이 폴더 안 |
+| claude.ai 동기화 스킬, 플러그인 | `~/.claude/skills/`, `~/.claude/plugins/` | 이 폴더 안 (지금 비어 있음) |
+| 전역 설정 `.claude.json` (개인 MCP 서버, 앱 상태) | `~/.claude.json` | 이 폴더 안. 임시 폴더를 `CLAUDE_CONFIG_DIR`로 주고 `claude mcp list`를 돌리니 `.claude.json`이 그 폴더 안에 생기고 `~/.claude.json`은 바뀌지 않았다 |
+
+**분리되지 않는 것**
+
+- **작업 폴더와 그 상위 폴더의 `CLAUDE.md`**: Huninn이 `~/unattendant` 안에서 돌면 사람 개발용 지시인 `~/unattendant/CLAUDE.md`를 읽는다. 예를 들어 "커밋과 push는 내가 요청했을 때만 한다"는 Huninn이 글을 발행하며 커밋하는 일과 충돌한다. Phase 1 `settings.json`에 `claudeMdExcludes: ["/home/hun/unattendant/CLAUDE.md"]`를 넣거나, 작업 폴더를 레포 밖에 둔다.
+- **작업 폴더의 `.claude/settings.json`, `.mcp.json`**: 지금 레포에는 둘 다 없다.
+- **관리 설정 `/etc/claude-code/`**: 이 Pi에는 없다. 상위 폴더(`~`, `/home`, `/`)에도 `CLAUDE.md`, `AGENTS.md`가 없다.
+
+**Phase 1에서 정할 것** (`settings.json`, blogops와 함께)
+
+- 허용 툴: blogops MCP 툴만 허용하고 Bash·파일 쓰기 같은 범용 툴은 끈다 (architecture.md: AI는 정해진 툴로만 시스템을 건드린다).
+- 위의 `claudeMdExcludes`.
+- auto memory: Huninn의 상태는 `state/`에만 두도록 `autoMemoryEnabled: false`를 검토한다.
+- 대화 기록 보존: 기본 30일(`cleanupPeriodDays`). SD카드 쓰기를 줄이려면 `--no-session-persistence`로 끄고, 필요한 것만 `logs/` JSONL에 남긴다.
+- 구독 토큰으로 돌렸을 때 claude.ai 동기화 스킬이 이 폴더에 생기는지 토큰 발급 후 확인한다.
+
 ## 버전 기록
 
 | 도구 | 버전 | 설치일 |
