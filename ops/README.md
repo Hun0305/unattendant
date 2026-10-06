@@ -147,11 +147,22 @@ CLAUDE_CONFIG_DIR=~/.config/huninn/claude CLAUDE_CODE_OAUTH_TOKEN=... \
   --output-format json
 ```
 
-**아직 확인하지 못한 것** (구독 토큰을 발급한 뒤 확인)
+**구독 토큰으로 확인한 것** (2026-10-07)
 
-- `claudeMdExcludes`가 실제로 레포 `CLAUDE.md`를 빼는지
-- 구독 토큰으로 돌렸을 때 claude.ai 동기화 스킬이 이 폴더에 생기는지
-- `--tools ""`와 `--strict-mcp-config`를 같이 줬을 때 blogops 툴만 보이는지
+작업 폴더를 레포(`~/unattendant`)로 두고, 위 옵션 중 `--mcp-config`만 빼고(blogops가 아직 없다) `claude -p`를 한 번 돌렸다. Claude에게 "보이는 지시문의 첫 문장"과 "쓸 수 있는 도구"를 물었다.
+
+| 확인 | 결과 |
+| --- | --- |
+| 구독 토큰 + 전용 폴더로 인증 | `success`, 2.6초 |
+| 레포 `CLAUDE.md`가 빠지는지 | 지시문 `NONE` (`claudeMdExcludes`와 `--setting-sources user` 중 무엇이 막았는지는 나누어 보지 않았다) |
+| 기본 도구가 빠지는지 | 도구 `NONE` (`--tools ""`) |
+| claude.ai 동기화 스킬 | 이 폴더에 `skills/`가 생기지 않았다 |
+| 대화 기록 | `projects/`가 생기지 않았다. `sessions/`는 빈 폴더 |
+| 사람용 hook (ntfy 알림) | 이 폴더 설정을 쓰므로 돌지 않는다 |
+| 비용 기록 필드 | `total_cost_usd`(이번 호출 $0.0079, 추정), `modelUsage`의 모델별 `inputTokens`·`outputTokens`·`cacheReadInputTokens`·`cacheCreationInputTokens`·`costUSD`·`costBasis` |
+
+- **모델을 지정해야 한다.** 지정하지 않았더니 Pro 기본 모델(`claude-sonnet-5-5`)이 답했고, 보조 요청에 `claude-haiku-4-5`도 쓰였다. 실행 스크립트에서 `--model`을 명시한다.
+- **남은 확인**: blogops MCP를 붙였을 때 `--strict-mcp-config`로 blogops 툴만 보이는지는 blogops를 만든 뒤 확인한다.
 
 ## 버전 기록
 

@@ -93,6 +93,8 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 - [ ] 승인 흐름 (위에서 정한 방식으로)
 - [ ] Huninn 실행 스크립트와 `ops/huninn/mcp.json`: `--tools ""`, `--strict-mcp-config`, `--setting-sources user`, `--no-session-persistence` (ops/README.md 실행 옵션). mcp.json에 서버 이름을 `blogops`로 등록해야 settings.json의 허용 규칙(`mcp__blogops`)과 맞는다
 - [ ] 실행 확인: 구독 토큰으로 돌려 레포 `CLAUDE.md`가 빠지는지(`claudeMdExcludes`), blogops 툴만 보이는지
+  - [x] 인증, `CLAUDE.md` 제외, 기본 도구 제외, 동기화 스킬·대화 기록 없음 확인 (2026-10-07, ops/README.md). 모델을 안 정하면 Pro 기본 모델(Sonnet 5.5)이 쓰이니 실행 스크립트에 `--model`을 넣는다
+  - [ ] blogops 툴만 보이는지 (blogops를 만든 뒤)
 - [ ] 하루 한 번 도는 systemd 타이머 (Huninn 서비스, MemoryMax)
 - [ ] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시 (Phase 2 실제 청구와 섞지 않는다)
 - [ ] Huninn 커밋 작성자를 `Huninn`으로: `git -c user.name=Huninn -c user.email=…` (커밋 메시지 `content(ai)`와 서로 검증, CLAUDE.md 커밋 규칙)
