@@ -2,9 +2,10 @@ import os
 import subprocess
 import tempfile
 import unittest
-from datetime import date, timedelta
+from datetime import datetime, timedelta
 
 from blogops import records
+from blogops.config import KST
 from blogops.records import RecordError
 from helpers import make_env
 
@@ -51,8 +52,9 @@ class RecordsTest(unittest.TestCase):
         log = records.git_log(self.config, "ops")
         self.assertEqual(log[0]["subject"], "docs: 첫 커밋")
         self.assertEqual(log[0]["body"], "본문 줄")
-        tomorrow = (date.today() + timedelta(days=1)).isoformat()
-        yesterday = (date.today() - timedelta(days=1)).isoformat()
+        today = datetime.now(KST).date()  # since는 KST 자정 기준이다
+        tomorrow = (today + timedelta(days=1)).isoformat()
+        yesterday = (today - timedelta(days=1)).isoformat()
         self.assertEqual(records.git_log(self.config, "ops", since=tomorrow), [])
         self.assertEqual(len(records.git_log(self.config, "ops", since=yesterday)), 1)
         for kwargs in ({"repo": "other"}, {"since": "어제"}):
