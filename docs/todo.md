@@ -16,7 +16,7 @@
 | Phase 2 · 자율 루프 (C2) | 2\~4주 | API 크레딧 결제 시작. 자체 루프와 예산 상한, 실험 러너(비전·LLM)와 공통 로거, JSONL 로깅, 운영 대시보드, 디스코드 알림. 주간 보고서 자동 발행, 전략 문서 자동 갱신 | 3: 2주 연속 사람 개입 0회, 품질 첫 통과율 80% 이상 → 승인 모드 해제 |
 | Phase 3 · 완전 자율과 확장 | 이후 상시 | 자동 발행, 공개 운영 현황 페이지, blog-mcp를 다른 사람도 쓸 수 있게 패키지로 정리(코드는 처음부터 공개), 커뮤니티 배포. WOL로 작업 장비 연동(양자화·오프로딩), 필요하면 SSD 이전·Cloudflare Pages 대기 미러 | — |
 
-## 현재 단계: Phase 0 (기반 준비)
+## 지난 단계: Phase 0 (기반 준비, 2026-10-06 완료)
 
 - [x] 이름 확정: unattendant.dev, 에이전트 Huninn (탈락 후보 nobodywrites, daysunattended, lefttorun, pilog, unattended.\*, araseo, untended.garden 등과 이름 짓는 과정은 첫 글감)
 - [x] Cloudflare에서 unattendant.dev 구매 (자동 갱신, 계정 2단계 인증. 만료 2027-10-06)
@@ -56,36 +56,58 @@
   - 토큰·웹훅 URL·운영자 ID·채널 ID는 `.env` (600)
   - 확인: REST API로 봇 계정·서버 참여 조회, 채널 3곳 메시지 전송(#긴급 멘션 포함), 웹훅 전송 모두 200
 
-**게이트 1**
+**게이트 1**: 색인 확인만 남아, Phase 1과 병행하며 기다린다 (조건부 통과, 2026-10-06)
 - [x] 도메인으로 사이트가 열린다
 - [x] 첫 글(사람이 직접 쓴 소개글) 발행 (2026-10-06 20:34): /posts/starting-unattendant/, 영어판 /en/posts/starting-unattendant/ (AI 번역 표시)
 - [x] 네이버 서치어드바이저에 RSS(https://unattendant.dev/index.xml) 제출 (2026-10-06, 첫 글 발행 뒤)
-- [ ] 첫 글 색인 확인
+- 첫 글 색인 확인 → Phase 1로 옮김 (기한 2026-10-13)
 
-## 다음 단계 준비
+## 현재 단계: Phase 1 (반자동 루프)
 
-### Phase 1: Pro 구독으로 돌리기 (크레딧 없음)
+Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 발행까지 하고, 모든 글은 사람이 승인한다. Pro 구독으로 돌리고 크레딧은 결제하지 않는다. 에이전트 코드는 `feat/` 브랜치에서 만들고 PR로 합친다.
 
-- [x] claude.ai Settings → Usage에서 usage credits가 꺼져 있는지 확인. 켜져 있으면 한도를 넘은 사용량이 API 정가로 결제된다
-- [x] gitleaks에 Claude Code 구독 토큰 규칙 추가 (2026-10-06): `anthropic-credential`, 테스트 15개 통과. 규칙 추가 전에는 구독 토큰이 그대로 커밋됐다. 실제 토큰 발급 뒤 `.env`를 값을 가린 채 검사해 걸리는지 확인한다 ([pre-commit.md](pre-commit.md) 실험 기록 5)
-- [x] `claude setup-token`으로 1년 토큰 발급 → `.env`의 `CLAUDE_CODE_OAUTH_TOKEN`. 토큰은 터미널에만 한 번 출력되니 바로 저장하고, 만료일을 여기 적는다 (2027-10-06)
-- [x] Huninn 전용 `CLAUDE_CONFIG_DIR` 폴더 (2026-10-06): `~/.config/huninn/claude` (700, 레포 밖). 설정·로그인 정보·대화 기록·스킬·플러그인에 전역 설정 `.claude.json`까지 분리되는 것을 확인. 레포의 `CLAUDE.md`는 분리되지 않는다 ([ops/README.md](../ops/README.md))
-- [x] Huninn용 `settings.json` 작성·설치 (2026-10-06): 원본 `ops/huninn/settings.json`(공개) → `ops/install-huninn-config.sh`로 `~/.config/huninn/claude/`에 복사. blogops MCP 툴만 허용(기본 도구 전부 거부), 레포 `CLAUDE.md` 제외, auto memory 끔, hook 끔. 공식 스키마 검증 통과. 설명은 ops/README.md
-- [x] Huninn 실행 스크립트 (blogops와 함께): `--tools ""`, `--mcp-config ops/huninn/mcp.json --strict-mcp-config`, `--setting-sources user`, `--no-session-persistence`. 구독 토큰 발급 뒤 `claudeMdExcludes`가 실제로 적용되는지, blogops 툴만 보이는지 확인
-- [ ] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시. Phase 2의 실제 청구 비용과 섞지 않는다
-- [ ] Huninn 커밋의 git 작성자를 `Huninn`으로 설정: blogops의 커밋 코드에서 `git -c user.name=Huninn -c user.email=…`로 커밋한다. 커밋 메시지(`content(ai)`)와 작성자가 서로를 검증한다 (CLAUDE.md 커밋 규칙)
+### 먼저 정할 것
 
-### Phase 2: API 크레딧으로 바꾸기
+- [ ] 승인 방식: (a) 디스코드 #승인 버튼을 Phase 1에 만든다 (폰으로 바로 승인) / (b) #승인에는 알림만 보내고 승인은 Pi에서 명령으로 한다 (Phase 1을 가볍게, 버튼은 로드맵대로 Phase 2)
+- [ ] 반려 후 처리: 사유를 받아 다시 고치게 할지, 보류로 둘지
+- [ ] 승인 뒤 본문 변경: 승인을 초안 내용 해시에 묶어, 승인 뒤 바뀌면 다시 승인받게 할지
+
+### Phase 0에서 넘어온 것
+
+- [ ] 첫 글 색인 확인 (기한 2026-10-13): Google Search Console에서 실제 URL 테스트·색인 생성 요청, 네이버 웹페이지 수집 요청. 기한까지 안 되면 Huninn이 첫 글을 내기 전에 원인부터 찾는다
+- [ ] 외부 업타임 모니터(UptimeRobot 등) → 디스코드 #긴급 웹훅. 업타임 기록을 첫날부터 쌓는다
+
+### 준비
+
+- [x] claude.ai usage credits 꺼짐 확인 (한도를 넘으면 API 정가로 결제되는 것을 막는다)
+- [x] gitleaks에 구독 토큰 규칙 `anthropic-credential` 추가, 테스트 15개 통과 ([pre-commit.md](pre-commit.md))
+- [x] `claude setup-token`으로 1년 토큰 발급 → `.env`의 `CLAUDE_CODE_OAUTH_TOKEN` (만료 2027-10-06)
+- [x] Huninn 전용 `CLAUDE_CONFIG_DIR` 폴더 `~/.config/huninn/claude` (700, 레포 밖)
+- [x] Huninn용 `settings.json` 작성·설치: 원본 `ops/huninn/settings.json` → `ops/install-huninn-config.sh` (설명은 [ops/README.md](../ops/README.md))
+- [ ] 발급한 구독 토큰이 gitleaks 규칙에 걸리는지 확인: `.env`를 값을 가린 채 검사한다 (pre-commit.md 실험 기록 5)
+
+### 만들 것
+
+- [ ] `state/` 뼈대: 첫 전략 문서(`strategy.md`), 백로그
+- [ ] blogops 핵심 툴과 MCP 서버: 읽기 툴(전략, 글 목록·검색), `create_draft`, `check_quality`, `request_approval`, `publish_post`, `request_indexing`
+- [ ] 승인 흐름 (위에서 정한 방식으로)
+- [ ] Huninn 실행 스크립트와 `ops/huninn/mcp.json`: `--tools ""`, `--strict-mcp-config`, `--setting-sources user`, `--no-session-persistence` (ops/README.md 실행 옵션). mcp.json에 서버 이름을 `blogops`로 등록해야 settings.json의 허용 규칙(`mcp__blogops`)과 맞는다
+- [ ] 실행 확인: 구독 토큰으로 돌려 레포 `CLAUDE.md`가 빠지는지(`claudeMdExcludes`), blogops 툴만 보이는지
+- [ ] 하루 한 번 도는 systemd 타이머 (Huninn 서비스, MemoryMax)
+- [ ] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시 (Phase 2 실제 청구와 섞지 않는다)
+- [ ] Huninn 커밋 작성자를 `Huninn`으로: `git -c user.name=Huninn -c user.email=…` (커밋 메시지 `content(ai)`와 서로 검증, CLAUDE.md 커밋 규칙)
+
+**게이트 2**
+- [ ] Huninn이 쓴 글 5편 발행 (첫 글 후보: "이름 짓기: unattendant가 되기까지")
+- [ ] 품질 게이트 통과율 기록 시작
+
+## 다음 단계 준비: Phase 2 (API 크레딧으로 바꾸기)
 
 - [ ] Anthropic Console: 크레딧 충전, 조직 월 한도, Huninn 전용 워크스페이스와 월 한도, 서비스 계정, 워크스페이스로 한정한 API 키 (절차는 [claude-billing.md](claude-billing.md))
-- [ ] 인증 전환: `.env`의 `CLAUDE_CODE_OAUTH_TOKEN` → `ANTHROPIC_API_KEY`. 구독 토큰은 지운다
+- [ ] 인증 전환: `.env`의 `CLAUDE_CODE_OAUTH_TOKEN` → `ANTHROPIC_API_KEY`. 구독 토큰은 지우고, `settings.json`의 `forceLoginMethod`를 `console`로 바꾼다
 - [ ] Phase 1의 추정 비용과 Phase 2 실측 비용을 비교해 모델(Sonnet 5.5 / Opus 5.5)과 워크스페이스 한도를 정한다
 
 ## 열린 질문
 
 - 승인 모드 해제 기준(2주 무개입, 첫 통과율 80%)은 제안값이다. 운영하면서 조정한다.
 - 가공 운영 지표의 형식과 위치: 원본 로그에서 식별자를 뺀 지표를 공개하기로 했다. 어느 폴더에 어떤 형식(JSONL, CSV)으로 매일 커밋할지는 Phase 2에서 로깅을 만들 때 정한다.
-- 승인 기능의 단계: Phase 1은 모든 글을 사람이 승인하는데, 승인 수단인 디스코드 봇(#승인 버튼)은 로드맵상 Phase 2다. (a) Phase 1에 봇의 승인 기능만 먼저 만들기 (제안) 또는 (b) Phase 1은 `state/approvals/`를 손으로 고쳐 승인하고 봇은 Phase 2. Phase 1 시작 전에 정한다.
-- 반려 후 처리: #승인에서 반려하면 사유를 받아 다시 고치게 할지, 보류로 둘지 정해져 있지 않다. 승인 기능을 만들 때 정한다.
-- 승인 뒤 본문 변경: 품질 검사 뒤 변경은 거부하지만 승인 뒤 변경 규칙은 없다. 승인 기록을 초안 내용 해시에 묶는 방식을 검토한다. 승인 기능을 만들 때 정한다.
-- 외부 업타임 모니터(UptimeRobot 등): 설계에는 있지만(architecture.md 알림 섹션) 어느 단계 체크리스트에도 없다. 디스코드 #긴급 웹훅은 만들어 뒀다. 사이트가 떠 있으니 Phase 0에 넣어도 된다.
