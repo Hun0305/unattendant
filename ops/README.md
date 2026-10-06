@@ -16,6 +16,8 @@ Pi에서 블로그를 띄우는 데 필요한 설정과 설치 기록. 다른 �
 | `githooks/pre-commit` | 커밋 직전 검사: 금지 파일(`.env`, `*.pem`, `*.key`, `logs/`, `state/drafts/`, `state/approvals/`, SSH 키) + gitleaks 비밀값 패턴 |
 | `test-pre-commit.sh` | 임시 레포에서 가짜 비밀값으로 훅 동작 확인 |
 | `gitleaks.toml` | gitleaks 규칙. 기본 규칙 중 18개 + 전용 규칙 6개(cloudflared 자격증명·인증서·토큰, 디스코드 봇 토큰·웹훅, Claude Code 구독 토큰을 포함한 Anthropic 자격증명 전반) |
+| `huninn/settings.json` | Huninn 전용 Claude Code 설정 원본 (공개). 아래 "Huninn용 Claude Code 설정 폴더" |
+| `install-huninn-config.sh` | 위 원본을 `~/.config/huninn/claude/settings.json`(600)으로 복사 |
 
 ## 사이트 빌드
 
@@ -85,10 +87,10 @@ Pi를 새로 세우면 키를 새로 만들어 GitHub 레포 Settings → Deploy
 Phase 1(C3)에서 Huninn은 `claude -p`로 돈다. 사람이 쓰는 `~/.claude`(모델·권한 설정, claude.ai에서 동기화된 스킬, 플러그인, 로그인 정보, 대화 기록)를 Huninn이 함께 읽지 않도록 전용 폴더를 쓴다.
 
 ```bash
-install -d -m 700 ~/.config/huninn ~/.config/huninn/claude   # 2026-10-06 생성
-# Phase 1 실행 형태 (예정)
-CLAUDE_CONFIG_DIR=~/.config/huninn/claude CLAUDE_CODE_OAUTH_TOKEN=... claude -p "..." --output-format json
+ops/install-huninn-config.sh   # 폴더(700) 만들고 레포 원본 settings.json을 복사(600)
 ```
+
+원본은 레포 `ops/huninn/settings.json`에 두고(공개, 비밀값 없음) 설치 스크립트로 복사한다. 로그인 정보·대화 기록·기억은 레포 밖 이 폴더에만 생긴다. Pi를 새로 세우면 스크립트만 다시 돌리면 된다.
 
 레포 밖에 두는 이유: 이 폴더에 쌓이는 대화 기록은 툴 출력이 그대로 담긴 원본 로그라 비밀값이나 식별자가 섞일 수 있다.
 
@@ -107,13 +109,49 @@ CLAUDE_CONFIG_DIR=~/.config/huninn/claude CLAUDE_CODE_OAUTH_TOKEN=... claude -p 
 - **작업 폴더의 `.claude/settings.json`, `.mcp.json`**: 지금 레포에는 둘 다 없다.
 - **관리 설정 `/etc/claude-code/`**: 이 Pi에는 없다. 상위 폴더(`~`, `/home`, `/`)에도 `CLAUDE.md`, `AGENTS.md`가 없다.
 
-**Phase 1에서 정할 것** (`settings.json`, blogops와 함께)
+### settings.json (2026-10-06 작성)
 
-- 허용 툴: blogops MCP 툴만 허용하고 Bash·파일 쓰기 같은 범용 툴은 끈다 (architecture.md: AI는 정해진 툴로만 시스템을 건드린다).
-- 위의 `claudeMdExcludes`.
-- auto memory: Huninn의 상태는 `state/`에만 두도록 `autoMemoryEnabled: false`를 검토한다.
-- 대화 기록 보존: 기본 30일(`cleanupPeriodDays`). SD카드 쓰기를 줄이려면 `--no-session-persistence`로 끄고, 필요한 것만 `logs/` JSONL에 남긴다.
-- 구독 토큰으로 돌렸을 때 claude.ai 동기화 스킬이 이 폴더에 생기는지 토큰 발급 후 확인한다.
+Claude Code 2.1.289의 공식 설정 스키마(json.schemastore.org/claude-code-settings.json)로 검증했다.
+
+| 설정 | 값 | 이유 |
+| --- | --- | --- |
+| `permissions.allow` | `mcp__blogops` | Huninn은 blogops MCP 툴로만 시스템을 건드린다 (architecture.md). 발행 같은 gated 툴의 조건 검사는 blogops 서버가 한다 |
+| `permissions.deny` | Bash, Read, Edit, Write, NotebookEdit, Glob, Grep, WebFetch, WebSearch, Agent | 셸이 열리면 `publish_post`의 품질 검사·승인을 건너뛰고 직접 커밋할 수 있다. Read도 막아 `.env`를 읽지 못하게 한다. 읽기 전용 도구는 평소 허락 없이 실행되므로 명시적으로 막는다 |
+| `permissions.defaultMode` | `dontAsk` | 허용 목록에 없는 툴은 묻지 않고 거부한다 (무인 실행이라 물어볼 사람이 없다) |
+| `disableBypassPermissionsMode`, `disableAutoMode` | `disable` | 실행 옵션으로 권한 검사를 끄는 모드를 켤 수 없게 한다 |
+| `claudeMdExcludes` | 레포의 `CLAUDE.md` 전부 | 사람 개발 세션용 지시("커밋과 push는 요청했을 때만" 등)를 Huninn이 읽지 않게 한다. Huninn의 지시는 시스템 프롬프트와 `state/strategy.md`로 준다 |
+| `autoMemoryEnabled` | `false` | Huninn의 상태는 레포 `state/`에만 둔다. 보이지 않는 기억이 있으면 판단을 추적할 수 없다 |
+| `cleanupPeriodDays` | `7` | 실행 옵션으로 대화 기록 저장을 끄지만, 혹시 남은 기록은 7일 뒤 지운다 (최소 1) |
+| `includeGitInstructions` | `false` | git은 blogops가 다룬다. Claude Code 기본 git 지시가 필요 없다 |
+| `disableAllHooks` | `true` | 훅으로 셸 명령이 실행될 여지를 없앤다. 툴 호출 기록은 blogops가 남긴다 |
+| `enableAllProjectMcpServers` | `false` | 레포에 `.mcp.json`이 생겨도 자동으로 붙지 않게 한다 |
+| `forceLoginMethod` | `claudeai` | Phase 1은 Pro 구독 토큰으로만 돈다. **Phase 2에 API 키로 바꿀 때 `console`로 고친다** |
+
+### 실행 옵션 (Phase 1 실행 스크립트에 넣을 것)
+
+settings.json과 두 겹으로 막는다. blogops를 만들 때 실행 스크립트로 확정한다.
+
+```bash
+# --tools ""                       기본 도구를 아예 싣지 않는다
+# --mcp-config … --strict-mcp-config  blogops MCP만 연결한다
+# --setting-sources user           레포에 .claude/settings.json이 생겨도 무시한다
+# --no-session-persistence         대화 기록을 디스크에 남기지 않는다
+# --output-format json             total_cost_usd를 비용 로그에 기록한다
+CLAUDE_CONFIG_DIR=~/.config/huninn/claude CLAUDE_CODE_OAUTH_TOKEN=... \
+  claude -p "..." \
+  --tools "" \
+  --mcp-config ops/huninn/mcp.json --strict-mcp-config \
+  --setting-sources user \
+  --permission-mode dontAsk \
+  --no-session-persistence \
+  --output-format json
+```
+
+**아직 확인하지 못한 것** (구독 토큰을 발급한 뒤 확인)
+
+- `claudeMdExcludes`가 실제로 레포 `CLAUDE.md`를 빼는지
+- 구독 토큰으로 돌렸을 때 claude.ai 동기화 스킬이 이 폴더에 생기는지
+- `--tools ""`와 `--strict-mcp-config`를 같이 줬을 때 blogops 툴만 보이는지
 
 ## 버전 기록
 

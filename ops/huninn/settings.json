@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "allow": [
+      "mcp__blogops"
+    ],
+    "deny": [
+      "Bash",
+      "Read",
+      "Edit",
+      "Write",
+      "NotebookEdit",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "Agent"
+    ],
+    "disableBypassPermissionsMode": "disable",
+    "disableAutoMode": "disable"
+  },
+  "claudeMdExcludes": [
+    "/home/hun/unattendant/CLAUDE.md",
+    "/home/hun/unattendant/**/CLAUDE.md"
+  ],
+  "autoMemoryEnabled": false,
+  "cleanupPeriodDays": 7,
+  "includeGitInstructions": false,
+  "disableAllHooks": true,
+  "enableAllProjectMcpServers": false,
+  "forceLoginMethod": "claudeai"
+}
