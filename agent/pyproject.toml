@@ -1,0 +1,9 @@
+[project]
+name = "blogops"
+version = "0.1.0"
+description = "Huninn이 unattendant.dev를 운영할 때 쓰는 툴 라이브러리와 MCP 서버"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+review = "blogops.review:main"
