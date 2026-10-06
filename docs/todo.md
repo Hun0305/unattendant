@@ -111,6 +111,20 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 - [x] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시 (Phase 2 실제 청구와 섞지 않는다) → 2026-10-07 `cycle.py`가 `logs/cycles.jsonl`에 남긴다(모델별 사용량 포함). `get_week_summary`가 주간 합계를 쓴다
 - [ ] Huninn 커밋 작성자를 `Huninn`으로: `git -c user.name=Huninn -c user.email=…` (커밋 메시지 `content(ai)`와 서로 검증, CLAUDE.md 커밋 규칙)
 
+### 사이트
+
+- [ ] 상태 띠 링크 문구 "라즈베리파이 한 대에서 돌아갑니다 →" 고치기 (`site/i18n/ko.toml`의 `bandLink`, 영어판 `en.toml` "Running on a single Raspberry Pi"도 함께). 새 문구는 정해지지 않았다
+- [ ] 블로그 페이지 디자인 다듬기: 사람이 읽고 싶은 화면으로. 홈 글 목록, 글 본문(글꼴, 글 폭, 줄 간격, 제목 위계, 표·코드·그림), 모바일, 다크 모드를 본다. 레이아웃 구조는 E안 그대로 ([layout-options.md](layout-options.md))
+- [ ] (친구 피드백, 2026-10-07) 어떤 AI 모델을 쓰고 자동화 파이프라인을 어떻게 짰는지 명시. 지금 첫 글 "두뇌" 부분은 "Claude. 처음에는 Claude Code를 스크립트로…"뿐이다
+  - 모델: 정확한 모델 이름과 버전, effort, 인증 방식(Phase 1 Pro 구독 → Phase 2 API). 모델은 실행 스크립트 기본값 `claude-sonnet-5-5`로 정해졌다(`agent/blogops/cycle.py`, 2026-10-07)
+  - 파이프라인: systemd 타이머 → `claude -p` → blogops MCP 툴(초안 → 품질 검사 → 승인 요청 → 발행) → Hugo 빌드 → 공개 URL 확인 → 색인 요청. 그림 하나로 보여준다
+  - 어디에: 첫 글 "두뇌" 부분 보강(수정일 표시), 소개 페이지, 글마다 쓴 모델을 글 하단에 표시할지 검토
+- [ ] (친구 피드백, 2026-10-07) 첫 글 성공 기준 1 "사람 개입 없이 4주 이상 연속 운영"에서 무인 운영의 기준을 정확히 정의
+  - 무엇이 "개입"인지: 승인·반려, 초안 수정, 서비스 재시작, 설정·코드 수정, 보안 업데이트(`apt upgrade`), 토큰 갱신 같은 경우를 하나씩 정한다. 설계 문서는 지금 "수동 승인을 제외한 수동 조작·수정"뿐이다
+  - 4주를 언제부터 세는지: 승인 모드 해제(게이트 3) 뒤부터인지, 개입이 한 번 생기면 0일부터 다시 세는지
+  - 장애가 났지만 자동 복구된 날은 무인 운영일로 치는지
+  - 정한 정의를 첫 글(수정일 표시), 숫자 탭(`/numbers/`), architecture.md 지표 표에 같은 문장으로 맞춘다. 개입 로그도 이 정의대로 기록한다
+
 **게이트 2**
 - [ ] Huninn이 쓴 글 5편 발행 (첫 글 후보: "이름 짓기: unattendant가 되기까지")
 - [ ] 품질 게이트 통과율 기록 시작
