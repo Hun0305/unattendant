@@ -94,17 +94,17 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - [x] 2단계 `records`(공개 기록 읽기, git log, 발행된 글 목록), `quality`(품질 검사), 테스트 39개 (2026-10-07). 실제 문서·사이트로 검사 1회 4.5초
   - [x] 3단계 `publish`, `backlog`, 테스트 46개 (2026-10-07). 실제 사이트 사본으로 품질 검사 → 승인 → 발행까지 끝까지 확인 (발행 4.6초, pre-commit 훅 통과)
   - [x] 4단계 `notify`(디스코드), `indexnow`, `log`(사이클당 툴 호출 상한), 테스트 54개 (2026-10-07). 실제 디스코드 3채널 전송 확인. IndexNow는 키 파일을 사이트에 배포한 뒤 실제 요청
-  - [ ] 5단계 MCP 서버와 실행 스크립트: 초안 작성 완료, 실제 실행 시험만 남음
-    - [x] 작성 (2026-10-07): MCP 서버(툴 18개), 하루 사이클 실행(`cycle.py`, `run-cycle.sh`), 시스템 프롬프트(`ops/huninn/prompt.md`), 테스트 69개 통과. MCP 프로토콜로 툴 목록·호출 확인
-    - [ ] 실제 실행 시험: Pi에서 발행을 막고 한 번 돌려 초안 생성과 #승인 요청까지 확인한다. 2026-10-07 01:55 첫 시험은 `create_draft`까지 간 것만 확인했고 결과는 못 봤다
-      - 실행: `cd ~/unattendant-worktrees/blogops && BLOGOPS_NO_PUBLISH=1 BLOGOPS_SITE_DIR=~/unattendant/site BLOGOPS_ENV_FILE=~/unattendant/.env ops/huninn/run-cycle.sh` (먼저 `--show`로 명령만 볼 수 있다)
-      - 기대 결과: 끝에 `cycle-… 완료`가 출력되고, `logs/cycles.jsonl` 마지막 줄의 `is_error`가 false, `ops/huninn/review list`에 승인 대기 초안 1개, 디스코드 #승인과 #일일요약에 메시지
-      - 시험 전 정리: 첫 시험이 남긴 초안(`review list`)을 지운다. 승인 대기로 남아 있으면 새 승인 요청이 막힌다
+  - [x] 5단계 MCP 서버와 실행 스크립트 (2026-10-07, PR #1로 main에 squash merge)
+    - [x] 작성: MCP 서버(툴 18개), 하루 사이클 실행(`cycle.py`, `run-cycle.sh`), 시스템 프롬프트(`ops/huninn/prompt.md`), 테스트 69개 통과. MCP 프로토콜로 툴 목록·호출 확인
+    - [x] 실제 실행 시험 (작업실 `~/unattendant`, 발행 막음): `BLOGOPS_NO_PUBLISH=1 ops/huninn/run-cycle.sh` (먼저 `--show`로 명령만 볼 수 있다. venv는 `agent/README.md` 설치 참고)
+      - 01:55 첫 시험: 초안 생성 직후 Pro 세션 한도에 걸려 실패(32초, 툴 7회, 추정 $0.11). #긴급 실패 알림은 정상. 개발 세션과 한도를 나눠 쓰는 문제가 실제로 나왔다
+      - 03:47 두 번째: 성공. 41초, 툴 10회(오류 0), 추정 $0.14. 글감 `gitleaks-on-pi`로 초안을 쓰고 품질 검사 첫 시도 통과 → #승인 요청 → #일일요약. 허용되지 않은 도구 시도 0회
+      - 시험 초안 `20261007-gitleaks-on-pi`는 작업실에만 있다(승인 대기). 백로그 변경은 되돌렸다. 매장을 만들면 상태는 새로 시작한다
 - [ ] 승인 흐름 (위에서 정한 방식으로)
 - [x] Huninn 실행 스크립트와 `ops/huninn/mcp.json`: `--tools ""`, `--strict-mcp-config`, `--setting-sources user`, `--no-session-persistence` (ops/README.md 실행 옵션). mcp.json에 서버 이름을 `blogops`로 등록해야 settings.json의 허용 규칙(`mcp__blogops`)과 맞는다 → 2026-10-07 `ops/huninn/run-cycle.sh`(`agent/blogops/cycle.py`). `--model`, `--system-prompt`(prompt.md), `--permission-mode dontAsk`를 더하고 레포 밖 작업 폴더에서 돈다
-- [ ] 실행 확인: 구독 토큰으로 돌려 레포 `CLAUDE.md`가 빠지는지(`claudeMdExcludes`), blogops 툴만 보이는지
+- [x] 실행 확인: 구독 토큰으로 돌려 레포 `CLAUDE.md`가 빠지는지(`claudeMdExcludes`), blogops 툴만 보이는지
   - [x] 인증, `CLAUDE.md` 제외, 기본 도구 제외, 동기화 스킬·대화 기록 없음 확인 (2026-10-07, ops/README.md). 모델을 안 정하면 Pro 기본 모델(Sonnet 5.5)이 쓰이니 실행 스크립트에 `--model`을 넣는다
-  - [ ] blogops 툴만 보이는지 (blogops를 만든 뒤)
+  - [x] blogops 툴만 보이는지 (2026-10-07 5단계 실행 시험): blogops 툴만 불렀고 허용되지 않은 도구 시도 0회
 - [ ] 운영 폴더 분리 (docs/blogops.md 7절): 두 레포를 `~/unattendant-live`에 clone, 훅 연결, 비밀값을 `~/.config/huninn/huninn.env`로, Caddy 경로 변경과 재시작(sudo, 운영자), CLAUDE.md·architecture.md에 반영
 - [ ] 하루 한 번 도는 systemd 타이머: 매일 14:00 KST (Huninn 서비스, MemoryMax)
 - [ ] IndexNow 실제 사용 (뒤로 미룸, 2026-10-07 결정): 키 파일 `site/static/<키>.txt`를 사이트 레포에 커밋·배포한 뒤 첫 소개글로 실제 색인 요청. 그 전까지 `request_indexing`은 키가 없다고 알리고 건너뛴다
