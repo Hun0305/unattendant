@@ -10,7 +10,7 @@ blogops의 만드는 순서 1~5단계 코드는 다 썼고 테스트 69개가 �
 
 ## 브랜치 상태
 
-- 브랜치: `feat/blogops`, main(`a4eff73`) 위에 커밋 11개. GitHub에 push돼 있다. PR은 아직 없다.
+- 브랜치: `feat/blogops`, main(`a4eff73`) 위에 커밋 11개. 2026-10-07 새벽에 PR로 main에 squash merge했다. 이 보고서도 그때 같이 들어갔다.
 - 변경: 파일 41개, 약 3,800줄 추가.
 - 테스트: 69개 통과. 클라우드 세션에서 TZ=UTC와 Asia/Seoul로 돌렸고, Pi와 같은 버전의 hugo 0.167.0과 gitleaks 8.30.1이 필요한 테스트까지 포함했다.
 
@@ -106,13 +106,16 @@ todo에서 체크하지 않은 것 중 사실상 끝난 것이 있다. 체크할
 
 ## 오늘 할 일 (순서대로)
 
-1. **Pi 작업 트리 맞추기**
+1. **Pi 맞추기**: blogops는 main에 합쳐졌고 원격 `feat/blogops` 브랜치는 지웠다.
    ```bash
+   cd ~/unattendant && git pull --ff-only          # 작업실(main)
    cd ~/unattendant-worktrees/blogops
    git status   # 바뀐 게 없거나 state/backlog.json만 있으면 정상
-   git fetch origin feat/blogops && git reset --hard origin/feat/blogops
+   git fetch origin main && git reset --hard origin/main
    ```
-   `logs/`, `state/drafts/`, `agent/.venv`는 git이 다루지 않아서 그대로 남는다.
+   - 작업 트리의 로컬 `feat/blogops`가 main과 같아진다.
+   - `logs/`, `state/drafts/`, `agent/.venv`는 git이 다루지 않아서 그대로 남는다. 그래서 시험은 이 작업 트리에서 하면 된다.
+   - 6단계는 새 브랜치(`feat/` 또는 `ops` 작업)에서 시작한다.
 2. **첫 시험 사이클 결과 보기**
    - `logs/cycles.jsonl` 마지막 줄과 디스코드 #승인·#긴급을 본다.
    - 시험 사이클도 Pi 세션과 같은 Pro 한도를 써서 중간에 멈췄을 수 있다. 그랬다면 #긴급에 실패 알림이 와 있다.
@@ -123,9 +126,9 @@ todo에서 체크하지 않은 것 중 사실상 끝난 것이 있다. 체크할
    ```
    한도가 리셋된 뒤에, 사람이 Claude Code를 많이 쓰지 않을 때 돌린다. 둘이 같은 한도를 나눠 쓴다.
 5. **blogops 툴만 보이는지 확인**: todo "실행 확인"의 남은 항목.
-6. 위가 끝나면 todo 5단계를 체크하고, PR을 만들지 6단계(운영 위치 분리)를 이 브랜치에서 이어갈지 정한다.
+6. 위가 끝나면 todo 5단계를 체크하고 6단계(운영 위치 분리)를 시작한다.
 
 ## 정할 것
 
 - 위 "설계와 다른 점"을 docs/blogops.md에 반영할지. 특히 `state/` 변경 push 방식은 6단계 전에 정해야 한다.
-- 이 보고서를 지울지, 일부를 PR 설명으로 옮길지.
+- 이 보고서를 지울지 (main에 들어가 있다).
