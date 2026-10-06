@@ -91,7 +91,7 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 - [x] `state/` 뼈대 (2026-10-07, `feat/blogops` 0fb87d5): `state/strategy.md` 전략 1판(하루 1편 목표, 1인칭 "~다"체), `state/backlog.json` 글감 7개. `state/drafts/`, `state/approvals/`는 공개하지 않으므로 blogops가 처음 쓸 때 만든다
 - [ ] blogops 핵심 툴과 MCP 서버 (설계 docs/blogops.md, 만드는 순서 9절)
   - [x] 1단계 `store`(초안·승인 기록, 해시, 상태 계산)와 사람용 `review` 명령, 테스트 21개 (2026-10-07)
-  - [ ] 2단계 `records`(공개 기록 읽기, git log), `quality`(품질 검사)
+  - [x] 2단계 `records`(공개 기록 읽기, git log, 발행된 글 목록), `quality`(품질 검사), 테스트 39개 (2026-10-07). 실제 문서·사이트로 검사 1회 4.5초
   - [ ] 3단계 `publish`  · 4단계 `notify`, `indexnow`, `log`  · 5단계 MCP 서버와 실행 스크립트
 - [ ] 승인 흐름 (위에서 정한 방식으로)
 - [ ] Huninn 실행 스크립트와 `ops/huninn/mcp.json`: `--tools ""`, `--strict-mcp-config`, `--setting-sources user`, `--no-session-persistence` (ops/README.md 실행 옵션). mcp.json에 서버 이름을 `blogops`로 등록해야 settings.json의 허용 규칙(`mcp__blogops`)과 맞는다

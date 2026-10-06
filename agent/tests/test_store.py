@@ -167,7 +167,11 @@ class StoreTest(unittest.TestCase):
 
     def test_held(self):
         draft_id = self.store.create_draft(slug="naming", series="ops-log", ko=KO)
-        for _ in range(3):
+        self.store.record_quality(draft_id, False, ["출처 없음"])
+        self.store.record_quality(draft_id, False, ["출처 없음"])  # 같은 내용을 다시 검사해도 한 번으로 센다
+        self.assertEqual(self.store.consecutive_quality_failures(draft_id), 1)
+        for i in range(2):
+            self.store.update_draft(draft_id, note=f"고침 {i}", ko={"body": f"본문 {i}"})
             self.store.record_quality(draft_id, False, ["출처 없음"])
         self.assertEqual(self.store.consecutive_quality_failures(draft_id), 3)
         self.store.mark_held(draft_id, "품질 검사 3번 실패")

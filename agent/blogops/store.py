@@ -263,12 +263,13 @@ class Store:
         return record
 
     def consecutive_quality_failures(self, draft_id: str) -> int:
-        count = 0
+        # 마지막 통과 이후 실패한 서로 다른 버전(해시) 수. 같은 내용을 다시 검사해도 늘지 않는다
+        failed = set()
         for record in reversed(self.meta(draft_id).get("quality", [])):
             if record["passed"]:
                 break
-            count += 1
-        return count
+            failed.add(record["hash"])
+        return len(failed)
 
     def record_approval_request(self, draft_id: str) -> dict:
         with self._lock():
