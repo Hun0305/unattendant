@@ -87,7 +87,7 @@ B를 고른 이유: Phase 1은 글 5개 정도에 모든 글을 사람이 승인
 
 1. **usage credits를 끈다.** claude.ai Settings → Usage의 usage credits가 켜져 있으면 한도를 넘은 사용량이 API 정가로 결제된다. "크레딧을 쓰지 않는다"는 결정은 이 설정이 꺼져 있어야 지켜진다.
 2. **토큰은 `claude setup-token`으로 발급해 `.env`의 `CLAUDE_CODE_OAUTH_TOKEN`에 둔다.** 1년 뒤 만료되고, 갱신에는 브라우저 인증이 필요하다. 만료일을 todo.md에 적는다.
-3. **gitleaks 규칙을 먼저 추가한다.** 지금 규칙은 API 키(`sk-ant-api03-…`) 형식만 잡는다. 구독 토큰 형식은 발급 후 앞부분만 확인해 규칙과 `ops/test-pre-commit.sh` 경우를 추가한다 (CLAUDE.md 규칙).
+3. **gitleaks 규칙을 먼저 추가한다.** 2026-10-06에 `anthropic-credential` 규칙을 추가했다. 기본 규칙은 API 키·Admin 키 형식만 잡아서 구독 토큰이 그대로 커밋됐다. 발급 뒤 `.env`를 값을 가린 채 검사해 실제 토큰이 걸리는지 확인한다 ([pre-commit.md](pre-commit.md)).
 4. **Huninn 전용 `CLAUDE_CONFIG_DIR`을 쓴다.** 구독 토큰은 `--bare` 모드에서 읽히지 않아서, 그대로 두면 Huninn이 사람이 쓰는 `~/.claude`의 hook·플러그인·설정을 함께 읽는다.
 5. **비용은 추정치로 기록한다.** `total_cost_usd`를 사이클마다 남기되 `estimate: true`로 표시해 Phase 2의 실제 청구 비용과 섞지 않는다.
 6. **사이클당 툴 호출 상한은 그대로 둔다.** 구독 한도 안이라 돈은 더 나가지 않지만, 루프가 꼬이면 사람이 쓸 한도를 다 쓴다. 한도에 걸려 멈추면 #긴급으로 알린다.

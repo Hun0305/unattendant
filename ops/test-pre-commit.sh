@@ -35,7 +35,10 @@ run() {  # run <이름> <기대(COMMITTED|BLOCKED)> <파일> <내용>
 
 printf '| 경우 | 기대 | 결과 | 시간 | 판정 |\n| --- | --- | --- | --- | --- |\n' | tee "$OUT"
 run "평범한 문서 (터널 UUID 포함)" COMMITTED ok.md "측정 메모. tokens/s, TunnelID bd749433-fd2f-48ba-b325-ff2115f1a40d"
+run "문서 속 키 형식 설명"     COMMITTED fmt.md "API 키는 \`sk-ant-api03-…\`, 구독 토큰은 \`sk-ant-oat01-…\` 형식이다. 예시: sk-ant-oat01-$(printf 'x%.0s' $(seq 32))"
 run "Anthropic API 키"     BLOCKED a.py   "KEY = \"sk-ant-api03-$(rand 93 1 "${AN}-_")AA\""
+run "Claude Code 구독 토큰"  BLOCKED run.sh "export CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-$(rand 95 9 "${AN}-_")AA"
+run "구독 토큰 (로그에 섞임)"  BLOCKED out.txt "request failed: 401 for sk-ant-oat01-$(rand 95 10 "${AN}-_")AA, retrying"
 run "디스코드 봇 토큰"       BLOCKED b.py   "TOKEN = \"MTI4NzY1NDMyMTA5ODc2NTQzMg.GaBcDe.$(rand 38 2 "$AN")\""
 run "디스코드 웹훅 URL"      BLOCKED h.py   "URL = \"https://discord.com/api/webhooks/1287654321098765432/$(rand 68 3 "$AN")\""
 run "GitHub PAT"           BLOCKED g.py   "T = \"gh""p_$(rand 36 4 "$AN")\""

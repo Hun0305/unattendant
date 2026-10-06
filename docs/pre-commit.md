@@ -22,16 +22,17 @@
 
 ## 규칙
 
-gitleaks 기본 규칙 222개 중 이 프로젝트와 관련 있는 18개를 v8.30.1의 `config/gitleaks.toml`에서 그대로 옮기고, 전용 규칙 5개를 더했다. 기본 규칙을 전부 쓰지 않는 이유는 아래 "실험 기록 1"에 있다.
+gitleaks 기본 규칙 222개 중 이 프로젝트와 관련 있는 18개를 v8.30.1의 `config/gitleaks.toml`에서 그대로 옮기고, 전용 규칙 6개를 더했다. 기본 규칙을 전부 쓰지 않는 이유는 아래 "실험 기록 1"에 있다.
 
 | 출처 | 규칙 |
 | --- | --- |
 | 기본 (18) | `anthropic-api-key`, `anthropic-admin-api-key`, `openai-api-key`, `cloudflare-api-key`, `cloudflare-global-api-key`, `cloudflare-origin-ca-key`, `discord-api-token`, `discord-client-id`, `discord-client-secret`, `github-pat`, `github-fine-grained-pat`, `github-oauth`, `github-app-token`, `github-refresh-token`, `gcp-api-key`, `private-key`, `jwt`, `generic-api-key` |
-| 전용 (5) | `cloudflared-tunnel-secret`: 터널 자격증명 json의 TunnelSecret 값 |
+| 전용 (6) | `cloudflared-tunnel-secret`: 터널 자격증명 json의 TunnelSecret 값 |
 | | `cloudflared-cert`: `~/.cloudflared/cert.pem`의 ARGO TUNNEL TOKEN 헤더 |
 | | `cloudflared-tunnel-token`: 대시보드 관리형 터널의 실행 토큰 |
 | | `discord-bot-token`: 디스코드 봇 토큰 (기본 `discord-api-token`은 봇 토큰 형식을 잡지 못한다) |
 | | `discord-webhook-url`: 디스코드 웹훅 URL (업타임 모니터 알림용) |
+| | `anthropic-credential`: `sk-ant-<종류>-…` 형식의 Anthropic 자격증명 전반. Claude Code 구독 토큰(`claude setup-token`)을 잡으려고 추가했다. 기본 규칙 두 개는 API 키(`sk-ant-api03-`)와 Admin 키(`sk-ant-admin01-`) 형식만 잡는다. 종류와 길이를 몰라도 걸리게 넓게 잡고, 자리표시자(`xxxx…`)는 entropy 3.5 미만이라 걸러진다 |
 
 새 서비스의 키를 쓰게 되면(예: Google Search Console 서비스 계정, UptimeRobot API 키) gitleaks 기본 config에서 그 서비스 규칙을 찾아 `ops/gitleaks.toml`에 추가하고, `ops/test-pre-commit.sh`에 경우를 하나 더한다.
 
@@ -51,7 +52,7 @@ gitleaks 기본 규칙 222개 중 이 프로젝트와 관련 있는 18개를 v8.
 
 검사할 내용은 64바이트뿐인데 34초가 걸렸으므로, 시간은 내용이 아니라 규칙 수(시작할 때 정규식을 준비하는 비용)에서 나온다. 커밋할 때마다 35초를 기다릴 수는 없어서 규칙을 골라 쓰기로 했다.
 
-### 2. 고른 규칙(18 + 5)은 커밋당 4\~6초
+### 2. 고른 규칙(18 + 6)은 커밋당 4\~6초
 
 같은 방식으로 재면 커밋 한 번(훅 포함)에 4\~6초가 걸린다. 전용 규칙만 쓸 때(0.6초)보다 느린 건 기본 규칙 중 일부가 무겁기 때문으로 보인다. `generic-api-key`가 가장 유력하지만 규칙별로 재보지는 않았다. 지금 속도로 충분해서 더 줄이지 않았다.
 
@@ -63,14 +64,25 @@ gitleaks 기본 규칙 222개 중 이 프로젝트와 관련 있는 18개를 v8.
 | site 레포 히스토리 (1커밋) | 검출 0건 |
 | 커밋 전 작업 트리 전체 (약 106KB) | 검출 0건, 5.2초 |
 
+`anthropic-credential` 규칙을 추가한 뒤 다시 검사했다(같은 날 17:49).
+
+| 대상 | 결과 |
+| --- | --- |
+| 운영 레포 히스토리 (16커밋) | 검출 0건 |
+| site 레포 히스토리 (5커밋) | 검출 0건 |
+| 작업 트리 전체 (약 309KB, git 제외 파일 포함) | 4건, 모두 `.env`(디스코드 봇 토큰·웹훅 URL·클라이언트 ID). `.env`는 git이 추적하지 않고 훅 1단계에서도 막힌다. 실제 디스코드 토큰을 기존 규칙이 잡는다는 확인이기도 하다. 값은 출력하지 않고 규칙 이름과 위치만 봤다 |
+
 ### 4. 동작 테스트
 
 `ops/test-pre-commit.sh` 결과. 가짜 값은 실행할 때 무작위로 만든다.
 
 | 경우 | 기대 | 결과 | 시간 |
 | --- | --- | --- | --- |
-| 평범한 문서 (터널 UUID 포함) | 통과 | 통과 | 4.2초 |
-| Anthropic API 키 | 차단 | 차단 | 6.0초 |
+| 평범한 문서 (터널 UUID 포함) | 통과 | 통과 | 4.3초 |
+| 문서 속 키 형식 설명 (`sk-ant-api03-…`, `xxxx` 자리표시자) | 통과 | 통과 | 4.3초 |
+| Anthropic API 키 | 차단 | 차단 | 5.9초 |
+| Claude Code 구독 토큰 (`CLAUDE_CODE_OAUTH_TOKEN=` 대입) | 차단 | 차단 | 6.0초 |
+| Claude Code 구독 토큰 (로그 문장에 섞임) | 차단 | 차단 | 4.2초 |
 | 디스코드 봇 토큰 | 차단 | 차단 | 5.7초 |
 | 디스코드 웹훅 URL | 차단 | 차단 | 4.8초 |
 | GitHub PAT | 차단 | 차단 | 4.2초 |
@@ -82,7 +94,19 @@ gitleaks 기본 규칙 222개 중 이 프로젝트와 관련 있는 18개를 v8.
 | 미발행 초안 `state/drafts/` | 차단 | 차단 | 0.0초 |
 | 승인 상태 `state/approvals/` | 차단 | 차단 | 0.0초 |
 
-12개 경우 모두 기대대로 나왔다(초안·승인 상태 2개는 공개 범위 결정 후 추가). 터널 UUID는 자격증명 파일 없이는 쓸 수 없는 값이라 통과하는 게 맞다. `.env`, `logs/`, 초안·승인 상태는 1단계(파일 이름)에서 막혀서 gitleaks까지 가지 않는다.
+15개 경우 모두 기대대로 나왔다. 초안·승인 상태 2개는 공개 범위 결정 후, 구독 토큰 2개와 문서 형식 1개는 `anthropic-credential` 추가 때 넣었다. 나머지 경우의 시간은 첫 측정 값이다. 터널 UUID는 자격증명 파일 없이는 쓸 수 없는 값이라 통과하는 게 맞다. `.env`, `logs/`, 초안·승인 상태는 1단계(파일 이름)에서 막혀서 gitleaks까지 가지 않는다.
+
+### 5. 구독 토큰은 기본 규칙으로 막히지 않았다
+
+`anthropic-credential` 규칙을 넣기 전에 테스트 경우만 먼저 추가해 돌렸다.
+
+| 경우 | 규칙 추가 전 | 규칙 추가 후 |
+| --- | --- | --- |
+| 구독 토큰을 `CLAUDE_CODE_OAUTH_TOKEN=`에 대입 | **커밋됨** | 차단 |
+| 구독 토큰이 로그 문장에 섞임 | **커밋됨** | 차단 |
+| 문서 속 키 형식 설명 | 통과 | 통과 |
+
+변수 이름에 `TOKEN`이 들어가도 기본 `generic-api-key` 규칙이 잡지 못했다. 실제 토큰 형식은 발급 전이라 확인하지 못했다. 발급하면 `.env`를 같은 방식(값은 가리고 규칙 이름과 위치만 출력)으로 검사해, 실제 토큰이 `anthropic-credential`에 걸리는지 확인한다.
 
 ## 다시 확인하는 법
 
@@ -98,4 +122,4 @@ gitleaks git --redact --config ops/gitleaks.toml site   # site 레포 히스토�
 
 - `--no-verify`로 건너뛸 수 있다. 강제 장치가 아니라 실수를 막는 안전망이다.
 - 패턴으로 찾기 때문에 형식이 특이한 비밀값은 놓칠 수 있다.
-- 두 번째 방어선으로 GitHub Secret Scanning + Push Protection을 쓴다(공개 레포 무료, 레포 Settings → Code security). 아직 켜지 않았다.
+- 두 번째 방어선으로 GitHub Secret Scanning + Push Protection을 쓴다(공개 레포 무료, 레포 Settings → Code security). 2026-10-06에 두 레포 모두 켰다. GitHub도 알려진 형식만 잡으므로 cloudflared 자격증명 같은 전용 형식은 이 훅이 1차 방어선이다.

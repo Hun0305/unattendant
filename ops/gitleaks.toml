@@ -1735,3 +1735,13 @@ id = "discord-webhook-url"
 description = "Discord webhook URL"
 regex = '''https://(?:(?:canary|ptb)\.)?discord(?:app)?\.com/api/webhooks/\d+/[A-Za-z0-9_-]{60,}'''
 keywords = ["discord"]
+
+# Anthropic 자격증명 전반: API 키(sk-ant-api03-), Admin 키(sk-ant-admin01-), Claude Code 구독 토큰 등.
+# 기본 규칙은 api03·admin01 두 형식만 잡아서, 구독 토큰(claude setup-token)은 그대로 커밋된다(2026-10-06 확인).
+# 종류와 길이를 몰라도 걸리도록 넓게 잡고, 문서의 xxxx 같은 자리표시자는 entropy로 거른다.
+[[rules]]
+id = "anthropic-credential"
+description = "Anthropic credential (API key, admin key, Claude Code OAuth token)"
+regex = '''\bsk-ant-[a-z0-9]{2,12}-[A-Za-z0-9_\-]{20,}'''
+entropy = 3.5
+keywords = ["sk-ant-"]
