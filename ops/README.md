@@ -18,6 +18,10 @@ Pi에서 블로그를 띄우는 데 필요한 설정과 설치 기록. 다른 �
 | `gitleaks.toml` | gitleaks 규칙. 기본 규칙 중 18개 + 전용 규칙 6개(cloudflared 자격증명·인증서·토큰, 디스코드 봇 토큰·웹훅, Claude Code 구독 토큰을 포함한 Anthropic 자격증명 전반) |
 | `huninn/settings.json` | Huninn 전용 Claude Code 설정 원본 (공개). 아래 "Huninn용 Claude Code 설정 폴더" |
 | `install-huninn-config.sh` | 위 원본을 `~/.config/huninn/claude/settings.json`(600)으로 복사 |
+| `huninn/prompt.md` | Huninn 시스템 프롬프트 (공개): 원칙, 하루 순서, 글쓰기 규칙. 무엇을 쓸지는 `state/strategy.md`가 정한다 |
+| `huninn/mcp.json` | blogops MCP 서버 등록. 서버 이름 `blogops`가 settings.json 허용 규칙 `mcp__blogops`와 맞아야 한다 |
+| `huninn/run-cycle.sh` | 하루 사이클을 한 번 돌린다 (`agent/blogops/cycle.py`). 아래 "실행 옵션" |
+| `huninn/review` | 사람용 승인·반려 명령 ([agent/README.md](../agent/README.md)) |
 
 ## 사이트 빌드
 
@@ -127,25 +131,36 @@ Claude Code 2.1.289의 공식 설정 스키마(json.schemastore.org/claude-code-
 | `enableAllProjectMcpServers` | `false` | 레포에 `.mcp.json`이 생겨도 자동으로 붙지 않게 한다 |
 | `forceLoginMethod` | `claudeai` | Phase 1은 Pro 구독 토큰으로만 돈다. **Phase 2에 API 키로 바꿀 때 `console`로 고친다** |
 
-### 실행 옵션 (Phase 1 실행 스크립트에 넣을 것)
+### 실행 옵션
 
-settings.json과 두 겹으로 막는다. blogops를 만들 때 실행 스크립트로 확정한다.
+settings.json과 두 겹으로 막는다. `huninn/run-cycle.sh`가 이 옵션으로 `claude -p`를 돌린다(코드는 `agent/blogops/cycle.py`). `run-cycle.sh --show`로 실제 명령과 MCP 설정을 볼 수 있다.
 
 ```bash
+# --model                          모델을 고정한다 (cycle.py의 DEFAULT_MODEL, HUNINN_MODEL로 바꾼다)
+# --system-prompt                  Claude Code 기본 프롬프트 대신 huninn/prompt.md를 쓴다
 # --tools ""                       기본 도구를 아예 싣지 않는다
-# --mcp-config … --strict-mcp-config  blogops MCP만 연결한다
+# --mcp-config … --strict-mcp-config  blogops MCP만 연결한다 (mcp.json의 경로를 채운 임시 파일)
 # --setting-sources user           레포에 .claude/settings.json이 생겨도 무시한다
+# --permission-mode dontAsk        허용 목록 밖의 툴은 묻지 않고 거부한다
 # --no-session-persistence         대화 기록을 디스크에 남기지 않는다
-# --output-format json             total_cost_usd를 비용 로그에 기록한다
+# --output-format json             total_cost_usd를 logs/cycles.jsonl에 기록한다
+# 사용자 메시지(날짜, 요일, 사이클 ID)는 stdin으로 넘긴다
 CLAUDE_CONFIG_DIR=~/.config/huninn/claude CLAUDE_CODE_OAUTH_TOKEN=... \
-  claude -p "..." \
+  claude -p --model <모델> --system-prompt "<huninn/prompt.md>" \
   --tools "" \
-  --mcp-config ops/huninn/mcp.json --strict-mcp-config \
+  --mcp-config <임시 폴더>/mcp.json --strict-mcp-config \
   --setting-sources user \
   --permission-mode dontAsk \
   --no-session-persistence \
   --output-format json
 ```
+
+`cycle.py`가 옵션 말고 더 지키는 것:
+
+- **작업 폴더**: 레포 밖 `~/.config/huninn/work`에서 돌려, 레포 `CLAUDE.md`를 읽을 일 자체가 없게 한다.
+- **환경변수**: `CLAUDE`·`ANTHROPIC_`으로 시작하는 변수(사람 세션 변수, API 키)는 넘기지 않는다. 비밀값 파일에서 구독 토큰만 꺼내 넘기고, `CLAUDE_CONFIG_DIR`은 셸에 다른 값이 있어도 늘 `~/.config/huninn/claude`다. 디스코드 토큰은 MCP 서버가 직접 읽는다.
+- **한 번에 하나, 25분 제한**: `logs/.cycle.lock`으로 사이클이 겹치지 않게 하고, 25분이 지나면 claude와 MCP 서버를 함께 끝낸다. systemd 제한(30분)보다 먼저 멈춰서 기록과 알림을 남긴다.
+- **기록과 알림**: `logs/cycles.jsonl`에 소요 시간, 턴 수, 툴 호출 수, 추정 비용(`estimate: true`)을 남긴다. 실패하면 #긴급(멘션), 툴 호출 상한에 걸리면 #긴급으로 알린다.
 
 **구독 토큰으로 확인한 것** (2026-10-07)
 
@@ -161,8 +176,8 @@ CLAUDE_CONFIG_DIR=~/.config/huninn/claude CLAUDE_CODE_OAUTH_TOKEN=... \
 | 사람용 hook (ntfy 알림) | 이 폴더 설정을 쓰므로 돌지 않는다 |
 | 비용 기록 필드 | `total_cost_usd`(이번 호출 $0.0079, 추정), `modelUsage`의 모델별 `inputTokens`·`outputTokens`·`cacheReadInputTokens`·`cacheCreationInputTokens`·`costUSD`·`costBasis` |
 
-- **모델을 지정해야 한다.** 지정하지 않았더니 Pro 기본 모델(`claude-sonnet-5-5`)이 답했고, 보조 요청에 `claude-haiku-4-5`도 쓰였다. 실행 스크립트에서 `--model`을 명시한다.
-- **남은 확인**: blogops MCP를 붙였을 때 `--strict-mcp-config`로 blogops 툴만 보이는지는 blogops를 만든 뒤 확인한다.
+- **모델을 지정해야 한다.** 지정하지 않았더니 Pro 기본 모델(`claude-sonnet-5-5`)이 답했고, 보조 요청에 `claude-haiku-4-5`도 쓰였다. 그래서 실행 스크립트가 `--model`을 늘 넘긴다.
+- **남은 확인**: blogops MCP를 붙였을 때 `--strict-mcp-config`로 blogops 툴만 보이는지. blogops가 생겼으니(2026-10-07) 같은 방법으로 확인한다.
 
 ## 버전 기록
 

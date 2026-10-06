@@ -16,3 +16,6 @@ state/approvals/
 __pycache__/
 .venv/
 *.pyc
+
+# pip install -e 산출물
+*.egg-info/

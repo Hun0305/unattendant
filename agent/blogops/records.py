@@ -100,6 +100,21 @@ def git_log(config: Config, repo: str = "ops", since: str | None = None, limit: 
     return commits
 
 
+def search_posts(config: Config, query: str, limit: int = 10) -> list[dict]:
+    terms = [t for t in query.lower().split() if t]
+    if not terms:
+        return []
+    results = []
+    for post in site_posts(config):
+        path = config.site_dir / "content" / "posts" / post["slug"] / f"index.{post['lang']}.md"
+        text = path.read_text(encoding="utf-8")
+        haystack = f"{post['title']}\n{post['description']}\n{text}".lower()
+        score = sum(haystack.count(t) for t in terms) + 5 * sum(t in post["title"].lower() for t in terms)
+        if score:
+            results.append({**{k: post[k] for k in ("slug", "lang", "title", "date", "series")}, "score": score})
+    return sorted(results, key=lambda r: -r["score"])[:limit]
+
+
 def site_base_url(config: Config) -> str:
     m = re.search(r'^baseURL\s*=\s*"([^"]+)"', (config.site_dir / "hugo.toml").read_text(encoding="utf-8"), re.M)
     return (m.group(1) if m else "https://unattendant.dev/").rstrip("/")

@@ -1,9 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "blogops"
 version = "0.1.0"
 description = "Huninn이 unattendant.dev를 운영할 때 쓰는 툴 라이브러리와 MCP 서버"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["mcp>=1.10"]
 
 [project.scripts]
 review = "blogops.review:main"
+
+[tool.setuptools]
+packages = ["blogops"]

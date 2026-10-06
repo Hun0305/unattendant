@@ -78,6 +78,12 @@ class QualityTest(unittest.TestCase):
         path.write_text(path.read_text(encoding="utf-8").replace("---\n", '---\nauthor: "human"\n', 1), encoding="utf-8")
         self.assertProblem(self.check(draft_id), "author")
 
+    def test_no_h1_in_body(self):
+        self.assertProblem(self.check(self.draft(slug="h1", body="# 제목\n\n" + good_body())), "h1")
+        fenced = good_body("\n\n```bash\n# 코드 블록 안의 주석은 제목이 아니다\n```\n\n## 소제목\n")
+        result = self.check(self.draft(slug="fenced", body=fenced))
+        self.assertTrue(result["passed"], result["problems"])
+
     def test_duplicates(self):
         self.assertProblem(self.check(self.draft(slug="starting-unattendant")), "같은 슬러그")
         self.assertProblem(self.check(self.draft(slug="other", title="AI가 혼자 운영하는 블로그를 만들기로 했다!")), "거의 같다")

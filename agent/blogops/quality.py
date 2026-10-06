@@ -76,6 +76,10 @@ def run_checks(config: Config, store: Store, draft_id: str, scan: Check, build: 
             if key in fields:
                 problems.append(f"{lang}판에 {key}를 쓰지 않는다 (date는 발행할 때 넣고, author·translation·sponsored는 사람만 쓴다)")
 
+    for lang, (_, body) in parsed.items():
+        if re.search(r"^# \S", re.sub(r"```.*?```", "", body, flags=re.S), re.M):
+            problems.append(f"{lang}판 본문에 # 제목(h1)이 있다. 제목은 템플릿이 출력하니 소제목은 ##부터 쓴다")
+
     # 시리즈와 영어판
     if series not in CURRENT_SERIES:
         problems.append(f"지금 단계에서 쓸 수 있는 시리즈가 아니다: {series} (가능: {', '.join(CURRENT_SERIES)})")
