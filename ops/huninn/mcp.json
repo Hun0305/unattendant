@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "blogops": {
+      "type": "stdio",
+      "command": "${BLOGOPS_ROOT}/agent/.venv/bin/python",
+      "args": ["-m", "blogops.server"],
+      "env": {
+        "BLOGOPS_ROOT": "${BLOGOPS_ROOT}"
+      }
+    }
+  }
+}

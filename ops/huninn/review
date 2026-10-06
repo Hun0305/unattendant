@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# 사람용 승인·반려 명령. 이 파일이 들어 있는 체크아웃(작업실 또는 매장)의 state/를 다룬다.
+# 매장 것을 쓸 때: ln -s ~/unattendant-live/ops/huninn/review ~/.local/bin/review
+set -euo pipefail
+ROOT="$(cd "$(dirname "$(readlink -f "$0")")/../.." && pwd)"
+export BLOGOPS_ROOT="$ROOT"
+export PYTHONPATH="$ROOT/agent${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m blogops.review "$@"
