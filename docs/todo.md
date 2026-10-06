@@ -94,7 +94,12 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - [x] 2단계 `records`(공개 기록 읽기, git log, 발행된 글 목록), `quality`(품질 검사), 테스트 39개 (2026-10-07). 실제 문서·사이트로 검사 1회 4.5초
   - [x] 3단계 `publish`, `backlog`, 테스트 46개 (2026-10-07). 실제 사이트 사본으로 품질 검사 → 승인 → 발행까지 끝까지 확인 (발행 4.6초, pre-commit 훅 통과)
   - [x] 4단계 `notify`(디스코드), `indexnow`, `log`(사이클당 툴 호출 상한), 테스트 54개 (2026-10-07). 실제 디스코드 3채널 전송 확인. IndexNow는 키 파일을 사이트에 배포한 뒤 실제 요청
-  - [ ] 5단계 MCP 서버(툴 18개), 하루 사이클 실행(`cycle.py`, `run-cycle.sh`), 시스템 프롬프트(`ops/huninn/prompt.md`), 테스트 69개 (2026-10-07). MCP 프로토콜로 툴 목록·호출 확인. 남은 것: 손으로 한 번 돌려 초안과 승인 요청까지 확인 (2026-10-07 첫 시험 사이클은 결과 미확인)
+  - [ ] 5단계 MCP 서버와 실행 스크립트: 초안 작성 완료, 실제 실행 시험만 남음
+    - [x] 작성 (2026-10-07): MCP 서버(툴 18개), 하루 사이클 실행(`cycle.py`, `run-cycle.sh`), 시스템 프롬프트(`ops/huninn/prompt.md`), 테스트 69개 통과. MCP 프로토콜로 툴 목록·호출 확인
+    - [ ] 실제 실행 시험: Pi에서 발행을 막고 한 번 돌려 초안 생성과 #승인 요청까지 확인한다. 2026-10-07 01:55 첫 시험은 `create_draft`까지 간 것만 확인했고 결과는 못 봤다
+      - 실행: `cd ~/unattendant-worktrees/blogops && BLOGOPS_NO_PUBLISH=1 BLOGOPS_SITE_DIR=~/unattendant/site BLOGOPS_ENV_FILE=~/unattendant/.env ops/huninn/run-cycle.sh` (먼저 `--show`로 명령만 볼 수 있다)
+      - 기대 결과: 끝에 `cycle-… 완료`가 출력되고, `logs/cycles.jsonl` 마지막 줄의 `is_error`가 false, `ops/huninn/review list`에 승인 대기 초안 1개, 디스코드 #승인과 #일일요약에 메시지
+      - 시험 전 정리: 첫 시험이 남긴 초안(`review list`)을 지운다. 승인 대기로 남아 있으면 새 승인 요청이 막힌다
 - [ ] 승인 흐름 (위에서 정한 방식으로)
 - [x] Huninn 실행 스크립트와 `ops/huninn/mcp.json`: `--tools ""`, `--strict-mcp-config`, `--setting-sources user`, `--no-session-persistence` (ops/README.md 실행 옵션). mcp.json에 서버 이름을 `blogops`로 등록해야 settings.json의 허용 규칙(`mcp__blogops`)과 맞는다 → 2026-10-07 `ops/huninn/run-cycle.sh`(`agent/blogops/cycle.py`). `--model`, `--system-prompt`(prompt.md), `--permission-mode dontAsk`를 더하고 레포 밖 작업 폴더에서 돈다
 - [ ] 실행 확인: 구독 토큰으로 돌려 레포 `CLAUDE.md`가 빠지는지(`claudeMdExcludes`), blogops 툴만 보이는지
