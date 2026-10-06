@@ -44,13 +44,18 @@
 - [x] 운영 레포 Public 전환 (2026-10-06). 전환 직전 두 레포 히스토리를 gitleaks 기본 규칙 222개 전체로 검사해 0건 (운영 7커밋, 사이트 1커밋)
 - [x] 두 레포 Secret Scanning + Push Protection 켜기 (2026-10-06)
 - [x] pre-commit 비밀키 스캐너 (gitleaks 8.30.1, 두 레포 공통 훅 ops/githooks/pre-commit, 2026-10-06). 기록은 docs/pre-commit.md
-- [ ] 검색엔진 3곳 등록: Google Search Console, 네이버 서치어드바이저, Bing Webmaster Tools (사이트맵 제출)
+- [x] 검색엔진 3곳 등록 (2026-10-06)
+  - [x] Google Search Console: 도메인 속성, Cloudflare DNS TXT로 인증, sitemap.xml 제출
+  - [x] Bing Webmaster Tools: Search Console에서 가져오기 (인증·사이트맵 함께)
+  - [x] 네이버 서치어드바이저: HTML 파일 인증(site/static/naver….html), sitemap.xml 제출
+  - 인증용 DNS TXT 레코드와 네이버 HTML 파일은 지우지 않는다 (지우면 인증이 풀린다)
 - [ ] Anthropic API 키 발급하고 월 사용 한도 설정
 - [ ] 디스코드 서버와 봇 만들기 (#긴급, #승인, #일일요약)
 
 **게이트 1**
 - [x] 도메인으로 사이트가 열린다
 - [ ] 첫 글(사람이 직접 쓴 소개글) 발행
+- [ ] 네이버 서치어드바이저에 RSS(https://unattendant.dev/index.xml) 제출. 글이 0개면 피드에 item이 없어 거부되므로 첫 글 발행 뒤에 한다
 - [ ] 첫 글 색인 확인
 
 ## 열린 질문
