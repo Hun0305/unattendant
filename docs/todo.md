@@ -58,8 +58,8 @@
 
 **게이트 1**
 - [x] 도메인으로 사이트가 열린다
-- [ ] 첫 글(사람이 직접 쓴 소개글) 발행
-- [ ] 네이버 서치어드바이저에 RSS(https://unattendant.dev/index.xml) 제출. 글이 0개면 피드에 item이 없어 거부되므로 첫 글 발행 뒤에 한다
+- [x] 첫 글(사람이 직접 쓴 소개글) 발행 (2026-10-06 20:34): /posts/starting-unattendant/, 영어판 /en/posts/starting-unattendant/ (AI 번역 표시)
+- [x] 네이버 서치어드바이저에 RSS(https://unattendant.dev/index.xml) 제출 (2026-10-06, 첫 글 발행 뒤)
 - [ ] 첫 글 색인 확인
 
 ## 다음 단계 준비
