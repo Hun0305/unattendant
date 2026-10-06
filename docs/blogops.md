@@ -109,6 +109,8 @@ review reject <초안ID> "사유"   # 반려를 기록한다. 사유는 필수
 
 IndexNow 키 파일은 사이트 루트에 공개로 둔다(IndexNow가 요구하는 방식이라 비밀값이 아니다).
 
+**Phase 2 주의**: 실제 빌드는 `--cleanDestinationDir`로 `public/`을 비우고 다시 만든다. 상태 띠용 `status.json`을 `public/`에 쓰면 발행할 때마다 지워지므로, Phase 2에서 쓰는 위치를 따로 정한다.
+
 ## 6. 품질 검사 (Phase 1)
 
 자동으로 확인할 수 있는 것만 본다. 사실이 맞는지는 사람이 승인할 때 본다.

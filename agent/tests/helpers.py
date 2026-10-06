@@ -1,7 +1,9 @@
 """테스트용 가짜 운영 레포와 사이트."""
+import json
 import random
 import shutil
 import string
+import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -42,7 +44,12 @@ class Clock:
         return self.t
 
 
-def make_env(tmp) -> tuple[Config, Store]:
+BACKLOG = {"updated": "2026-10-07", "items": [
+    {"id": "naming", "title": "이름 짓기", "series": "ops-log", "status": "idea", "sources": [], "notes": "",
+     "added": "2026-10-07", "added_by": "operator"}]}
+
+
+def make_env(tmp, real_clock: bool = False) -> tuple[Config, Store]:
     root, site = Path(tmp) / "ops", Path(tmp) / "site"
     (root / "docs").mkdir(parents=True)
     (root / "docs" / "pre-commit.md").write_text("# 비밀키 스캐너\n\n본문 " + "가" * 30000, encoding="utf-8")
@@ -53,6 +60,8 @@ def make_env(tmp) -> tuple[Config, Store]:
     (root / "logs").mkdir()
     (root / "logs" / "x.jsonl").write_text("{}\n")
     (root / "CLAUDE.md").write_text("# 사람용 지시\n", encoding="utf-8")
+    (root / "state").mkdir()
+    (root / "state" / "backlog.json").write_text(json.dumps(BACKLOG, ensure_ascii=False), encoding="utf-8")
 
     (site / "content" / "posts" / "starting-unattendant").mkdir(parents=True)
     (site / "content" / "posts" / "starting-unattendant" / "index.ko.md").write_text(EXISTING_POST, encoding="utf-8")
@@ -63,8 +72,32 @@ def make_env(tmp) -> tuple[Config, Store]:
     (site / "layouts" / "home.html").write_text("home\n")
     (site / "layouts" / "section.html").write_text("section\n")
 
-    config = Config(root=root, site_root=site, clock=Clock())
+    # Hugo는 실제 현재 시각보다 미래인 글을 빌드하지 않으므로, 빌드까지 하는 테스트는 실제 시계를 쓴다
+    config = Config(root=root, site_root=site, clock=None if real_clock else Clock())
     return config, Store(config)
+
+
+def git(repo, *args, check=True):
+    return subprocess.run(["git", "-C", str(repo), "-c", "user.name=Hun0305", "-c", "user.email=t@example.invalid",
+                           *args], capture_output=True, text=True, check=check)
+
+
+def make_publish_env(tmp) -> tuple[Config, Store, Path]:
+    """사이트를 git 레포로 만들고, GitHub 대신 로컬 bare 저장소를 origin으로 둔다."""
+    config, store = make_env(tmp, real_clock=True)
+    site, origin, hooks = config.site_dir, Path(tmp) / "origin.git", Path(tmp) / "no-hooks"
+    hooks.mkdir()
+    (site / ".gitignore").write_text("public/\nresources/\n.hugo_build.lock\n")
+    subprocess.run(["git", "init", "-q", "-b", "main", str(site)], check=True)
+    git(site, "config", "core.hooksPath", str(hooks))
+    git(site, "add", "-A")
+    git(site, "commit", "-q", "-m", "초기 사이트")
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    git(site, "remote", "add", "origin", str(origin))
+    git(site, "push", "-q", "origin", "main")
+    subprocess.run([shutil.which("hugo") or str(Path.home() / ".local/bin/hugo"), "--source", str(site), "--quiet"],
+                   check=True, capture_output=True)
+    return config, store, origin
 
 
 def fake_anthropic_key(seed: int = 1) -> str:

@@ -10,18 +10,17 @@ state/approvals/<초안ID>.json  사람의 승인·반려 기록
 """
 from __future__ import annotations
 
-import fcntl
 import hashlib
-import json
-import os
 import re
-import tempfile
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable, Iterator, Optional
+from typing import Callable, Optional
 
 from . import frontmatter
 from .config import SERIES, Config
+from .fileio import read_json as _read_json
+from .fileio import state_lock
+from .fileio import write_atomic as _write_atomic
+from .fileio import write_json as _write_json
 
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 DRAFT_ID_RE = re.compile(r"^\d{8}-[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -42,31 +41,6 @@ class StoreError(Exception):
     """잘못된 요청. 메시지는 사람과 Huninn이 그대로 읽는다."""
 
 
-def _write_atomic(path: Path, text: str) -> None:
-    # 쓰는 도중 전원이 나가도 반쯤 쓴 파일이 남지 않게, 같은 폴더에 쓰고 바꿔치기한다
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(text)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp, path)
-    except BaseException:
-        os.unlink(tmp)
-        raise
-
-
-def _write_json(path: Path, data: dict) -> None:
-    _write_atomic(path, json.dumps(data, ensure_ascii=False, indent=2) + "\n")
-
-
-def _read_json(path: Path, default=None):
-    if not path.exists():
-        return default
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
 class Store:
     def __init__(self, config: Config, now: Optional[Callable] = None):
         self.config = config
@@ -75,16 +49,8 @@ class Store:
     def _ts(self) -> str:
         return self._now().isoformat(timespec="seconds")
 
-    @contextmanager
-    def _lock(self) -> Iterator[None]:
-        # Huninn 사이클과 사람의 review 명령이 동시에 고쳐도 기록이 섞이지 않게 한다
-        self.config.drafts_dir.mkdir(parents=True, exist_ok=True)
-        with open(self.config.drafts_dir / ".lock", "w") as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                fcntl.flock(f, fcntl.LOCK_UN)
+    def _lock(self):
+        return state_lock(self.config)
 
     # ── 경로 ──────────────────────────────────────────────
 
@@ -283,6 +249,15 @@ class Store:
             meta["approval_requests"].append(record)
             _write_json(self._dir(draft_id) / "meta.json", meta)
         return record
+
+    def mark_published(self, draft_id: str, record: dict) -> None:
+        with self._lock():
+            meta = self.meta(draft_id)
+            meta["published"] = record
+            _write_json(self._dir(draft_id) / "meta.json", meta)
+
+    def passed_quality(self, draft_id: str) -> bool:
+        return self._passed_quality(self.meta(draft_id), self.content_hash(draft_id))
 
     def mark_held(self, draft_id: str, reason: str) -> None:
         with self._lock():
