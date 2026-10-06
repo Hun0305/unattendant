@@ -1,0 +1,82 @@
+{
+  "updated": "2026-10-07",
+  "status_values": {
+    "idea": "쓸 수 있는 글감",
+    "blocked": "선행 조건이 있어 아직 쓸 수 없음 (notes에 조건)",
+    "drafting": "초안 작성 중",
+    "published": "발행됨",
+    "dropped": "쓰지 않기로 함 (notes에 이유)"
+  },
+  "items": [
+    {
+      "id": "naming",
+      "title": "이름 짓기: unattendant가 되기까지",
+      "series": "ops-log",
+      "status": "idea",
+      "sources": ["docs/todo.md (Phase 0 이름 확정, 탈락 후보)", "docs/architecture.md (개요: 이름과 태그라인)"],
+      "notes": "운영자가 Huninn의 첫 글 후보로 꼽았다. 탈락 후보와 고른 이유",
+      "added": "2026-10-07",
+      "added_by": "operator"
+    },
+    {
+      "id": "how-it-runs",
+      "title": "라즈베리파이 한 대로 블로그를 서빙하는 구조",
+      "series": "ops-log",
+      "status": "idea",
+      "sources": ["ops/README.md", "docs/architecture.md (전체 아키텍처, 저장소)"],
+      "notes": "첫 소개글에서 길어지면 별도 글로 빼기로 한 부분. Hugo, Caddy, Cloudflare Tunnel, 인바운드 포트를 열지 않는 이유",
+      "added": "2026-10-07",
+      "added_by": "operator"
+    },
+    {
+      "id": "gitleaks-on-pi",
+      "title": "Pi 4에서 비밀키 스캐너가 커밋 한 번에 35초 걸린 이유",
+      "series": "ops-log",
+      "status": "idea",
+      "sources": ["docs/pre-commit.md (실험 기록 1~5)"],
+      "notes": "실측값이 있는 운영기. 기본 규칙 222개는 34.9초, 고른 규칙은 커밋당 4~6초. 구독 토큰이 기본 규칙에 안 걸린 실험 포함",
+      "added": "2026-10-07",
+      "added_by": "operator"
+    },
+    {
+      "id": "layout-survey",
+      "title": "AI가 운영하는 사이트 19곳의 첫 화면을 비교했다",
+      "series": "ops-log",
+      "status": "idea",
+      "sources": ["docs/layout-options.md"],
+      "notes": "이 블로그의 화면(E안)을 고른 과정. 다른 사이트는 링크와 함께 사실만 적는다",
+      "added": "2026-10-07",
+      "added_by": "operator"
+    },
+    {
+      "id": "weekly-report-1",
+      "title": "주간 보고서 1주차",
+      "series": "weekly-report",
+      "status": "blocked",
+      "sources": [],
+      "notes": "Huninn이 돌기 시작한 주의 일요일에 쓴다. 영어판도 쓴다",
+      "added": "2026-10-07",
+      "added_by": "operator"
+    },
+    {
+      "id": "llm-first-run",
+      "title": "Pi 4 4GB에서 돌아가는 소형 LLM과 그 속도",
+      "series": "pi-llm",
+      "status": "blocked",
+      "sources": ["docs/edge-ai-blog-topics.md (3. LLM 시리즈)"],
+      "notes": "실험 러너 필요 (Phase 2). 측정 항목: tokens/s, TTFT, 메모리, 품질 점수. 영어판도 쓴다",
+      "added": "2026-10-07",
+      "added_by": "operator"
+    },
+    {
+      "id": "vision-room",
+      "title": "고정 카메라로 잰 내 방 물체 탐지율: 시간대와 조명별",
+      "series": "pi-vision",
+      "status": "blocked",
+      "sources": ["docs/edge-ai-blog-topics.md (4-1)"],
+      "notes": "실험 러너와 카메라 촬영 스크립트 필요 (Phase 2). 사진 공개 전 개인정보 확인. 영어판도 쓴다",
+      "added": "2026-10-07",
+      "added_by": "operator"
+    }
+  ]
+}
