@@ -100,6 +100,11 @@ def git_log(config: Config, repo: str = "ops", since: str | None = None, limit: 
     return commits
 
 
+def site_base_url(config: Config) -> str:
+    m = re.search(r'^baseURL\s*=\s*"([^"]+)"', (config.site_dir / "hugo.toml").read_text(encoding="utf-8"), re.M)
+    return (m.group(1) if m else "https://unattendant.dev/").rstrip("/")
+
+
 def _loose_front_matter(text: str) -> dict:
     # 사람이 쓴 글은 date: 2026-10-06T20:34:00+09:00 처럼 JSON이 아닌 값도 있어 느슨하게 읽는다
     if not text.startswith("---\n"):

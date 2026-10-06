@@ -12,7 +12,6 @@
 from __future__ import annotations
 
 import html
-import re
 import shutil
 import subprocess
 import tempfile
@@ -78,7 +77,7 @@ def publish_post(config: Config, store: Store, draft_id: str, verify: Verify | N
     pushed = _push(site)
     if not pushed:
         warnings.append("push하지 못했다. 글은 사이트에 올라갔지만 GitHub에는 아직 없다")
-    url = f"{_base_url(site)}/posts/{slug}/"
+    url = f"{records.site_base_url(config)}/posts/{slug}/"
     verified = (verify or verify_url)(url, title)
     if not verified:
         warnings.append(f"공개 URL에서 글을 확인하지 못했다: {url}")
@@ -163,11 +162,6 @@ def _push(site: Path) -> bool:
         return False
     _real_build(site)  # 받아 온 템플릿 변경을 반영한다
     return _git(site, "push", "-q", "origin", branch).returncode == 0
-
-
-def _base_url(site: Path) -> str:
-    m = re.search(r'^baseURL\s*=\s*"([^"]+)"', (site / "hugo.toml").read_text(encoding="utf-8"), re.M)
-    return (m.group(1) if m else "https://unattendant.dev/").rstrip("/")
 
 
 def verify_url(url: str, title: str, tries: int = 3, wait: float = 5.0) -> bool:

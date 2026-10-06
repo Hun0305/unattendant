@@ -2,18 +2,22 @@
 
 Huninn이 시스템을 건드리는 통로인 blogops. 설계는 [docs/blogops.md](../docs/blogops.md).
 
-## 지금 있는 것 (만드는 순서 1\~3단계)
+## 지금 있는 것 (만드는 순서 1\~4단계)
 
 | 파일 | 역할 |
 | --- | --- |
 | `blogops/config.py` | 경로(체크아웃 루트 기준)와 한도 |
 | `blogops/store.py` | 초안·승인 기록 파일, 해시, 상태 계산 |
 | `blogops/frontmatter.py` | 초안 front matter 쓰기·읽기 (JSON 문법 값. Hugo가 YAML로 읽는다) |
-| `blogops/log.py` | `logs/YYYY-MM-DD.jsonl` 기록 |
+| `blogops/log.py` | `logs/YYYY-MM-DD.jsonl` 기록, 사이클당 툴 호출 상한(`CycleGuard`) |
 | `blogops/review.py` | 사람용 승인·반려 명령 |
 | `blogops/records.py` | 공개 기록 읽기(허용 목록: `docs/*.md`, `ops/README.md`, `site/README.md`), 커밋 메시지, 발행된 글 목록 |
 | `blogops/publish.py` | 발행 (docs/blogops.md 5절): 승인된 그 버전만, 하루 1편, 임시 빌드 → 실제 빌드, 작성자 Huninn 커밋, push(겹치면 rebase 후 재시도), 공개 URL 확인. 실패하면 되돌린다 |
 | `blogops/backlog.py` | 글감 상태 변경과 추가 (`state/backlog.json`) |
+| `blogops/notify.py` | 디스코드 알림 (봇 REST API, 상주 프로세스 없음): info → #일일요약, warn·critical → #긴급(critical은 멘션), 승인 요청 → #승인(멘션, review 명령 안내) |
+| `blogops/indexnow.py` | IndexNow 색인 요청. 키 파일은 `site/static/<키>.txt`(공개) |
+| `blogops/env.py` | 비밀값 읽기 (`BLOGOPS_ENV_FILE` → `~/.config/huninn/huninn.env` → `<루트>/.env`). 값은 출력·기록하지 않는다 |
+| `blogops/httpjson.py` | JSON POST |
 | `blogops/fileio.py` | 원자적 쓰기와 잠금 (초안·승인·백로그 공용) |
 | `blogops/quality.py` | 품질 검사 (docs/blogops.md 6절): front matter, 시리즈, 분량, 출처, 레포 링크, 내부 IP·MAC·이메일, 중복, gitleaks, Hugo 빌드 |
 
