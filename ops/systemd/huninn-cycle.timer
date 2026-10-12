@@ -1,0 +1,13 @@
+# Huninn 하루 사이클을 매일 14:00(KST)에 실행한다 (docs/blogops.md 10절 결정 3)
+# 설치와 확인: ops/README.md "Huninn 타이머"
+[Unit]
+Description=Huninn daily cycle at 14:00 KST
+
+[Timer]
+OnCalendar=*-*-* 14:00:00 Asia/Seoul
+# Pi가 꺼져 있어 놓친 사이클은 켜진 뒤 한 번 돌린다. 하루 1편 한도는 blogops가 지킨다
+Persistent=true
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,28 @@
+# Huninn 하루 사이클 (docs/blogops.md 1절). huninn-cycle.timer가 매일 14:00(KST)에 한 번 실행한다.
+# 하는 일: 매장(~/unattendant-live)의 ops/huninn/run-cycle.sh → claude -p(blogops 툴만) → logs/cycles.jsonl
+# 설치와 확인: ops/README.md "Huninn 타이머"
+[Unit]
+Description=Huninn daily cycle (unattendant.dev)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=hun
+Group=hun
+ExecStart=/home/hun/unattendant-live/ops/huninn/run-cycle.sh
+# claude, hugo, gitleaks가 ~/.local/bin에 있다. pre-commit 훅도 PATH에서 gitleaks를 찾는다
+Environment=PATH=/home/hun/.local/bin:/usr/local/bin:/usr/bin:/bin
+# claude 바이너리는 사람이 쓰는 것과 같다. Huninn 실행 중에는 업데이트하지 않는다
+Environment=DISABLE_AUTOUPDATER=1
+# cycle.py가 25분에 claude를 멈추고 기록과 알림을 남긴다. 이 제한은 그래도 끝나지 않을 때의 마지막 장치다
+TimeoutStartSec=30min
+# 메모리 cgroup이 켜져 있어야 효과가 있다 (ops/README.md "메모리 제한")
+MemoryMax=1G
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+# 쓸 수 있는 곳: 매장, Huninn 설정 폴더(claude 로그인·설정), 캐시(claude MCP 로그, hugo), claude 잠금 파일
+# 작업실(~/unattendant)과 다른 프로젝트는 읽기만 된다
+ProtectSystem=strict
+ReadWritePaths=/home/hun/unattendant-live /home/hun/.config/huninn /home/hun/.cache -/home/hun/.local/state/claude

@@ -22,6 +22,8 @@ Pi에서 블로그를 띄우는 데 필요한 설정과 설치 기록. 다른 �
 | `huninn/mcp.json` | blogops MCP 서버 등록. 서버 이름 `blogops`가 settings.json 허용 규칙 `mcp__blogops`와 맞아야 한다 |
 | `huninn/run-cycle.sh` | 하루 사이클을 한 번 돌린다 (`agent/blogops/cycle.py`). 아래 "실행 옵션" |
 | `huninn/review` | 사람용 승인·반려 명령 ([agent/README.md](../agent/README.md)) |
+| `systemd/huninn-cycle.service` | Huninn 사이클 한 번 (매장의 `run-cycle.sh`, 30분 제한, 쓰기 가능한 곳 제한). 아래 "Huninn 타이머" |
+| `systemd/huninn-cycle.timer` | 위 서비스를 매일 14:00(KST)에 실행 |
 
 ## 사이트 빌드
 
@@ -177,7 +179,52 @@ CLAUDE_CONFIG_DIR=~/.config/huninn/claude CLAUDE_CODE_OAUTH_TOKEN=... \
 | 비용 기록 필드 | `total_cost_usd`(이번 호출 $0.0079, 추정), `modelUsage`의 모델별 `inputTokens`·`outputTokens`·`cacheReadInputTokens`·`cacheCreationInputTokens`·`costUSD`·`costBasis` |
 
 - **모델을 지정해야 한다.** 지정하지 않았더니 Pro 기본 모델(`claude-sonnet-5-5`)이 답했고, 보조 요청에 `claude-haiku-4-5`도 쓰였다. 그래서 실행 스크립트가 `--model`을 늘 넘긴다.
-- **남은 확인**: blogops MCP를 붙였을 때 `--strict-mcp-config`로 blogops 툴만 보이는지. blogops가 생겼으니(2026-10-07) 같은 방법으로 확인한다.
+- **blogops를 붙인 뒤** (2026-10-07 5단계 시험 실행): Huninn은 blogops 툴만 불렀고, 허용되지 않은 도구를 쓰려 한 적(`permission_denials`)은 0회였다.
+
+## Huninn 타이머 (sudo)
+
+매장(`~/unattendant-live`)이 준비된 뒤 설치한다. 그 전에 켜면 `run-cycle.sh`가 없어 실패한다.
+
+```bash
+cd ~/unattendant-live
+sudo install -m 644 ops/systemd/huninn-cycle.service ops/systemd/huninn-cycle.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl start huninn-cycle.service    # 손으로 한 번 돌려 확인 (실제 사이클이다: 초안·승인 요청, 승인된 글이 있으면 발행)
+journalctl -u huninn-cycle -n 30 --no-pager  # 결과 한 줄과 Huninn의 요약
+sudo systemctl enable --now huninn-cycle.timer
+systemctl list-timers huninn-cycle.timer     # 다음 실행 시각
+```
+
+| 설정 | 값 | 이유 |
+| --- | --- | --- |
+| 실행 | `Type=oneshot`, `User=hun` | 한 번 돌고 끝난다. 배포 키와 Huninn 설정 폴더가 이 계정에 있다 |
+| 시각 | `OnCalendar=*-*-* 14:00:00 Asia/Seoul`, `Persistent=true` | [blogops.md](../docs/blogops.md) 10절 결정. Pi가 꺼져 있어 놓친 날은 켜진 뒤 한 번 돈다. 하루 1편 한도는 blogops가 지킨다 |
+| 시간 제한 | `TimeoutStartSec=30min` | `cycle.py`가 25분에 먼저 멈추고 기록과 알림을 남긴다. 이건 마지막 안전장치 |
+| `PATH` | `~/.local/bin` 포함 | claude, hugo, gitleaks가 여기 있다. systemd 기본 PATH에는 없다 |
+| `DISABLE_AUTOUPDATER=1` | | claude 바이너리는 사람과 같이 쓴다. Huninn이 도는 동안에는 업데이트하지 않는다 |
+| 쓰기 제한 | `ProtectSystem=strict` + `ReadWritePaths` | 매장, `~/.config/huninn`, `~/.cache`, `~/.local/state/claude`에만 쓸 수 있다. 작업실과 다른 프로젝트는 읽기만 된다. claude는 설정 폴더 밖에 MCP 로그(`~/.cache/claude-cli-nodejs/`, 툴 이름과 시간만)와 잠금 파일을 쓰고, hugo는 `~/.cache/hugo_cache`를 쓴다 |
+| `MemoryMax=1G`, `Nice=10` | | 시험 실행에서 claude와 MCP 서버를 합친 RSS 최댓값이 312MB, 품질 검사 때 hugo 54MB·gitleaks 71MB가 더해진다. **지금은 메모리 cgroup이 꺼져 있어 `MemoryMax`가 걸리지 않는다** (아래 "메모리 제한") |
+
+**시험 (2026-10-07)**: 매장이 아직 없어서, 경로만 작업실로 바꾼 같은 설정을 `systemd-run --user`로 돌렸다(`BLOGOPS_NO_PUBLISH=1`). 성공, 15.6초, 툴 3회, 추정 $0.015. 쓰기 제한 안에서 claude 로그인, MCP 서버, 디스코드 알림이 동작했다. 사용자 단위 서비스라 실제 시스템 유닛과 완전히 같지는 않고, 발행(git commit·push) 경로는 시험하지 않았다. 매장에서 손으로 처음 돌릴 때 확인한다.
+
+## 메모리 제한 (cgroup)
+
+2026-10-07 확인: **이 Pi는 메모리 cgroup이 꺼져 있다.** 부트로더가 커널 명령줄에 `cgroup_disable=memory`를 붙이고(`/boot/firmware/cmdline.txt`에는 없다), 부팅 로그에 `cgroup: Disabling memory control group subsystem`이 남는다. `/sys/fs/cgroup/cgroup.controllers`에도 `memory`가 없다.
+
+그래서 유닛의 `MemoryMax`는 지금 효과가 없다. `unattendant-caddy`의 `MemoryMax=200M`도 걸려 있지 않다(`systemctl show`에 값은 있지만 `MemoryCurrent=[not set]`). CLAUDE.md의 "실험은 systemd 서비스 + MemoryMax로만 돌린다"도 이 상태로는 지켜지지 않는다.
+
+켜는 방법 (아직 하지 않았다. 운영자가 정한다):
+
+```bash
+sudo cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.bak
+sudo sed -i '1 s/$/ cgroup_enable=memory cgroup_memory=1/' /boot/firmware/cmdline.txt   # 한 줄짜리 파일의 끝에 붙인다
+cat /boot/firmware/cmdline.txt                                                          # 한 줄인지 확인
+sudo reboot
+grep memory /sys/fs/cgroup/cgroup.controllers                                          # 재부팅 뒤 확인
+```
+
+- `cmdline.txt`는 한 줄이어야 한다. 줄이 나뉘면 부팅하지 못할 수 있다. Tailscale로만 접속하는 중이면 백업과 확인을 먼저 한다.
+- 켜면 커널이 메모리 사용을 추적하느라 메모리를 조금 더 쓴다. Raspberry Pi가 기본으로 꺼 둔 이유다.
 
 ## 버전 기록
 
