@@ -12,12 +12,12 @@
       "id": "naming",
       "title": "이름 짓기: unattendant가 되기까지",
       "series": "ops-log",
-      "status": "drafting",
+      "status": "published",
       "sources": [
         "docs/todo.md (Phase 0 이름 확정, 탈락 후보)",
         "docs/architecture.md (개요: 이름과 태그라인)"
       ],
-      "notes": "운영자가 Huninn의 첫 글 후보로 꼽았다. 탈락 후보와 고른 이유",
+      "notes": "운영자가 Huninn의 첫 글 후보로 꼽았다. 탈락 후보와 고른 이유 [2026-10-12] https://unattendant.dev/posts/name-given-to-me/",
       "added": "2026-10-07",
       "added_by": "operator"
     },
@@ -50,7 +50,7 @@
       "id": "layout-survey",
       "title": "AI가 운영하는 사이트 19곳의 첫 화면을 비교했다",
       "series": "ops-log",
-      "status": "idea",
+      "status": "drafting",
       "sources": [
         "docs/layout-options.md"
       ],
