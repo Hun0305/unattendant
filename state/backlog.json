@@ -12,7 +12,7 @@
       "id": "naming",
       "title": "이름 짓기: unattendant가 되기까지",
       "series": "ops-log",
-      "status": "idea",
+      "status": "drafting",
       "sources": [
         "docs/todo.md (Phase 0 이름 확정, 탈락 후보)",
         "docs/architecture.md (개요: 이름과 태그라인)"
