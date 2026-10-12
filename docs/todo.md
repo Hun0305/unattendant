@@ -88,7 +88,7 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 
 ### 만들 것
 
-설계와 만드는 순서는 [blogops.md](blogops.md) 9절에 있다. 1~5단계는 끝났고, 지금은 6단계(매장 분리와 타이머)다.
+설계와 만드는 순서는 [blogops.md](blogops.md) 9절에 있다. 1~7단계는 모두 끝났다(2026-10-12). 지금은 게이트 2(Huninn이 쓴 글 5편)를 채우는 중이다.
 
 - [x] `state/` 뼈대 (2026-10-07, `feat/blogops` 0fb87d5): `state/strategy.md` 전략 1판(하루 1편 목표, 1인칭 "~다"체), `state/backlog.json` 글감 7개. `state/drafts/`, `state/approvals/`는 공개하지 않으므로 blogops가 처음 쓸 때 만든다
 - [x] 1~5단계: blogops 핵심 툴과 MCP 서버 (2026-10-07, PR #1로 main에 합침)
@@ -106,20 +106,23 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 - [x] 실행 확인: 구독 토큰으로 돌려 레포 `CLAUDE.md`가 빠지는지(`claudeMdExcludes`), blogops 툴만 보이는지
   - [x] 인증, `CLAUDE.md` 제외, 기본 도구 제외, 동기화 스킬·대화 기록 없음 확인 (2026-10-07, ops/README.md). 모델을 안 정하면 Pro 기본 모델(Sonnet 5.5)이 쓰이니 실행 스크립트에 `--model`을 넣는다
   - [x] blogops 툴만 보이는지 (2026-10-07 5단계 실행 시험): blogops 툴만 불렀고 허용되지 않은 도구 시도 0회
-- [x] 6단계: 운영 위치 분리와 타이머 (blogops.md 7절). 매장이 생기고 동기화 두 가지가 있어야 타이머를 켠다 → 2026-10-12 타이머 켬, 첫 사이클은 2026-10-13 14:00 KST. 아래 "운영 폴더 분리"의 문서 반영·정리만 남음
-  - [ ] 운영 폴더 분리: 두 레포를 `~/unattendant-live`에 clone, 훅 연결, 비밀값을 `~/.config/huninn/huninn.env`로, Caddy 경로 변경과 재시작(sudo, 운영자), CLAUDE.md·architecture.md에 반영
+- [x] 6단계: 운영 위치 분리와 타이머 (blogops.md 7절). 매장이 생기고 동기화 두 가지가 있어야 타이머를 켠다 → 2026-10-12 완료. 타이머를 켰고 첫 자동 사이클은 2026-10-13 14:00 KST
+  - [x] 운영 폴더 분리 (2026-10-12): 두 레포를 `~/unattendant-live`에 clone, 훅 연결, 비밀값을 `~/.config/huninn/huninn.env`로, Caddy 경로 변경과 재시작(sudo, 운영자), CLAUDE.md·architecture.md에 반영
     - [x] 2026-10-12 완료: clone·훅·비밀값(`ops/setup-live.sh`), Caddy가 매장 `site/public`을 서빙(경로 전환·재시작, 응답 200), `claudeMdExcludes`에 매장 경로, `~/.local/bin/review` 연결
     - [x] CLAUDE.md 구조와 architecture.md 디렉터리 구조에 작업실·매장 구분 반영 (2026-10-12)
-    - [ ] 남음: 작업실 `.env` 정리(시험 실행이 끝난 뒤), 터널 설정(`unattendant-tunnel.service`의 config 경로)을 매장 쪽으로 옮길지 결정
   - [x] 사이클 시작 동기화 (2026-10-12, PR #2, `agent/blogops/sync.py`·`cycle.py`, 테스트 11개 추가로 80개 통과. 매장 첫 실행에서 `pulled` 기록 확인): 두 레포를 `git pull --ff-only`로 받고, 사이트가 바뀌었으면 다시 빌드한다. 받지 못하면 #긴급으로 알린다
   - [x] 사이클 끝 `state/` 커밋·push (2026-10-12, PR #2. 매장 첫 실행에서 작성자 Huninn 커밋 `c712076`이 GitHub main에 올라감 확인. claude가 실패해도 커밋하고, 동기화 실패 시 사이클을 시작하지 않고 #긴급. 시험 실행 `BLOGOPS_NO_PUBLISH`은 동기화를 건너뜀): Huninn이 바꾼 `state/backlog.json`을 작성자 Huninn으로 운영 레포에 커밋·push한다. 겹치면 rebase 후 한 번 더, 그래도 실패하면 #긴급. 커밋하지 않으면 다음 사이클의 pull이 막힌다
   - [x] systemd 유닛 작성 (2026-10-07): `ops/systemd/huninn-cycle.service`·`.timer`. 매일 14:00 KST, 30분 제한, 쓰기 가능한 곳 제한. 같은 설정을 `systemd-run --user`로 시험해 성공 (15.6초, 메모리 최댓값 312MB). 설치는 [ops/README.md](../ops/README.md) "Huninn 타이머"
-  - [x] 매장에서 손으로 한 번 실행 (2026-10-12 19:10): 65초, 툴 10회(오류 0), 추정 $0.16, 메모리 최댓값 427.6MB. 초안 `20261012-gitleaks-on-pi` 품질 검사 통과·승인 대기, state 커밋 push 확인. 발행(git commit·push) 경로는 승인된 글이 없어 아직 시험하지 못함 → 7단계에서 확인. 이어서 타이머를 켬(`enable --now`, 다음 실행 2026-10-13 14:00 KST)
+  - [x] 매장에서 손으로 한 번 실행 (2026-10-12 19:10): 65초, 툴 10회(오류 0), 추정 $0.16, 메모리 최댓값 427.6MB. 초안 `20261012-gitleaks-on-pi` 품질 검사 통과·승인 대기, state 커밋 push 확인. 발행(git commit·push) 경로는 승인된 글이 없어 이때는 시험하지 못했고, 같은 날 7단계에서 확인했다. 이어서 타이머를 켬(`enable --now`, 다음 실행 2026-10-13 14:00 KST)
   - [x] 메모리 제한 켜기 (2026-10-12): `/boot/firmware/cmdline.txt`에 `cgroup_enable=memory cgroup_memory=1`을 더하고 재부팅. `cgroup.controllers`에 memory가 보이고 Caddy `MemoryCurrent`(56MB)와 `MemoryMax`(200M)가 걸림. 백업 `cmdline.txt.bak`
 - [x] 7단계: Huninn의 첫 글 → 게이트 2 시작 (2026-10-12 첫 글 발행)
   - [x] 승인 흐름을 실제로 쓰기 (2026-10-12): #승인 알림 → `review reject`(사유) → 전략 v2로 반영 → `review approve` → 사이클에서 발행까지 한 바퀴. 첫 초안 `gitleaks-on-pi`는 제목이 전문용어뿐이고 문서 요약처럼 읽혀 반려한 뒤 보류(held)로 접고 글감을 `blocked`로 바꿈. 반려된 초안은 다음 사이클이 먼저 고치도록 돼 있어 접으려면 보류가 필요했다(`review`에 보류 명령이 없어 `Store.mark_held`로 직접 처리)
   - 발행에는 승인한 다음 사이클을 기다리지 않고 `sudo systemctl start huninn-cycle`로 당겼다. 반려·승인 직후 자동으로 사이클을 돌리는 것은 구독 한도와 반복 반려 위험 때문에 미룸
   - [x] 첫 발행 커밋이 작성자 `Huninn`, 메시지 `content(ai)`인지 확인 (2026-10-12): 사이트 레포 `9fd2a90`, 작성자 `Huninn <huninn@unattendant.dev>`. 공개 URL 200, 사이클 79초·툴 14회(오류 0)·추정 $0.15
+- [x] 매장 정리 (6단계 뒤 남은 잔일, 2026-10-12 완료)
+  - [x] 작업실 `.env` 지우기 (2026-10-12): 키 7개와 값이 `~/.config/huninn/huninn.env`와 모두 같은 것을 확인한 뒤 삭제. 작업실에서도 `huninn.env`를 읽는다. 새 비밀값은 `huninn.env`에만 넣는다
+  - [x] 터널 설정 경로를 매장으로 (2026-10-12, `12d06b0`): `unattendant-tunnel.service`의 `--config`를 `~/unattendant-live/ops/cloudflared/config.yml`로 바꿨다(`tunnel ingress validate` OK). 운영자가 유닛을 설치하고 재시작했고, 서비스가 매장 설정으로 active, https://unattendant.dev 200 확인
+- [ ] 그림 포함 글의 첫 자동 발행 확인 (2026-10-13 14:00 사이클): `ai-site-first-screens`가 승인된 상태. 그림 2개 복사, 커밋 메시지의 "그림 2개", 공개 URL의 그림 접근, 새 초안의 그림 제안(전략 v3)을 확인한다
 - [ ] IndexNow 실제 사용 (뒤로 미룸, 2026-10-07 결정): 키 파일 `site/static/<키>.txt`를 사이트 레포에 커밋·배포한 뒤 첫 소개글로 실제 색인 요청. 그 전까지 `request_indexing`은 키가 없다고 알리고 건너뛴다. 방법은 [indexnow.md](indexnow.md)
 - [x] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시 (Phase 2 실제 청구와 섞지 않는다) → 2026-10-07 `cycle.py`가 `logs/cycles.jsonl`에 남긴다(모델별 사용량 포함). `get_week_summary`가 주간 합계를 쓴다
 
@@ -127,7 +130,11 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 
 - [x] 글에 그림 넣기 (2026-10-12, 사이트 레포 `3479e2e`·`f2bf6ec`): `fig` 단축 코드(SVG는 본문에 넣어 다크 모드를 따름), 이미지 규칙을 "측정 그래프만"에서 "누가 만들었는지 밝히고, 남의 그림은 퍼블릭 도메인·허락된 것만, 그림당 200KB 이내"로 바꿈(site/README.md). 첫 글 `name-given-to-me`에 신화 삽화(SÁM 66, 퍼블릭 도메인)와 SVG 두 장을 직접 넣었다
 - [x] 전략 v3 "시각자료" 절: 글마다 1~3개, 그래프 → 다이어그램 → 사진·도판(출처 표기) → AI 그림(밝히기) 순. 지금 Huninn은 그림을 받거나 만들 수 없어 #일일요약 "그 밖에"에 그림 제안만 적는다
-- [ ] Huninn이 쓰는 글에 그림 넣기 (blogops 지원): 지금 발행은 초안의 `index.*.md`만 복사하고 품질 검사에도 그림 항목이 없다. 초안 폴더에 이미지를 두고 발행 때 글 폴더로 복사, 품질 검사(`alt`·캡션 출처·용량 200KB·AI 표시), `review show`에 그림 표시, 그림을 받아 두는 방법(운영자가 `state/drafts/<초안>/`에 넣기 vs 도구 추가)을 정해야 한다. 그림 제안이 쌓여 번거로우면 시작
+- [ ] Huninn이 쓰는 글에 그림 넣기 (blogops 지원, 2026-10-12 운영자가 만들고 싶다고 함)
+  - [x] 최소 지원 (2026-10-12, PR #3 `a351857`): 초안 폴더의 그림(svg·png·jpg·webp·gif)을 승인 해시에 포함, 발행 때 글 폴더로 복사, 품질 검사(`fig`와 파일 일치, `caption` 필수, 래스터는 `alt` 필수, 파일당 200KB, SVG의 `<script>`·외부 참조 금지), `review show`에 그림 표시. 사이트 README의 "이미지는 측정 그래프만" 규칙은 "누가 만들었는지 밝히면 가능"으로 바꿈. 지금은 운영자가 파일을 넣고 본문에 `fig`를 쓴다 (`ai-site-first-screens`가 첫 사례)
+  - [ ] Huninn이 직접 그림 자리를 제안하고 SVG를 만들기: 지금 Huninn은 그림을 받거나 만들 수 없다. 초안에 SVG를 함께 올리는 툴(예: `add_figure`)을 만들어 다이어그램은 Huninn이 직접 그리게 한다. 사진·AI 그림은 계속 제안만(운영자가 준비) 또는 이미지 생성 도구를 붙일지 따로 정한다
+  - [ ] AI가 만든 그림 표시를 구조화: 지금은 캡션 문장으로만 밝힌다. front matter나 `fig`의 `by`(human·ai·pd) 속성으로 받아 글 하단에 "그림 출처" 목록을 자동으로 만들고, 품질 검사에서 `by` 누락을 잡는다
+  - [ ] 그림 제안 방식 점검: 전략 v3대로 Huninn이 #일일요약에 그림 제안을 쓰는지 확인 (첫 확인은 2026-10-13 사이클)
 
 - [x] 상태 띠 링크 문구 "라즈베리파이 한 대에서 돌아갑니다 →" 고치기 (`site/i18n/ko.toml`의 `bandLink`, 영어판 `en.toml` "Running on a single Raspberry Pi"도 함께) → 2026-10-12 고치지 않고 링크째 삭제(통계 탭 메뉴와 겹침). 같은 날 메뉴 "숫자" 탭 이름을 "통계"로 바꿈(주소 `/numbers/`는 유지)
 - [x] 블로그 페이지 디자인 다듬기: 사람이 읽고 싶은 화면으로. 홈 글 목록, 글 본문(글꼴, 글 폭, 줄 간격, 제목 위계, 표·코드·그림), 모바일, 다크 모드를 본다. 레이아웃 구조는 E안 그대로 ([layout-options.md](layout-options.md)) → 2026-10-12 데이터시트형(IBM Plex Sans KR·Mono, 기판 초록 상태 띠, 가로 괘선 표)으로 바꿔 배포. 기준과 결정 경위는 사이트 레포 `DESIGN.md`
@@ -140,6 +147,16 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - 4주를 언제부터 세는지: 승인 모드 해제(게이트 3) 뒤부터인지, 개입이 한 번 생기면 0일부터 다시 세는지
   - 장애가 났지만 자동 복구된 날은 무인 운영일로 치는지
   - 정한 정의를 첫 글(수정일 표시), 숫자 탭(`/numbers/`), architecture.md 지표 표에 같은 문장으로 맞춘다. 개입 로그도 이 정의대로 기록한다
+
+### 다음에 만들고 싶은 것 (2026-10-12 운영자 아이디어)
+
+- [ ] 반려되면 그 자리에서 다시 쓰고 다시 승인 받기: 지금은 반려해도 다음 사이클(최대 하루 뒤)에야 고친다. 반려 직후 바로 재작성하고 품질 검사 → 승인 요청까지 이어 가게 한다
+  - 소재도 바꿀지 정해야 한다. 반려 사유가 "글을 고치라"인지 "이 주제를 접으라"인지에 따라 다르다. 이번에 `gitleaks-on-pi`는 후자였는데 `review`에 폐기·보류 명령이 없어 `Store.mark_held`로 직접 보류하고 백로그를 손으로 `blocked`로 바꿨다. `review reject --drop`처럼 접는 반려와 글감 상태 변경을 한 번에 하는 명령이 필요하다
+  - 구현 후보: `review reject` 뒤에 사이클을 바로 한 번 더 돌린다(`systemctl start`는 root가 필요하니 polkit·sudoers 허용이 필요). 위험: 구독 한도(개발 세션과 공유, 5단계 첫 시험에서 한도에 걸린 적 있음), 반려 → 재작성 → 반려 반복(하루 재실행 횟수 상한 필요), 시스템 설정 변경이라 운영자 승인 필요
+- [ ] 디스코드에서 초안을 읽고 승인·반려하기 (폰에서): 지금 승인은 Pi에서 `review` 명령으로만 가능하다. 열린 질문 "폰에서 승인하기"를 구체화한 것
+  - #승인 알림에 승인·반려 버튼. 반려를 누르면 사유 입력창이 뜨고, 제출하면 반려 기록(`review reject`와 같은 기록)이 남고 위 항목대로 초안 재작성이 시작된다
+  - 초안 보기: (a) 디스코드 임베드에 본문 앞부분과 그림 (2000자 제한, 길면 잘림) (b) 공개되지 않는 주소의 미리보기 페이지를 만들어 링크로 보기. (b)는 로그인 없는 추측 불가 토큰 주소, Cloudflare Access(이메일 인증), Tailscale 안에서만 열리는 주소 중에서 고른다. 초안은 비공개 자료라(`state/drafts/`) 공개 도메인에 그냥 열면 안 된다. 그림도 같이 보여야 한다
+  - 버튼을 받으려면 디스코드 봇이 상주해야 한다(Interactions를 웹훅으로 받거나 게이트웨이 접속). 지금은 알림만 REST로 보내고 상주 프로세스가 없다. 메모리와 상시 서비스 추가(`MemoryMax`), 봇 권한과 승인 사칭 방지(운영자 ID 확인, 승인 해시 대조 유지)를 설계에 넣는다
 
 **게이트 2**
 - [ ] Huninn이 쓴 글 5편 발행 (1/5, 2026-10-12): 1. "내 이름 Huninn은 어떻게 정해졌나" (`name-given-to-me`). 다음은 승인 대기 중인 `ai-site-first-screens`
@@ -155,4 +172,4 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 
 - 승인 모드 해제 기준(2주 무개입, 첫 통과율 80%)은 제안값이다. 운영하면서 조정한다.
 - 가공 운영 지표의 형식과 위치: 원본 로그에서 식별자를 뺀 지표를 공개하기로 했다. 어느 폴더에 어떤 형식(JSONL, CSV)으로 매일 커밋할지는 Phase 2에서 로깅을 만들 때 정한다.
-- 폰에서 승인하기: Phase 1은 Pi에서 명령으로 승인한다. 폰으로 승인하는 방법(디스코드 #승인 버튼 등)은 Phase 2에서 봇을 만들 때 정한다.
+- 폰에서 승인하기: Phase 1은 Pi에서 명령으로 승인한다. 폰으로 승인하는 방법(디스코드 #승인 버튼 등)은 Phase 2에서 봇을 만들 때 정한다. 운영자가 만들고 싶다고 해서 "다음에 만들고 싶은 것"에 구체안을 적었다(2026-10-12).
