@@ -88,8 +88,10 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 
 ### 만들 것
 
+설계와 만드는 순서는 [blogops.md](blogops.md) 9절에 있다. 1~5단계는 끝났고, 지금은 6단계(매장 분리와 타이머)다.
+
 - [x] `state/` 뼈대 (2026-10-07, `feat/blogops` 0fb87d5): `state/strategy.md` 전략 1판(하루 1편 목표, 1인칭 "~다"체), `state/backlog.json` 글감 7개. `state/drafts/`, `state/approvals/`는 공개하지 않으므로 blogops가 처음 쓸 때 만든다
-- [ ] blogops 핵심 툴과 MCP 서버 (설계 docs/blogops.md, 만드는 순서 9절)
+- [x] 1~5단계: blogops 핵심 툴과 MCP 서버 (2026-10-07, PR #1로 main에 합침)
   - [x] 1단계 `store`(초안·승인 기록, 해시, 상태 계산)와 사람용 `review` 명령, 테스트 21개 (2026-10-07)
   - [x] 2단계 `records`(공개 기록 읽기, git log, 발행된 글 목록), `quality`(품질 검사), 테스트 39개 (2026-10-07). 실제 문서·사이트로 검사 1회 4.5초
   - [x] 3단계 `publish`, `backlog`, 테스트 46개 (2026-10-07). 실제 사이트 사본으로 품질 검사 → 승인 → 발행까지 끝까지 확인 (발행 4.6초, pre-commit 훅 통과)
@@ -100,16 +102,25 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
       - 01:55 첫 시험: 초안 생성 직후 Pro 세션 한도에 걸려 실패(32초, 툴 7회, 추정 $0.11). #긴급 실패 알림은 정상. 개발 세션과 한도를 나눠 쓰는 문제가 실제로 나왔다
       - 03:47 두 번째: 성공. 41초, 툴 10회(오류 0), 추정 $0.14. 글감 `gitleaks-on-pi`로 초안을 쓰고 품질 검사 첫 시도 통과 → #승인 요청 → #일일요약. 허용되지 않은 도구 시도 0회
       - 시험 초안 `20261007-gitleaks-on-pi`는 작업실에만 있다(승인 대기). 백로그 변경은 되돌렸다. 매장을 만들면 상태는 새로 시작한다
-- [ ] 승인 흐름 (위에서 정한 방식으로)
 - [x] Huninn 실행 스크립트와 `ops/huninn/mcp.json`: `--tools ""`, `--strict-mcp-config`, `--setting-sources user`, `--no-session-persistence` (ops/README.md 실행 옵션). mcp.json에 서버 이름을 `blogops`로 등록해야 settings.json의 허용 규칙(`mcp__blogops`)과 맞는다 → 2026-10-07 `ops/huninn/run-cycle.sh`(`agent/blogops/cycle.py`). `--model`, `--system-prompt`(prompt.md), `--permission-mode dontAsk`를 더하고 레포 밖 작업 폴더에서 돈다
 - [x] 실행 확인: 구독 토큰으로 돌려 레포 `CLAUDE.md`가 빠지는지(`claudeMdExcludes`), blogops 툴만 보이는지
   - [x] 인증, `CLAUDE.md` 제외, 기본 도구 제외, 동기화 스킬·대화 기록 없음 확인 (2026-10-07, ops/README.md). 모델을 안 정하면 Pro 기본 모델(Sonnet 5.5)이 쓰이니 실행 스크립트에 `--model`을 넣는다
   - [x] blogops 툴만 보이는지 (2026-10-07 5단계 실행 시험): blogops 툴만 불렀고 허용되지 않은 도구 시도 0회
-- [ ] 운영 폴더 분리 (docs/blogops.md 7절): 두 레포를 `~/unattendant-live`에 clone, 훅 연결, 비밀값을 `~/.config/huninn/huninn.env`로, Caddy 경로 변경과 재시작(sudo, 운영자), CLAUDE.md·architecture.md에 반영
-- [ ] 하루 한 번 도는 systemd 타이머: 매일 14:00 KST (Huninn 서비스, MemoryMax)
-- [ ] IndexNow 실제 사용 (뒤로 미룸, 2026-10-07 결정): 키 파일 `site/static/<키>.txt`를 사이트 레포에 커밋·배포한 뒤 첫 소개글로 실제 색인 요청. 그 전까지 `request_indexing`은 키가 없다고 알리고 건너뛴다
+- [x] 6단계: 운영 위치 분리와 타이머 (blogops.md 7절). 매장이 생기고 동기화 두 가지가 있어야 타이머를 켠다 → 2026-10-12 타이머 켬, 첫 사이클은 2026-10-13 14:00 KST. 아래 "운영 폴더 분리"의 문서 반영·정리만 남음
+  - [ ] 운영 폴더 분리: 두 레포를 `~/unattendant-live`에 clone, 훅 연결, 비밀값을 `~/.config/huninn/huninn.env`로, Caddy 경로 변경과 재시작(sudo, 운영자), CLAUDE.md·architecture.md에 반영
+    - [x] 2026-10-12 완료: clone·훅·비밀값(`ops/setup-live.sh`), Caddy가 매장 `site/public`을 서빙(경로 전환·재시작, 응답 200), `claudeMdExcludes`에 매장 경로, `~/.local/bin/review` 연결
+    - [x] CLAUDE.md 구조와 architecture.md 디렉터리 구조에 작업실·매장 구분 반영 (2026-10-12)
+    - [ ] 남음: 작업실 `.env` 정리(시험 실행이 끝난 뒤), 터널 설정(`unattendant-tunnel.service`의 config 경로)을 매장 쪽으로 옮길지 결정
+  - [x] 사이클 시작 동기화 (2026-10-12, PR #2, `agent/blogops/sync.py`·`cycle.py`, 테스트 11개 추가로 80개 통과. 매장 첫 실행에서 `pulled` 기록 확인): 두 레포를 `git pull --ff-only`로 받고, 사이트가 바뀌었으면 다시 빌드한다. 받지 못하면 #긴급으로 알린다
+  - [x] 사이클 끝 `state/` 커밋·push (2026-10-12, PR #2. 매장 첫 실행에서 작성자 Huninn 커밋 `c712076`이 GitHub main에 올라감 확인. claude가 실패해도 커밋하고, 동기화 실패 시 사이클을 시작하지 않고 #긴급. 시험 실행 `BLOGOPS_NO_PUBLISH`은 동기화를 건너뜀): Huninn이 바꾼 `state/backlog.json`을 작성자 Huninn으로 운영 레포에 커밋·push한다. 겹치면 rebase 후 한 번 더, 그래도 실패하면 #긴급. 커밋하지 않으면 다음 사이클의 pull이 막힌다
+  - [x] systemd 유닛 작성 (2026-10-07): `ops/systemd/huninn-cycle.service`·`.timer`. 매일 14:00 KST, 30분 제한, 쓰기 가능한 곳 제한. 같은 설정을 `systemd-run --user`로 시험해 성공 (15.6초, 메모리 최댓값 312MB). 설치는 [ops/README.md](../ops/README.md) "Huninn 타이머"
+  - [x] 매장에서 손으로 한 번 실행 (2026-10-12 19:10): 65초, 툴 10회(오류 0), 추정 $0.16, 메모리 최댓값 427.6MB. 초안 `20261012-gitleaks-on-pi` 품질 검사 통과·승인 대기, state 커밋 push 확인. 발행(git commit·push) 경로는 승인된 글이 없어 아직 시험하지 못함 → 7단계에서 확인. 이어서 타이머를 켬(`enable --now`, 다음 실행 2026-10-13 14:00 KST)
+  - [x] 메모리 제한 켜기 (2026-10-12): `/boot/firmware/cmdline.txt`에 `cgroup_enable=memory cgroup_memory=1`을 더하고 재부팅. `cgroup.controllers`에 memory가 보이고 Caddy `MemoryCurrent`(56MB)와 `MemoryMax`(200M)가 걸림. 백업 `cmdline.txt.bak`
+- [ ] 7단계: Huninn의 첫 글 → 게이트 2 시작
+  - [ ] 승인 흐름을 실제로 쓰기: #승인 알림 → `review approve`/`reject` → 다음 날 사이클에서 발행. 기능(#승인 알림, `review` 명령, 해시 대조)은 1·4단계에서 만들었다
+  - [ ] 첫 발행 커밋이 작성자 `Huninn`, 메시지 `content(ai)`인지 확인. `publish.py`가 `git -c user.name=Huninn -c user.email=huninn@unattendant.dev`로 커밋한다(테스트로 확인)
+- [ ] IndexNow 실제 사용 (뒤로 미룸, 2026-10-07 결정): 키 파일 `site/static/<키>.txt`를 사이트 레포에 커밋·배포한 뒤 첫 소개글로 실제 색인 요청. 그 전까지 `request_indexing`은 키가 없다고 알리고 건너뛴다. 방법은 [indexnow.md](indexnow.md)
 - [x] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시 (Phase 2 실제 청구와 섞지 않는다) → 2026-10-07 `cycle.py`가 `logs/cycles.jsonl`에 남긴다(모델별 사용량 포함). `get_week_summary`가 주간 합계를 쓴다
-- [ ] Huninn 커밋 작성자를 `Huninn`으로: `git -c user.name=Huninn -c user.email=…` (커밋 메시지 `content(ai)`와 서로 검증, CLAUDE.md 커밋 규칙)
 
 ### 사이트
 

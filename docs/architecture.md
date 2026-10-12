@@ -258,6 +258,8 @@ MCP 서버 `blog-mcp`는 5개 영역 21개 툴을 제공한다. 셸 실행 같�
 └── ops/             # systemd 유닛, cloudflared 설정, 설치 스크립트, pre-commit 훅
 ```
 
+같은 두 레포를 Pi 안에 두 번 clone해서 쓴다. `~/unattendant`는 사람이 쓰는 **작업실**, `~/unattendant-live`는 Huninn이 쓰는 **매장**이다. 매장은 GitHub main만 따라가고(Huninn이 사이클 시작에 `git pull --ff-only`), 사이트도 매장의 `site/public`이 서빙된다. 비밀값은 두 폴더 밖 `~/.config/huninn/huninn.env`에 둔다. 이유와 push 규칙은 [blogops.md](blogops.md) 7절.
+
 레포는 두 개이고 **둘 다 공개한다**. `site/`는 사이트 레포로 따로 관리하고, 나머지는 운영 레포 하나로 묶는다. 코드는 시스템이 어떻게 동작하는지를, 커밋 히스토리와 가공한 운영 지표는 실제로 그렇게 돌았는지를 보여준다. 코드만 공개하면 "N주 무인 운영"은 확인할 수 없는 주장으로 남는다.
 
 **비공개로 두는 것은 비밀값, 원본 로그, 미발행 초안 세 가지뿐이다.**
