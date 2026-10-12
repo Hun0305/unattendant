@@ -113,7 +113,7 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 
 ### 사이트
 
-- [ ] 상태 띠 링크 문구 "라즈베리파이 한 대에서 돌아갑니다 →" 고치기 (`site/i18n/ko.toml`의 `bandLink`, 영어판 `en.toml` "Running on a single Raspberry Pi"도 함께). 새 문구는 정해지지 않았다
+- [x] 상태 띠 링크 문구 "라즈베리파이 한 대에서 돌아갑니다 →" 고치기 (`site/i18n/ko.toml`의 `bandLink`, 영어판 `en.toml` "Running on a single Raspberry Pi"도 함께) → 2026-10-12 고치지 않고 링크째 삭제(통계 탭 메뉴와 겹침). 같은 날 메뉴 "숫자" 탭 이름을 "통계"로 바꿈(주소 `/numbers/`는 유지)
 - [x] 블로그 페이지 디자인 다듬기: 사람이 읽고 싶은 화면으로. 홈 글 목록, 글 본문(글꼴, 글 폭, 줄 간격, 제목 위계, 표·코드·그림), 모바일, 다크 모드를 본다. 레이아웃 구조는 E안 그대로 ([layout-options.md](layout-options.md)) → 2026-10-12 데이터시트형(IBM Plex Sans KR·Mono, 기판 초록 상태 띠, 가로 괘선 표)으로 바꿔 배포. 기준과 결정 경위는 사이트 레포 `DESIGN.md`
 - [ ] (친구 피드백, 2026-10-07) 어떤 AI 모델을 쓰고 자동화 파이프라인을 어떻게 짰는지 명시. 지금 첫 글 "두뇌" 부분은 "Claude. 처음에는 Claude Code를 스크립트로…"뿐이다
   - 모델: 정확한 모델 이름과 버전, effort, 인증 방식(Phase 1 Pro 구독 → Phase 2 API). 모델은 실행 스크립트 기본값 `claude-sonnet-5-5`로 정해졌다(`agent/blogops/cycle.py`, 2026-10-07)
