@@ -45,6 +45,8 @@ def _cmd_show(store: Store, args) -> None:
         print(f"보류    {s['held']['reason']}")
     for lang, path in store.draft_paths(args.draft_id).items():
         print(f"파일    {path}")
+    for path in store.asset_paths(args.draft_id):
+        print(f"그림    {path.name} ({path.stat().st_size // 1000}KB)")
     if args.body:
         _, body = store.fields(args.draft_id, "ko")
         print("\n" + body)

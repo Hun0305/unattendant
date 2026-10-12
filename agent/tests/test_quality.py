@@ -13,6 +13,9 @@ def ko(body=None, title="Pi에서 gitleaks가 35초 걸린 이유", **extra):
             "body": good_body() if body is None else body, **extra}
 
 
+GOOD_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><title>x</title><rect width="10" height="10"/></svg>'
+
+
 def no_tool(config, store, draft_id):
     return []
 
@@ -111,6 +114,47 @@ class QualityTest(unittest.TestCase):
         result = self.check(self.draft(slug="clean"), build=build)
         self.assertEqual(calls, ["20261008-clean"])
         self.assertProblem(result, "빌드 실패")
+
+    # ── 그림 ─────────────────────────────────────────────
+    def figure_draft(self, fig='{{< fig src="a.svg" caption="Claude가 SVG로 그렸다" >}}', files=None):
+        files = {"a.svg": GOOD_SVG} if files is None else files
+        self.figures = getattr(self, "figures", 0) + 1  # 한 시험에서 여러 번 부를 수 있다
+        draft_id = self.draft(slug=f"with-figure-{self.figures}", body=good_body() + "\n\n" + fig + "\n")
+        for name, data in files.items():
+            path = self.config.drafts_dir / draft_id / name
+            path.write_bytes(data if isinstance(data, bytes) else data.encode())
+        return draft_id
+
+    def test_figure_ok(self):
+        self.assertTrue(self.check(self.figure_draft())["passed"])
+
+    def test_figure_file_must_exist_and_be_used(self):
+        self.assertProblem(self.check(self.figure_draft(files={})), "초안 폴더에 없다")
+        self.assertProblem(self.check(self.figure_draft(fig="", files={"a.svg": GOOD_SVG})), "쓰지 않는 그림 파일")
+
+    def test_figure_needs_caption_and_alt(self):
+        self.assertProblem(self.check(self.figure_draft(fig='{{< fig src="a.svg" >}}')), "caption이 없다")
+        png = {"a.png": b"\x89PNG"}
+        self.assertProblem(self.check(self.figure_draft(fig='{{< fig src="a.png" caption="출처: 위키미디어" >}}', files=png)),
+                           "alt가 없다")
+        ok = self.check(self.figure_draft(fig='{{< fig src="a.png" alt="오딘" caption="출처: 위키미디어" >}}', files=png))
+        self.assertTrue(ok["passed"], ok["problems"])
+
+    def test_figure_size_limit(self):
+        big = {"a.svg": GOOD_SVG + " " * (self.config.asset_max_bytes + 1)}
+        self.assertProblem(self.check(self.figure_draft(files=big)), "그림 파일이 크다")
+
+    def test_svg_must_not_run_code_or_load_remote(self):
+        for bad in ('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+                    '<svg xmlns="http://www.w3.org/2000/svg" onload="x()"></svg>',
+                    '<svg xmlns="http://www.w3.org/2000/svg"><image href="https://evil.example/x.png"/></svg>'):
+            self.assertProblem(self.check(self.figure_draft(files={"a.svg": bad})), "스크립트나 외부 참조")
+
+    def test_figure_changes_the_hash(self):
+        draft_id = self.figure_draft()
+        before = self.store.content_hash(draft_id)
+        (self.config.drafts_dir / draft_id / "a.svg").write_text(GOOD_SVG.replace("rect", "circle"))
+        self.assertNotEqual(before, self.store.content_hash(draft_id))
 
 
 @unittest.skipUnless(find_tool("gitleaks") and find_tool("hugo"), "gitleaks·hugo가 있어야 한다")
