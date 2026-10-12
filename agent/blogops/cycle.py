@@ -5,6 +5,7 @@ claude -p를 blogops 툴만 쥐여 한 번 돌리고, 결과를 logs/cycles.json
 - 툴: ops/huninn/mcp.json을 채워 임시 파일로 넘긴다. BLOGOPS_로 시작하는 환경변수는 서버에도 넘긴다
 - 비밀값: 구독 토큰(CLAUDE_CODE_OAUTH_TOKEN)만 꺼내 claude에 넘긴다. 디스코드 토큰은 서버가 직접 읽는다
 - 작업 폴더: 레포 밖(~/.config/huninn/work)에서 돌려 레포의 CLAUDE.md를 읽지 않게 한다
+- 동기화(blogops/sync.py): 시작에 두 레포를 pull, 끝에 state/를 Huninn 이름으로 커밋·push. 시험 실행(BLOGOPS_NO_PUBLISH)은 건너뛴다
 - 실패(종료 코드, is_error, 시간 초과)는 #긴급(멘션)으로, 툴 호출 상한에 걸리면 #긴급으로 알린다
 """
 from __future__ import annotations
@@ -20,7 +21,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from . import env, notify
+from . import env, notify, sync
 from .config import Config, find_tool
 from .env import EnvError
 from .notify import NotifyError
@@ -158,6 +159,9 @@ def _alert(config: Config, record: dict, transport) -> None:
     if record["is_error"]:
         if record.get("error"):
             reason = record["error"]
+        elif record.get("sync_error") and not (record.get("timed_out") or record.get("exit_code")
+                                               or record.get("claude_error")):
+            reason = record["sync_error"]
         elif record.get("timed_out"):
             reason = "시간 제한 안에 끝나지 않아 멈췄다"
         else:
@@ -196,7 +200,15 @@ def _run_cycle(config: Config, model: str, timeout: float, transport) -> dict:
     cycle_id = f"cycle-{started:%Y%m%dT%H%M%S}"
     record = {"cycle": cycle_id, "started": started.isoformat(timespec="seconds"), "model": model,
               "dry_run": bool(os.environ.get("BLOGOPS_NO_PUBLISH")), "estimate": True}
+    dry = record["dry_run"]
     try:
+        if not dry:
+            record["pulled"] = sync.pull_all(config)
+    except sync.SyncError as e:
+        record["error"] = f"사이클을 시작하지 못했다: {e}"
+    try:
+        if "error" in record:
+            raise CycleError(record["error"])
         workdir = huninn_home() / "work"
         workdir.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="huninn-cycle-") as tmp:
@@ -209,10 +221,16 @@ def _run_cycle(config: Config, model: str, timeout: float, transport) -> dict:
             record["stderr"] = err.strip()[-1000:]
     except (CycleError, EnvError, OSError) as e:
         record["error"] = str(e)
+    # claude가 실패해도 이미 바꾼 state/는 커밋해야 다음 pull이 막히지 않는다 (동기화 실패로 멈춘 날은 바뀐 게 없다)
+    if not dry and "pulled" in record:
+        try:
+            record["state_commit"] = sync.commit_state(config, cycle_id)
+        except sync.SyncError as e:
+            record["sync_error"] = str(e)
     ended = config.now()
     record.update(tool_stats(config, cycle_id, {started.date().isoformat(), ended.date().isoformat()}))
-    record["is_error"] = bool(record.get("error") or record.get("timed_out") or record.get("exit_code")
-                              or record.get("claude_error"))
+    record["is_error"] = bool(record.get("error") or record.get("sync_error") or record.get("timed_out")
+                              or record.get("exit_code") or record.get("claude_error"))
     record = {"ts": ended.isoformat(timespec="seconds"), **record,
               "seconds": round((ended - started).total_seconds())}
     _alert(config, record, transport)
@@ -245,7 +263,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"{record['cycle']} {'실패' if record['is_error'] else '완료'}: {record['seconds']}초, "
           f"툴 {record['tool_calls']}회(오류 {record['tool_errors']}), 추정 비용 "
           f"{'-' if cost is None else f'${cost:.4f}'}")
-    for line in (record.get("error"), record.get("result"), record.get("notify_error")):
+    for line in (record.get("error"), record.get("sync_error"), record.get("result"), record.get("notify_error")):
         if line:
             print(line)
     return 1 if record["is_error"] else 0

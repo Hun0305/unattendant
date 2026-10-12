@@ -42,7 +42,7 @@ sys.exit(1 if error else 0)
 """
 
 
-class CycleTest(unittest.TestCase):
+class CycleBase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         tmp = Path(self.tmp.name)
@@ -71,6 +71,8 @@ class CycleTest(unittest.TestCase):
     def cycles(self):
         return [json.loads(line) for line in (self.config.logs_dir / "cycles.jsonl").read_text().splitlines()]
 
+
+class CycleTest(CycleBase):
     def test_success(self):
         t = FakeTransport()
         record = cycle.run(self.config, transport=t)
