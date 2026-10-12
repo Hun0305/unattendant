@@ -25,6 +25,7 @@ from .fileio import write_json as _write_json
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 DRAFT_ID_RE = re.compile(r"^\d{8}-[a-z0-9]+(?:-[a-z0-9]+)*$")
 LANGS = ("ko", "en")
+ASSET_SUFFIXES = (".svg", ".png", ".jpg", ".jpeg", ".webp", ".gif")  # 초안에 둘 수 있는 그림
 
 STATUS_LABELS = {
     "writing": "작성 중",
@@ -65,6 +66,11 @@ class Store:
     def _approval_path(self, draft_id: str) -> Path:
         return self.config.approvals_dir / f"{draft_id}.json"
 
+    def asset_paths(self, draft_id: str) -> list[Path]:
+        """초안 폴더에 둔 그림 파일 (글 폴더로 같이 발행된다). 운영자가 state/drafts/<초안>/에 넣는다."""
+        d = self._dir(draft_id)
+        return sorted(p for p in d.iterdir() if p.is_file() and p.suffix.lower() in ASSET_SUFFIXES)
+
     def draft_paths(self, draft_id: str) -> dict[str, Path]:
         d = self._dir(draft_id)
         return {lang: d / f"index.{lang}.md" for lang in LANGS if (d / f"index.{lang}.md").exists()}
@@ -79,10 +85,12 @@ class Store:
         return _read_json(self._approval_path(draft_id), {"decisions": []})["decisions"]
 
     def content_hash(self, draft_id: str) -> str:
-        # 글 파일(index.*.md)을 이름 순으로, 파일 이름까지 포함해 이어 붙인 SHA-256
+        # 글 파일(index.*.md)과 그림 파일을 이름 순으로, 파일 이름까지 포함해 이어 붙인 SHA-256
         h = hashlib.sha256()
         for path in sorted(self._dir(draft_id).glob("index.*.md")):
             h.update(path.name.encode() + b"\0" + path.read_bytes() + b"\0")
+        for path in self.asset_paths(draft_id):  # 그림이 없으면 아래는 돌지 않아 예전 해시와 같다
+            h.update(b"asset:" + path.name.encode() + b"\0" + path.read_bytes() + b"\0")
         return h.hexdigest()
 
     def fields(self, draft_id: str, lang: str = "ko") -> tuple[dict, str]:

@@ -59,14 +59,17 @@ def publish_post(config: Config, store: Store, draft_id: str, verify: Verify | N
         raise PublishError(f"같은 슬러그의 글이 이미 있다: {slug}")
     stamp = now.isoformat(timespec="seconds")
     langs = sorted(store.draft_paths(draft_id))
+    assets = [p.name for p in store.asset_paths(draft_id)]
 
     dst.mkdir(parents=True)
     try:
         for path in store.draft_paths(draft_id).values():
             text = path.read_text(encoding="utf-8").replace("---\n", f'---\ndate: "{stamp}"\n', 1)
             (dst / path.name).write_text(text, encoding="utf-8")
+        for path in store.asset_paths(draft_id):
+            shutil.copy2(path, dst / path.name)
         _build(site, slug, langs)
-        commit = _commit(site, slug, _commit_message(store, draft_id, meta, title, langs))
+        commit = _commit(site, slug, _commit_message(store, draft_id, meta, title, langs, assets))
     except Exception:
         shutil.rmtree(dst, ignore_errors=True)
         _git(site, "reset", "-q", "--", f"content/posts/{slug}")
@@ -130,13 +133,15 @@ def _git(site: Path, *args: str, author: bool = False, stdin: str | None = None)
     return subprocess.run(cmd + list(args), input=stdin, capture_output=True, text=True, timeout=180)
 
 
-def _commit_message(store: Store, draft_id: str, meta: dict, title: str, langs: list[str]) -> str:
+def _commit_message(store: Store, draft_id: str, meta: dict, title: str, langs: list[str],
+                    assets: list[str]) -> str:
     # CLAUDE.md 커밋 규칙: content(ai), 본문에 무엇을·왜·어떻게 확인했는지
     approved = store.decisions(draft_id)[-1]
     quality = store.meta(draft_id)["quality"][-1]
     why = f"백로그 글감 {meta['backlog_id']}" if meta.get("backlog_id") else "백로그 밖 글감"
     return (f"content(ai): {title}\n\n"
             f"- content/posts/{meta['slug']}/: {meta['series']} 글 ({', '.join(langs)})\n"
+            + (f"- 그림 {len(assets)}개: {', '.join(assets)}\n" if assets else "") +
             f"- 초안 {draft_id}, 해시 {approved['hash'][:12]}\n\n"
             f"왜: {why}\n"
             f"확인: 품질 검사 통과({quality['at']}), 운영자 승인({approved['at']}), 임시 빌드 성공\n")

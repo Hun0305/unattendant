@@ -29,6 +29,9 @@ LINK_RE = re.compile(r"\]\((https?://[^)\s]+)\)")
 REPO_URL_RE = re.compile(r"^https://github\.com/Hun0305/(unattendant\.dev|unattendant)/(?:blob|tree)/[^/]+/([^#?]+)")
 TAILSCALE_NET = ipaddress.ip_network("100.64.0.0/10")
 # 초안에 쓰지 않는 front matter. date·lastmod는 발행할 때 넣고, author·translation·sponsored는 사람만 쓴다
+FIG_RE = re.compile(r"\{\{<\s*fig\s+(.*?)>\}\}", re.S)
+FIG_ATTR_RE = re.compile(r'(\w+)\s*=\s*"([^"]*)"')
+UNSAFE_SVG_RE = re.compile(r"<script|<foreignObject|\son\w+\s*=|javascript:|(?:href|src)\s*=\s*[\"']\s*(?:https?:)?//", re.I)
 FORBIDDEN_FIELDS = ("date", "lastmod", "draft", "author", "translation", "sponsored")
 SIMILAR_TITLE = 0.85
 
@@ -86,6 +89,9 @@ def run_checks(config: Config, store: Store, draft_id: str, scan: Check, build: 
     if series == "weekly-report" and "en" not in parsed:
         problems.append("주간 보고서는 영어판(index.en.md)도 있어야 한다")
 
+    # 그림
+    problems += _figure_problems(config, store, draft_id, bodies={lang: body for lang, (_, body) in parsed.items()})
+
     # 분량
     ko_len = len(parsed["ko"][1].strip())
     if ko_len < config.body_min_chars:
@@ -128,6 +134,35 @@ def run_checks(config: Config, store: Store, draft_id: str, scan: Check, build: 
     if not problems:  # 다른 문제가 없을 때만 빌드한다 (느리고, 문제를 고치면 어차피 다시 검사한다)
         problems += build(config, store, draft_id)
     return problems
+
+
+def _figure_problems(config: Config, store: Store, draft_id: str, bodies: dict[str, str]) -> list[str]:
+    """본문의 fig 단축 코드와 초안 폴더의 그림 파일이 서로 맞는지 본다.
+    SVG는 본문에 그대로 들어가므로 스크립트와 외부 참조를 막는다."""
+    problems: list[str] = []
+    assets = {p.name: p for p in store.asset_paths(draft_id)}
+    used: set[str] = set()
+    for lang, body in bodies.items():
+        for match in FIG_RE.finditer(body):
+            attrs = dict(FIG_ATTR_RE.findall(match.group(1)))
+            src = attrs.get("src", "")
+            used.add(src)
+            if src not in assets:
+                problems.append(f"{lang}판 그림 파일이 초안 폴더에 없다: {src!r}")
+                continue
+            if not attrs.get("caption", "").strip():
+                problems.append(f"그림에 caption이 없다: {src} (누가 만들었는지, 남의 그림이면 출처와 라이선스를 쓴다)")
+            if assets[src].suffix.lower() != ".svg" and not attrs.get("alt", "").strip():
+                problems.append(f"그림에 alt가 없다: {src}")
+    for name, path in assets.items():
+        size = path.stat().st_size
+        if size > config.asset_max_bytes:
+            problems.append(f"그림 파일이 크다: {name} {size // 1000}KB (최대 {config.asset_max_bytes // 1000}KB)")
+        if name not in used:
+            problems.append(f"본문에서 쓰지 않는 그림 파일이다: {name}")
+        if path.suffix.lower() == ".svg" and UNSAFE_SVG_RE.search(path.read_text(encoding="utf-8", errors="replace")):
+            problems.append(f"SVG에 스크립트나 외부 참조가 있다: {name}")
+    return list(dict.fromkeys(problems))
 
 
 def _prose(body: str) -> str:
@@ -175,7 +210,8 @@ def gitleaks_scan(config: Config, store: Store, draft_id: str) -> list[str]:
         tmp_path = Path(tmp)
         files = tmp_path / "files"
         files.mkdir()
-        for path in store.draft_paths(draft_id).values():  # 글 파일만 검사한다 (meta.json의 해시는 빼고)
+        for path in [*store.draft_paths(draft_id).values(),  # 글 파일과 SVG만 검사한다 (meta.json의 해시는 빼고)
+                     *(p for p in store.asset_paths(draft_id) if p.suffix.lower() == ".svg")]:
             shutil.copy2(path, files / path.name)
         report = tmp_path / "report.json"
         result = subprocess.run(
@@ -208,6 +244,8 @@ def hugo_build(config: Config, store: Store, draft_id: str) -> list[str]:
         for lang, path in store.draft_paths(draft_id).items():
             text = path.read_text(encoding="utf-8").replace("---\n", f'---\ndate: "{stamp}"\n', 1)
             (dst / path.name).write_text(text, encoding="utf-8")
+        for path in store.asset_paths(draft_id):
+            shutil.copy2(path, dst / path.name)
         public = tmp_path / "public"
         result = subprocess.run([binary, "--source", str(site), "--contentDir", str(content),
                                  "--destination", str(public), "--quiet"],

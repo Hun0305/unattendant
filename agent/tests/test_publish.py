@@ -57,6 +57,31 @@ class PublishTest(unittest.TestCase):
         self.assertEqual(self.store.status(draft_id), "published")
         self.assertEqual(backlog.items(self.config, "published")[0]["id"], "naming")
 
+    def test_publish_copies_figures(self):
+        shortcode = self.site / "layouts" / "_shortcodes"
+        shortcode.mkdir()
+        (shortcode / "fig.html").write_text('<figure>{{ .Get "caption" }}</figure>')
+        ko = {**KO, "body": good_body() + '\n\n{{< fig src="a.svg" caption="그림" >}}\n'}
+        draft_id = self.store.create_draft(slug="fig-post", series="ops-log", ko=ko)
+        (self.config.drafts_dir / draft_id / "a.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'/>")
+        self.store.record_quality(draft_id, True, [])
+        self.store.record_approval_request(draft_id)
+        self.store.record_decision(draft_id, "approved")
+        publish.publish_post(self.config, self.store, draft_id, verify=ok)
+        self.assertTrue((self.site / "content/posts/fig-post/a.svg").exists())
+        self.assertIn("a.svg", git(self.site, "show", "--stat", "--format=%b", "HEAD").stdout)
+        self.assertIn("그림 1개: a.svg", git(self.site, "log", "-1", "--format=%b").stdout)
+        self.assertTrue((self.site / "public/posts/fig-post/a.svg").exists())
+
+    def test_figure_changed_after_approval_blocks_publish(self):
+        draft_id = self.store.create_draft(slug="fig-post2", series="ops-log", ko=KO)
+        self.store.record_quality(draft_id, True, [])
+        self.store.record_approval_request(draft_id)
+        self.store.record_decision(draft_id, "approved")
+        (self.config.drafts_dir / draft_id / "late.png").write_bytes(b"x")  # 승인 뒤에 몰래 들어온 그림
+        with self.assertRaises(PublishError):
+            publish.publish_post(self.config, self.store, draft_id, verify=ok)
+
     def test_only_approved_version(self):
         draft_id = self.store.create_draft(slug="naming", series="ops-log", ko=KO)
         with self.assertRaises(PublishError):  # 작성 중

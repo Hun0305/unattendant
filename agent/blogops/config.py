@@ -36,6 +36,7 @@ class Config:
     body_min_chars: int = 1000  # 한국어 본문 (docs/blogops.md 6절)
     body_max_chars: int = 6000
     en_body_min_chars: int = 500  # 영어판 본문
+    asset_max_bytes: int = 200_000  # 글에 넣는 그림 파일 하나의 최대 크기 (SD카드와 모바일 때문)
     site_root: Optional[Path] = None  # 사이트 레포 위치. 없으면 <root>/site
     clock: Optional[Callable[[], datetime]] = None  # 테스트에서 시각을 고정할 때
 
