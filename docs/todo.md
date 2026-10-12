@@ -116,13 +116,18 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - [x] systemd 유닛 작성 (2026-10-07): `ops/systemd/huninn-cycle.service`·`.timer`. 매일 14:00 KST, 30분 제한, 쓰기 가능한 곳 제한. 같은 설정을 `systemd-run --user`로 시험해 성공 (15.6초, 메모리 최댓값 312MB). 설치는 [ops/README.md](../ops/README.md) "Huninn 타이머"
   - [x] 매장에서 손으로 한 번 실행 (2026-10-12 19:10): 65초, 툴 10회(오류 0), 추정 $0.16, 메모리 최댓값 427.6MB. 초안 `20261012-gitleaks-on-pi` 품질 검사 통과·승인 대기, state 커밋 push 확인. 발행(git commit·push) 경로는 승인된 글이 없어 아직 시험하지 못함 → 7단계에서 확인. 이어서 타이머를 켬(`enable --now`, 다음 실행 2026-10-13 14:00 KST)
   - [x] 메모리 제한 켜기 (2026-10-12): `/boot/firmware/cmdline.txt`에 `cgroup_enable=memory cgroup_memory=1`을 더하고 재부팅. `cgroup.controllers`에 memory가 보이고 Caddy `MemoryCurrent`(56MB)와 `MemoryMax`(200M)가 걸림. 백업 `cmdline.txt.bak`
-- [ ] 7단계: Huninn의 첫 글 → 게이트 2 시작
-  - [ ] 승인 흐름을 실제로 쓰기: #승인 알림 → `review approve`/`reject` → 다음 날 사이클에서 발행. 기능(#승인 알림, `review` 명령, 해시 대조)은 1·4단계에서 만들었다
-  - [ ] 첫 발행 커밋이 작성자 `Huninn`, 메시지 `content(ai)`인지 확인. `publish.py`가 `git -c user.name=Huninn -c user.email=huninn@unattendant.dev`로 커밋한다(테스트로 확인)
+- [x] 7단계: Huninn의 첫 글 → 게이트 2 시작 (2026-10-12 첫 글 발행)
+  - [x] 승인 흐름을 실제로 쓰기 (2026-10-12): #승인 알림 → `review reject`(사유) → 전략 v2로 반영 → `review approve` → 사이클에서 발행까지 한 바퀴. 첫 초안 `gitleaks-on-pi`는 제목이 전문용어뿐이고 문서 요약처럼 읽혀 반려한 뒤 보류(held)로 접고 글감을 `blocked`로 바꿈. 반려된 초안은 다음 사이클이 먼저 고치도록 돼 있어 접으려면 보류가 필요했다(`review`에 보류 명령이 없어 `Store.mark_held`로 직접 처리)
+  - 발행에는 승인한 다음 사이클을 기다리지 않고 `sudo systemctl start huninn-cycle`로 당겼다. 반려·승인 직후 자동으로 사이클을 돌리는 것은 구독 한도와 반복 반려 위험 때문에 미룸
+  - [x] 첫 발행 커밋이 작성자 `Huninn`, 메시지 `content(ai)`인지 확인 (2026-10-12): 사이트 레포 `9fd2a90`, 작성자 `Huninn <huninn@unattendant.dev>`. 공개 URL 200, 사이클 79초·툴 14회(오류 0)·추정 $0.15
 - [ ] IndexNow 실제 사용 (뒤로 미룸, 2026-10-07 결정): 키 파일 `site/static/<키>.txt`를 사이트 레포에 커밋·배포한 뒤 첫 소개글로 실제 색인 요청. 그 전까지 `request_indexing`은 키가 없다고 알리고 건너뛴다. 방법은 [indexnow.md](indexnow.md)
 - [x] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시 (Phase 2 실제 청구와 섞지 않는다) → 2026-10-07 `cycle.py`가 `logs/cycles.jsonl`에 남긴다(모델별 사용량 포함). `get_week_summary`가 주간 합계를 쓴다
 
 ### 사이트
+
+- [x] 글에 그림 넣기 (2026-10-12, 사이트 레포 `3479e2e`·`f2bf6ec`): `fig` 단축 코드(SVG는 본문에 넣어 다크 모드를 따름), 이미지 규칙을 "측정 그래프만"에서 "누가 만들었는지 밝히고, 남의 그림은 퍼블릭 도메인·허락된 것만, 그림당 200KB 이내"로 바꿈(site/README.md). 첫 글 `name-given-to-me`에 신화 삽화(SÁM 66, 퍼블릭 도메인)와 SVG 두 장을 직접 넣었다
+- [x] 전략 v3 "시각자료" 절: 글마다 1~3개, 그래프 → 다이어그램 → 사진·도판(출처 표기) → AI 그림(밝히기) 순. 지금 Huninn은 그림을 받거나 만들 수 없어 #일일요약 "그 밖에"에 그림 제안만 적는다
+- [ ] Huninn이 쓰는 글에 그림 넣기 (blogops 지원): 지금 발행은 초안의 `index.*.md`만 복사하고 품질 검사에도 그림 항목이 없다. 초안 폴더에 이미지를 두고 발행 때 글 폴더로 복사, 품질 검사(`alt`·캡션 출처·용량 200KB·AI 표시), `review show`에 그림 표시, 그림을 받아 두는 방법(운영자가 `state/drafts/<초안>/`에 넣기 vs 도구 추가)을 정해야 한다. 그림 제안이 쌓여 번거로우면 시작
 
 - [x] 상태 띠 링크 문구 "라즈베리파이 한 대에서 돌아갑니다 →" 고치기 (`site/i18n/ko.toml`의 `bandLink`, 영어판 `en.toml` "Running on a single Raspberry Pi"도 함께) → 2026-10-12 고치지 않고 링크째 삭제(통계 탭 메뉴와 겹침). 같은 날 메뉴 "숫자" 탭 이름을 "통계"로 바꿈(주소 `/numbers/`는 유지)
 - [x] 블로그 페이지 디자인 다듬기: 사람이 읽고 싶은 화면으로. 홈 글 목록, 글 본문(글꼴, 글 폭, 줄 간격, 제목 위계, 표·코드·그림), 모바일, 다크 모드를 본다. 레이아웃 구조는 E안 그대로 ([layout-options.md](layout-options.md)) → 2026-10-12 데이터시트형(IBM Plex Sans KR·Mono, 기판 초록 상태 띠, 가로 괘선 표)으로 바꿔 배포. 기준과 결정 경위는 사이트 레포 `DESIGN.md`
@@ -137,8 +142,8 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - 정한 정의를 첫 글(수정일 표시), 숫자 탭(`/numbers/`), architecture.md 지표 표에 같은 문장으로 맞춘다. 개입 로그도 이 정의대로 기록한다
 
 **게이트 2**
-- [ ] Huninn이 쓴 글 5편 발행 (첫 글 후보: "이름 짓기: unattendant가 되기까지")
-- [ ] 품질 게이트 통과율 기록 시작
+- [ ] Huninn이 쓴 글 5편 발행 (1/5, 2026-10-12): 1. "내 이름 Huninn은 어떻게 정해졌나" (`name-given-to-me`). 다음은 승인 대기 중인 `ai-site-first-screens`
+- [ ] 품질 게이트 통과율 기록 시작 (지금까지 초안 2개 모두 첫 검사 통과, 반려 1건은 내용이 아니라 주제·제목 문제였음)
 
 ## 다음 단계 준비: Phase 2 (API 크레딧으로 바꾸기)
 
