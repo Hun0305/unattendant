@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from blogops import env, indexnow, log, notify
+from blogops import buttons, env, indexnow, log, notify, preview
 from blogops.indexnow import IndexNowError
 from blogops.notify import NotifyError
 from helpers import good_body, make_env
@@ -68,27 +68,71 @@ class NotifyTest(unittest.TestCase):
             notify.send(self.config, "daily", "x", transport=FakeTransport((401, {"message": "401: Unauthorized"})))
         self.assertNotIn("test-bot-token", str(cm.exception))
 
-    def test_request_approval(self):
+    def draft(self, **kwargs):
         draft_id = self.store.create_draft(slug="naming", series="ops-log",
-                                           ko={"title": "이름 짓기", "description": "요약", "tags": ["meta"], "body": good_body()})
+                                           ko={"title": "이름 짓기", "description": "요약", "tags": ["meta"], "body": good_body()},
+                                           **kwargs)
         self.store.record_quality(draft_id, True, [])
+        return draft_id
+
+    @staticmethod
+    def fake_previewer(config, store, draft_id):
+        return {"draft_id": draft_id, "token": "t" * 40, "hash": store.content_hash(draft_id), "reused": False,
+                "urls": {"ko": "https://preview.example/ttt/posts/naming/", "en": "https://preview.example/ttt/en/posts/naming/"}}
+
+    def test_request_approval_sends_buttons_and_commands(self):
+        draft_id = self.draft()
         t = FakeTransport()
-        result = notify.request_approval(self.config, self.store, draft_id, transport=t)
+        result = notify.request_approval(self.config, self.store, draft_id, transport=t, previewer=self.fake_previewer)
         self.assertEqual(result["warnings"], [])
+        self.assertTrue(result["preview"])
+        self.assertNotIn("preview.example", str(result))  # 미리보기 주소(열쇠)는 Huninn에게 돌려주지 않는다
         self.assertEqual(self.store.status(draft_id), "awaiting_approval")
         url, _, payload = t.calls[0]
         self.assertTrue(url.endswith("/channels/102/messages"))
-        self.assertIn(f"approve {draft_id}", payload["content"])
+        self.assertIn(f"approve {draft_id}", payload["content"])  # 버튼이 안 될 때의 길
         self.assertIn(f'reject {draft_id} "사유"', payload["content"])
         self.assertTrue(payload["content"].startswith("<@222>"))
+        (row,) = payload["components"]
+        self.assertEqual([b["label"] for b in row["components"]], ["미리보기", "영어판", "승인", "반려", "접기"])
+        self.assertEqual(row["components"][0]["url"], "https://preview.example/ttt/posts/naming/")
+        h = self.store.content_hash(draft_id)
+        self.assertEqual(buttons.parse(row["components"][2]["custom_id"]), ("approve", draft_id, h[:12]))
+        # 결정이 나면 이 메시지를 고칠 수 있게 위치를 적어 둔다
+        self.assertEqual(self.store.approval_message_ref(draft_id, h), {"channel_id": "102", "message_id": "999"})
+
+    def test_request_approval_builds_real_preview(self):
+        draft_id = self.draft()
+        t = FakeTransport()
+        notify.request_approval(self.config, self.store, draft_id, transport=t)
+        record = self.store.preview_record(draft_id)
+        (row,) = t.calls[0][2]["components"]
+        self.assertEqual(row["components"][0]["url"], f"https://preview.unattendant.dev/{record['token']}/posts/naming/")
+        self.assertTrue((self.config.previews_dir / record["token"] / "posts" / "naming" / "index.html").exists())
+
+    def test_request_approval_without_preview_still_asks(self):
+        draft_id = self.draft()
+
+        def broken(config, store, draft_id):
+            raise preview.PreviewError("hugo가 없다")
+
+        t = FakeTransport()
+        result = notify.request_approval(self.config, self.store, draft_id, transport=t, previewer=broken)
+        self.assertFalse(result["preview"])
+        self.assertIn("미리보기를 만들지 못했다", result["warnings"][0])
+        payload = t.calls[0][2]
+        self.assertIn("미리보기를 만들지 못했다", payload["content"])
+        self.assertIn(f"preview {draft_id}", payload["content"])  # 다시 만드는 방법을 알려 준다
+        (row,) = payload["components"]
+        self.assertEqual([b["label"] for b in row["components"]], ["승인", "반려", "접기"])
 
     def test_request_approval_records_even_if_discord_fails(self):
-        draft_id = self.store.create_draft(slug="naming", series="ops-log",
-                                           ko={"title": "이름 짓기", "description": "요약", "tags": ["meta"], "body": good_body()})
-        self.store.record_quality(draft_id, True, [])
-        result = notify.request_approval(self.config, self.store, draft_id, transport=FakeTransport((500, {})))
+        draft_id = self.draft()
+        result = notify.request_approval(self.config, self.store, draft_id, transport=FakeTransport((500, {})),
+                                         previewer=self.fake_previewer)
         self.assertEqual(self.store.status(draft_id), "awaiting_approval")
         self.assertIn("보내지 못했다", result["warnings"][0])
+        self.assertIsNone(self.store.approval_message_ref(draft_id, self.store.content_hash(draft_id)))
 
     def test_request_approval_needs_ready(self):
         draft_id = self.store.create_draft(slug="naming", series="ops-log",
@@ -97,6 +141,25 @@ class NotifyTest(unittest.TestCase):
         with self.assertRaises(Exception):
             notify.request_approval(self.config, self.store, draft_id, transport=t)
         self.assertEqual(t.calls, [])  # 상태가 안 맞으면 디스코드로 보내지 않는다
+
+    def test_close_approval_message(self):
+        draft_id = self.draft()
+        h = self.store.content_hash(draft_id)
+        t = FakeTransport()
+        self.assertFalse(notify.close_approval_message(self.config, self.store, draft_id, h, "x", transport=t))
+        self.assertEqual(t.calls, [])  # 보낸 적 없는 메시지는 건드리지 않는다
+        self.store.record_approval_request(draft_id)
+        self.store.record_approval_message(draft_id, h, 102, 999)
+        self.assertTrue(notify.close_approval_message(self.config, self.store, draft_id, h, "가" * 3000, transport=t))
+        url, headers, payload = t.calls[0]
+        self.assertTrue(url.endswith("/channels/102/messages/999"))
+        self.assertEqual(len(payload["content"]), notify.MAX_LEN)
+        self.assertEqual(payload["components"], [])
+        with self.assertRaises(NotifyError) as cm:
+            notify.close_approval_message(self.config, self.store, draft_id, h, "x",
+                                          transport=FakeTransport((403, {"message": "Missing Access"})))
+        self.assertIn("Missing Access", str(cm.exception))
+        self.assertNotIn("test-bot-token", str(cm.exception))
 
 
 class IndexNowTest(unittest.TestCase):

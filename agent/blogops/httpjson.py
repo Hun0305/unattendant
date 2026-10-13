@@ -1,4 +1,4 @@
-"""JSON POST. 비밀값이 든 헤더는 오류 메시지에 담지 않는다."""
+"""JSON POST·PATCH. 비밀값이 든 헤더는 오류 메시지에 담지 않는다."""
 from __future__ import annotations
 
 import json
@@ -10,8 +10,16 @@ Transport = Callable[[str, dict, dict], tuple[int, dict]]
 
 
 def post_json(url: str, headers: dict, payload: dict, timeout: float = 20) -> tuple[int, dict]:
+    return _send("POST", url, headers, payload, timeout)
+
+
+def patch_json(url: str, headers: dict, payload: dict, timeout: float = 10) -> tuple[int, dict]:
+    return _send("PATCH", url, headers, payload, timeout)
+
+
+def _send(method: str, url: str, headers: dict, payload: dict, timeout: float) -> tuple[int, dict]:
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    req = urllib.request.Request(url, data=data, method="POST",
+    req = urllib.request.Request(url, data=data, method=method,
                                  headers={"Content-Type": "application/json; charset=utf-8", **headers})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
