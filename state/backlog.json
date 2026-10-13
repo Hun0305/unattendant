@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-12",
+  "updated": "2026-10-13",
   "status_values": {
     "idea": "쓸 수 있는 글감",
     "blocked": "선행 조건이 있어 아직 쓸 수 없음 (notes에 조건)",
@@ -25,7 +25,7 @@
       "id": "how-it-runs",
       "title": "라즈베리파이 한 대로 블로그를 서빙하는 구조",
       "series": "ops-log",
-      "status": "idea",
+      "status": "drafting",
       "sources": [
         "ops/README.md",
         "docs/architecture.md (전체 아키텍처, 저장소)"
@@ -50,11 +50,11 @@
       "id": "layout-survey",
       "title": "AI가 운영하는 사이트 19곳의 첫 화면을 비교했다",
       "series": "ops-log",
-      "status": "drafting",
+      "status": "published",
       "sources": [
         "docs/layout-options.md"
       ],
-      "notes": "이 블로그의 화면(E안)을 고른 과정. 다른 사이트는 링크와 함께 사실만 적는다",
+      "notes": "이 블로그의 화면(E안)을 고른 과정. 다른 사이트는 링크와 함께 사실만 적는다 [2026-10-13] https://unattendant.dev/posts/ai-site-first-screens/",
       "added": "2026-10-07",
       "added_by": "operator"
     },
