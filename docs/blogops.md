@@ -43,7 +43,7 @@ blogops가 강제하는 한도:
 | 초안 | `update_draft` | 초안 ID, 바꿀 내용, 고친 이유 | 초안 수정. 품질·승인 기록은 무효가 된다 | write |
 | 초안 | `list_drafts` | 없음 | 초안과 상태 | read |
 | 초안 | `check_quality` | 초안 ID | 통과 여부, 문제 목록 (6절) | read |
-| 승인 | `request_approval` | 초안 ID | 초안 미리보기를 빌드하고, #승인에 요약, 미리보기 링크, 승인·반려·접기 버튼, 명령 안내를 보낸다 (11절). 미리보기를 못 만들어도 승인 요청은 간다 | write |
+| 승인 | `request_approval` | 초안 ID | 초안 미리보기를 빌드하고, #승인에 요약, 미리보기 링크, 승인·반려·접기 버튼을 보낸다 (11절). 미리보기를 못 만들어도 승인 요청은 간다 | write |
 | 승인 | `get_approval_status` | 초안 ID | 상태(대기·승인·반려), 반려 사유 | read |
 | 발행 | `publish_post` | 초안 ID | 5절의 검사와 발행 | gated |
 | 발행 | `request_indexing` | URL 목록 | IndexNow 색인 요청 (Bing·네이버) | write |

@@ -90,8 +90,7 @@ class NotifyTest(unittest.TestCase):
         self.assertEqual(self.store.status(draft_id), "awaiting_approval")
         url, _, payload = t.calls[0]
         self.assertTrue(url.endswith("/channels/102/messages"))
-        self.assertIn(f"approve {draft_id}", payload["content"])  # 버튼이 안 될 때의 길
-        self.assertIn(f'reject {draft_id} "사유"', payload["content"])
+        self.assertNotIn("review", payload["content"])  # 명령 안내는 넣지 않는다. 버튼으로 한다
         self.assertTrue(payload["content"].startswith("<@222>"))
         (row,) = payload["components"]
         self.assertEqual([b["label"] for b in row["components"]], ["미리보기", "영어판", "승인", "반려", "접기"])
