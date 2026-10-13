@@ -1,0 +1,22 @@
+# Pi 상태 파일 (docs/status.md). huninn-status.timer가 5분마다 한 번 실행한다.
+# 하는 일: 매장(~/unattendant-live)의 agent/blogops/status.py가 CPU 온도·메모리·디스크·가동 시간을 /run/huninn/status.json(RAM)에 쓴다.
+# Caddy가 이 파일을 /status.json으로 내주고, 사이트의 상태 띠와 통계 탭이 읽는다.
+# 설치와 확인: ops/README.md "Pi 상태 파일"
+[Unit]
+Description=Huninn Pi status file (unattendant.dev status band)
+
+[Service]
+Type=oneshot
+User=hun
+Group=hun
+ExecStart=/home/hun/unattendant-live/agent/.venv/bin/python -m blogops.status
+# /run/huninn을 만들고, 서비스가 끝나도 지우지 않는다(Caddy가 계속 읽는다). 재부팅하면 비워진다
+RuntimeDirectory=huninn
+RuntimeDirectoryPreserve=yes
+# 읽기만 하는 짧은 프로그램이다
+MemoryMax=64M
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only

@@ -129,7 +129,7 @@ review reject <초안ID> "사유" --drop   # 접기: 반려 + 보류 + 글감 bl
 
 IndexNow 키 파일은 사이트 루트에 공개로 둔다(IndexNow가 요구하는 방식이라 비밀값이 아니다).
 
-**Phase 2 주의**: 실제 빌드는 `--cleanDestinationDir`로 `public/`을 비우고 다시 만든다. 상태 띠용 `status.json`을 `public/`에 쓰면 발행할 때마다 지워지므로, Phase 2에서 쓰는 위치를 따로 정한다.
+**Phase 2 주의**: 실제 빌드는 `--cleanDestinationDir`로 `public/`을 비우고 다시 만든다. 상태 띠용 `status.json`을 `public/`에 쓰면 발행할 때마다 지워지므로, `/run/huninn/status.json`(RAM)에 쓰고 Caddy가 `/status.json`으로 내준다 ([status.md](status.md), 2026-10-14).
 
 ## 6. 품질 검사 (Phase 1)
 
