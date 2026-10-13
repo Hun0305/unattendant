@@ -1,0 +1,23 @@
+# 인바운드 가드 (ops/firewall/unattendant-guard.nft.in). 부팅할 때 네트워크가 올라오기 전에 규칙을 불러온다.
+# 설치된 규칙 /etc/nftables.d/unattendant-guard.nft는 ops/install-firewall.sh가 만든다.
+# 설치와 확인: ops/README.md "인바운드 가드 (sudo)"
+#
+# Debian의 nftables.service와 달리 전체 규칙을 비우지(flush ruleset) 않는다. 이 표만 넣고 뺀다.
+# Tailscale이 만드는 규칙과 부딪히지 않게 하려는 것이다
+[Unit]
+Description=unattendant inbound guard (SSH, FTP, MQTT, rpcbind: LAN and Tailscale only)
+DefaultDependencies=no
+Wants=network-pre.target
+Before=network-pre.target shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+StandardInput=null
+ExecStart=/usr/sbin/nft -f /etc/nftables.d/unattendant-guard.nft
+ExecReload=/usr/sbin/nft -f /etc/nftables.d/unattendant-guard.nft
+ExecStop=/usr/sbin/nft delete table inet unattendant_guard
+
+[Install]
+WantedBy=sysinit.target

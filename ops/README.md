@@ -354,6 +354,39 @@ systemctl list-timers huninn-cycle.timer            # 타이머는 그대로 다
 
 **2026-10-13 시험 (사용자 매니저의 임시 유닛, 같은 systemd 257)**: 요청 파일 1번 → 서비스 1번 실행 후 파일 삭제, 실행 중 요청 → 끝나자마자 1번 더, 실행 전 3번 연속 요청 → 1번만. 실제 `ondemand.request`로도 확인했다: 같은 경로를 지켜보면 `watcher_active` True, 다른 경로면 False, 파일 쓰기(임시 파일 → 이름 바꾸기)에도 유닛이 반응해 1.5초 안에 서비스가 시작됐고, 실행 중 두 번째 요청은 끝난 뒤 한 번 더 돌았다. 시험 유닛은 지웠다. 시스템 유닛 설치는 아직 하지 않았다.
 
+## 인바운드 가드 (sudo)
+
+인터넷에서 Pi로 바로 들어오는 접속을 SSH(22), FTP(21), MQTT(1883), rpcbind(111)에서 막고, 집 안(같은 네트워크)과 Tailscale에서만 받는다(2026-10-14 운영자 결정). architecture.md "외부 공격"의 "인바운드 포트를 열지 않는다"를 실제로 맞추는 것이다. 블로그는 터널(Pi가 밖으로 여는 연결)이라 영향이 없고, Tailscale 설정은 건드리지 않는다. FTP·MQTT 같은 서비스는 끄지 않는다. 다른 프로젝트가 쓰는 것일 수 있어서다.
+
+| 파일 | 역할 |
+| --- | --- |
+| `ops/firewall/unattendant-guard.nft.in` | 규칙 원본. `@LAN4@` 자리에 설치할 때의 eth0 IPv4 대역이 들어간다(공인 IP라 레포에 두지 않는다) |
+| `ops/install-firewall.sh` | `render`, `apply`, `confirm`, `status`, `remove` |
+| `ops/systemd/unattendant-firewall.service` | 부팅 때 네트워크보다 먼저 규칙을 넣는다. 전체 규칙을 비우지 않고 이 표 하나만 넣고 뺀다 |
+| `ops/test-firewall.sh` | sudo 없이 가상 네트워크에서 시험한다 |
+
+판단 순서: 로컬(`lo`) → Tailscale(`tailscale0`) → 링크 로컬 IPv6(`fe80::/10`, 같은 링크에서만 올 수 있다. 집 안 PC가 이 길로 접속한다) → 같은 IPv4 대역은 허용, 그 밖에서 가드 포트로 오면 버린다. 다른 포트와 나가는 연결은 그대로다.
+
+```bash
+cd ~/unattendant
+ops/test-firewall.sh                    # 가상 네트워크 시험 (sudo 불필요, 실제 방화벽은 건드리지 않는다)
+ops/install-firewall.sh render          # 넣을 규칙 보기
+sudo ops/install-firewall.sh apply      # 적용. 10분 안에 confirm하지 않으면 자동으로 지워진다
+# 지금 연결은 끊지 말고 새 접속이 되는지 본다: 집 안 PC에서 새 터미널로 ssh, Tailscale로 ssh
+sudo ops/install-firewall.sh confirm    # 되돌리기를 취소하고 부팅 때도 켜지게 한다
+sudo ops/install-firewall.sh status     # 막은 횟수(counter), 같은 대역에서 접속한 주소(lan4_seen)
+```
+
+- 잠겼을 때: 10분 뒤 규칙이 자동으로 지워진다. 기다릴 수 없으면 콘솔(tty1)에서 `sudo nft delete table inet unattendant_guard`.
+- eth0의 IPv4 대역이 바뀌면(DHCP) `apply`와 `confirm`을 다시 한다. 그 전까지 집 안 IPv4 기기는 막히지만, 링크 로컬과 Tailscale은 그대로라 접속을 잃지는 않는다.
+- 같은 IPv4 대역은 건물이나 이웃과 같이 쓰는 대역일 수 있다. 1주쯤 `lan4_seen`을 보고 실제로 쓰는 집 안 기기만 남길지 정한다(todo.md).
+- Debian 기본 `nftables.service`는 켜지 않는다. 켜면 시작·정지 때 전체 규칙을 비워(`flush ruleset`) 이 표와 Tailscale 규칙이 같이 지워진다.
+- SSH를 키 로그인으로만 받게 하는 것은 다음 단계다(todo.md).
+
+**시험 (2026-10-14, `ops/test-firewall.sh`)**: 사용자 네임스페이스 안의 가상 네트워크에서 20건 통과. 집 안 → 네 포트와 udp 111 열림, 인터넷 쪽 → 네 포트와 udp 111 막힘, 가드 밖 포트(8080) 열림, Tailscale·링크 로컬·자기 자신 열림, `lan4_seen` 기록, 차단 카운터, 두 번 넣어도 표가 하나.
+
+**적용 (2026-10-14 02:55, 운영자)**: `apply` 뒤 다른 기기(Tailscale)와 다른 터미널(집 안)에서 새 접속을 확인하고 `confirm`. 부팅 유닛 enabled, 확정 직후 차단 카운터가 올라갔다. 확정 뒤 SSH 인증 실패 기록이 멈췄고, 성공한 로그인은 링크 로컬·같은 대역(집 안 PC의 IPv4)·Tailscale뿐이다. 대역을 기기 단위로 좁힐 때 집 안 PC는 IPv4로도 접속한다는 점을 기억한다.
+
 ## 메모리 제한 (cgroup)
 
 2026-10-07 확인: **이 Pi는 메모리 cgroup이 꺼져 있다.** 부트로더가 커널 명령줄에 `cgroup_disable=memory`를 붙이고(`/boot/firmware/cmdline.txt`에는 없다), 부팅 로그에 `cgroup: Disabling memory control group subsystem`이 남는다. `/sys/fs/cgroup/cgroup.controllers`에도 `memory`가 없다.
