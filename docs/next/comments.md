@@ -1,6 +1,6 @@
 # 댓글 기능 구상: giscus vs 자체 댓글 서버
 
-글마다 댓글을 받을 방법 두 가지를 간단히 구상하고 비교한다. 아직 결정 전이라 [architecture.md](architecture.md)는 고치지 않았다. architecture.md A1은 "댓글은 외부 서비스(giscus 등)를 붙인다"고 가정하고 있으므로, B안을 고르면 그 줄과 가드레일 표도 함께 고쳐야 한다.
+글마다 댓글을 받을 방법 두 가지를 간단히 구상하고 비교한다. 아직 결정 전이라 [architecture.md](../architecture.md)는 고치지 않았다. architecture.md A1은 "댓글은 외부 서비스(giscus 등)를 붙인다"고 가정하고 있으므로, B안을 고르면 그 줄과 가드레일 표도 함께 고쳐야 한다.
 
 - **A안**: giscus. GitHub Discussions를 댓글 저장소로 쓰고, GitHub 로그인 사용자만 댓글을 쓴다.
 - **B안**: Pi에서 자체 댓글 서버를 돌린다. 닉네임과 비밀번호만 받고, 비밀번호 해시는 SQLite에 저장한다. 회원가입은 없다.
@@ -111,7 +111,7 @@
 
 - **알림**: 새 댓글이 달리면 디스코드에 알린다(기존 알림 경로를 재사용하고, 새 채널이 필요하면 #댓글).
 - **운영자 삭제**: Phase 1은 Pi에서 명령으로 한다(예: `comments remove <id>`, `comments ban <id>`). Phase 2에서 디스코드 봇 버튼을 붙인다.
-- **비밀값**: IP HMAC용 비밀 키를 `.env`에 추가한다. [pre-commit.md](pre-commit.md) 규칙대로 gitleaks 규칙이 이 값을 잡는지 확인하고, 필요하면 규칙과 `ops/test-pre-commit.sh` 경우를 추가한다.
+- **비밀값**: IP HMAC용 비밀 키를 `.env`에 추가한다. [pre-commit.md](../pre-commit.md) 규칙대로 gitleaks 규칙이 이 값을 잡는지 확인하고, 필요하면 규칙과 `ops/test-pre-commit.sh` 경우를 추가한다.
 - **백업**: `comments.db`를 매일 USB 백업 대상에 넣는다. 쓰기량은 댓글 수만큼이라 SD카드 부담은 작다.
 - **고지**: 닉네임과 IP 파생값을 저장한다는 점을 댓글 폼 아래나 소개 페이지에 짧게 적는다.
 

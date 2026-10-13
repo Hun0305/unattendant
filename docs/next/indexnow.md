@@ -6,7 +6,7 @@
 
 - **지금 상태 (2026-10-07)**: 뒤로 미뤘다. 키 파일이 없어서 `request_indexing`은 "키가 없다"고 알리고 건너뛴다 (`agent/blogops/server.py`).
 - **켜는 시점**: 첫 소개글을 발행할 때 키 파일을 배포하고, 그 글로 처음 요청한다.
-- 구현은 `agent/blogops/indexnow.py`에 있다. 발행 흐름에서 언제 부르는지는 [blogops.md](blogops.md) 1절과 5절에 있다.
+- 구현은 `agent/blogops/indexnow.py`에 있다. 발행 흐름에서 언제 부르는지는 [blogops.md](../blogops.md) 1절과 5절에 있다.
 
 ## 동작 방식
 
@@ -36,7 +36,7 @@ Content-Type: application/json; charset=utf-8
 - **비밀값이 아니다.** IndexNow가 공개를 요구하는 파일이다. `.env`에 넣지 않고 사이트 레포에 커밋한다. 키를 남이 알아도 보낼 수 있는 건 우리 사이트 주소의 색인 요청뿐이다.
 - gitleaks에는 걸리지 않는다. 2026-10-07에 샘플 키 파일로 `gitleaks dir --config ops/gitleaks.toml`을 돌려 `no leaks found`를 확인했다.
 - 키 파일은 하나만 둔다. 여러 개 있으면 blogops는 이름순으로 첫 번째를 쓴다.
-- 파일 주인은 사람이다. 사이트 레포에서 `content/posts/` 밖은 사람 몫이다 ([blogops.md](blogops.md) 7절).
+- 파일 주인은 사람이다. 사이트 레포에서 `content/posts/` 밖은 사람 몫이다 ([blogops.md](../blogops.md) 7절).
 
 ## 켜는 방법
 
@@ -70,7 +70,7 @@ curl -s https://unattendant.dev/<키>.txt   # 키가 그대로 나와야 한다
 ```
 
 - 작업실과 매장을 나누기 전에는 작업실에서 빌드한 결과가 바로 공개된다. 커밋하지 않은 템플릿 작업이 있으면 같이 나가니, 빌드하기 전에 `git status`를 본다.
-- 나눈 뒤에는 Huninn이 사이클을 시작할 때 pull하고 다시 빌드한다 ([blogops.md](blogops.md) 7절).
+- 나눈 뒤에는 Huninn이 사이클을 시작할 때 pull하고 다시 빌드한다 ([blogops.md](../blogops.md) 7절).
 
 **4. 첫 요청 (첫 소개글)**
 
@@ -90,7 +90,7 @@ python3 -c "from blogops.config import Config; from blogops import indexnow; pri
 
 **6. 기록**
 
-[todo.md](todo.md)의 "IndexNow 실제 사용"을 체크한다. 이후로는 Huninn이 `publish_post` 다음에 `request_indexing`을 부르고, 따로 할 일은 없다.
+[todo.md](../todo.md)의 "IndexNow 실제 사용"을 체크한다. 이후로는 Huninn이 `publish_post` 다음에 `request_indexing`을 부르고, 따로 할 일은 없다.
 
 ## 응답 코드
 

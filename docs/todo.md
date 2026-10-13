@@ -129,7 +129,7 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - [x] 터널 설정 경로를 매장으로 (2026-10-12, `12d06b0`): `unattendant-tunnel.service`의 `--config`를 `~/unattendant-live/ops/cloudflared/config.yml`로 바꿨다(`tunnel ingress validate` OK). 운영자가 유닛을 설치하고 재시작했고, 서비스가 매장 설정으로 active, https://unattendant.dev 200 확인
 - [x] 그림 포함 글의 첫 자동 발행 확인 (2026-10-13 14:00 사이클): `ai-site-first-screens`가 승인된 상태. 그림 2개 복사, 커밋 메시지의 "그림 2개", 공개 URL의 그림 접근, 새 초안의 그림 제안(전략 v3)을 확인한다
   - 결과: 사이트 레포 `3d7ff5f`(작성자 Huninn, `content(ai)`), 커밋 본문에 "그림 2개: first-screens-map.svg, home-e.png", 글 폴더에 두 파일 복사, 공개 URL 글·그림 둘 다 200. 사이클 성공(툴 13회·오류 0, 추정 $0.24), state 커밋 `81117ed` push
-- [ ] IndexNow 실제 사용 (뒤로 미룸, 2026-10-07 결정): 키 파일 `site/static/<키>.txt`를 사이트 레포에 커밋·배포한 뒤 첫 소개글로 실제 색인 요청. 그 전까지 `request_indexing`은 키가 없다고 알리고 건너뛴다. 방법은 [indexnow.md](indexnow.md)
+- [ ] IndexNow 실제 사용 (뒤로 미룸, 2026-10-07 결정): 키 파일 `site/static/<키>.txt`를 사이트 레포에 커밋·배포한 뒤 첫 소개글로 실제 색인 요청. 그 전까지 `request_indexing`은 키가 없다고 알리고 건너뛴다. 방법은 [indexnow.md](next/indexnow.md)
 - [x] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시 (Phase 2 실제 청구와 섞지 않는다) → 2026-10-07 `cycle.py`가 `logs/cycles.jsonl`에 남긴다(모델별 사용량 포함). `get_week_summary`가 주간 합계를 쓴다
 
 ### 사이트
@@ -192,7 +192,7 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 - [ ] 네이버 검색 통계: 서치어드바이저 통계를 API로 받을 수 있는지. 안 되면 대시보드에 링크만 둔다.
 - [ ] API 잔액: 잔액을 조회하는 공식 방법은 확인하지 못했다(문서에서 확인한 건 Admin 키가 필요한 사용량·비용 보고서뿐이다). 없으면 이번 달 비용 대 한도로 대신한다.
 - [ ] C2 루프를 게이트 3 측정 창 앞에 둘지: 추천은 계획대로 C2 먼저다. 승인 모드를 끈 뒤에 루프를 바꾸면 새 코드의 첫 실행부터 사람이 글을 읽어 주지 않는다. C3에 API 키만 바꾼 채로 측정 창을 먼저 돌리면 약 2주 빨리 판정할 수 있지만 그 위험을 진다. API 전환 1주 실측에서 C2의 이득(비용, 메모리, 통제)이 작게 나오면 다시 정한다.
-- [ ] 댓글 기능: 넣을지와 방식(giscus vs Pi 자체 서버)은 [comments.md](comments.md)에서 비교했다. 악성 사용자를 어떻게 막을지(인증 수준, 스팸 필터, 바로 게시 vs 승인 후 게시)를 먼저 정한 뒤 도입한다. Huninn이 댓글을 읽게 할지는 따로 정한다.
+- [ ] 댓글 기능: 넣을지와 방식(giscus vs Pi 자체 서버)은 [comments.md](next/comments.md)에서 비교했다. 악성 사용자를 어떻게 막을지(인증 수준, 스팸 필터, 바로 게시 vs 승인 후 게시)를 먼저 정한 뒤 도입한다. Huninn이 댓글을 읽게 할지는 따로 정한다.
 
 ## 다음 단계: Phase 2 (자율 루프, C2)
 

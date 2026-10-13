@@ -1,6 +1,6 @@
 # Phase 2 계획: 자율 루프 (C2)
 
-이 문서는 Phase 2에서 **무엇을 어떤 순서로 만들지**를 다룬다. [todo.md](todo.md) 로드맵의 Phase 2 행과 "다음 단계 준비: Phase 2" 절을 [architecture.md](architecture.md) 기준으로 풀어 썼다. 설계 근거는 architecture.md에 있다.
+이 문서는 Phase 2에서 **무엇을 어떤 순서로 만들지**를 다룬다. [todo.md](../todo.md) 로드맵의 Phase 2 행과 "다음 단계 준비: Phase 2" 절을 [architecture.md](../architecture.md) 기준으로 풀어 썼다. 설계 근거는 architecture.md에 있다.
 
 계획 초안 (2026-10-07). Phase 1이 아직 진행 중이라, 시작할 때 1절(시작 조건)과 2절(먼저 정할 것)을 다시 본다.
 
@@ -29,7 +29,7 @@ Phase 2는 Phase 1이 만든 것 위에 선다. 아래가 끝나야 시작한다
 
 - [ ] 게이트 2: Huninn이 쓴 글 5편 발행, 품질 첫 통과율 기록 시작
 - [ ] 매장(`~/unattendant-live`) 분리와 14:00 타이머가 며칠 동안 문제없이 돈다. C2 루프는 같은 서비스(`huninn-cycle.service`) 자리에 들어간다
-- [ ] Huninn이 운영 레포에 커밋·push하는 길 ([blogops.md](blogops.md) 7절의 `state/` 변경). 지금 코드는 사이트 레포에 발행 커밋만 한다. Phase 2의 전략 갱신, 지표, 실험 결과도 이 길로 나간다
+- [ ] Huninn이 운영 레포에 커밋·push하는 길 ([blogops.md](../blogops.md) 7절의 `state/` 변경). 지금 코드는 사이트 레포에 발행 커밋만 한다. Phase 2의 전략 갱신, 지표, 실험 결과도 이 길로 나간다
 - [ ] 외부 업타임 모니터 → #긴급 웹훅. 업타임과 장애 자동 복구율의 출처다
 - [ ] "사람 개입"과 무인 운영의 정의 확정 (todo.md Phase 1 사이트 절). 정의가 있어야 게이트 3을 셀 수 있다
 - [ ] 메모리 cgroup 켜기 (sudo, 재부팅)
@@ -45,7 +45,7 @@ Phase 2는 Phase 1이 만든 것 위에 선다. 아래가 끝나야 시작한다
 | --- | --- | --- | --- |
 | 1 | 루프 구현 | Messages API 수동 루프 (`stop_reason`으로 분기). SDK Tool Runner(beta)는 쓰지 않는다 | architecture.md가 고른 C2 그대로다. 요청마다 예산 검사, usage 기록, 대화 기록 덧붙이기만 하기를 직접 지킨다. beta 의존이 없다 |
 | 2 | 모델과 effort | `claude-sonnet-5-5` 유지. effort를 명시하고 `medium`에서 시작 | API 기본 effort는 `high`이고, 여러 단계로 툴을 쓰는 작업은 `medium`이 권장 시작점이다. API 전환 뒤 1주 실측으로 `low`·`high`, Opus 5.5와 비교해 정한다 (todo.md 기존 항목) |
-| 3 | 예산 상한 (제안값) | 코드: 사이클 $1, 하루 $2, 월 $25. Console 워크스페이스 한도: 월 $30 | Phase 1 시험 사이클이 추정 $0.11~0.14, 월 추정이 Sonnet 5.5로 약 $12다 ([claude-billing.md](claude-billing.md)). 코드가 먼저 멈추고 Console 한도는 마지막 장치다. 2주 실측 뒤 조정한다 |
+| 3 | 예산 상한 (제안값) | 코드: 사이클 $1, 하루 $2, 월 $25. Console 워크스페이스 한도: 월 $30 | Phase 1 시험 사이클이 추정 $0.11~0.14, 월 추정이 Sonnet 5.5로 약 $12다 ([claude-billing.md](../claude-billing.md)). 코드가 먼저 멈추고 Console 한도는 마지막 장치다. 2주 실측 뒤 조정한다 |
 | 4 | 가공 운영 지표의 형식과 위치 (todo.md 열린 질문) | 운영 레포 `metrics/daily.csv`(하루 한 줄)와 `metrics/interventions.csv`(사람이 한 일 한 줄씩). 매일 커밋 | GitHub이 CSV를 표로 보여 주고, 누구나 내려받아 다시 계산할 수 있다. 원본 `logs/`는 그대로 비공개다 |
 | 5 | status.json 위치 | `public/` 밖에 쓰고, Caddy가 `/status.json`만 그 파일로 서빙한다. Cloudflare 캐시에서 뺀다 | 빌드(`--cleanDestinationDir`)가 `public/`을 비운다 (blogops.md 5절). site/README.md의 `public/status.json` 문구도 고친다 |
 | 6 | 폰 승인 방식 (todo.md 열린 질문) | #승인 메시지에 초안 파일(ko·en)을 첨부하고 [승인]·[반려] 버튼을 단다. Pi의 `review` 명령은 그대로 둔다 | 폰에서 읽고 바로 누를 수 있다. 봇이 멈춰도 승인할 길이 남는다 |
@@ -73,11 +73,11 @@ Phase 1의 blogops처럼 설계 문서를 먼저 쓰고 만든다. 게이트 3�
 
 ### 4.1 API 크레딧 전환
 
-Console 절차는 [claude-billing.md](claude-billing.md) "Phase 2 준비: Console 설정 절차"에 있다.
+Console 절차는 [claude-billing.md](../claude-billing.md) "Phase 2 준비: Console 설정 절차"에 있다.
 
 - [ ] Console: 크레딧 충전, 조직 월 한도, 워크스페이스 `unattendant`와 월 한도·알림, 서비스 계정 `huninn`, 워크스페이스로 한정한 API 키 (만료일 지정)
 - [ ] 키를 화면에 남기지 않고 비밀값 파일 `~/.config/huninn/huninn.env`(600)에 넣는다. 만료일은 todo.md에 적는다
-- [ ] 실제 키가 gitleaks `anthropic-credential` 규칙에 걸리는지 값을 가린 채 확인한다 ([pre-commit.md](pre-commit.md) 실험 기록 5와 같은 방법)
+- [ ] 실제 키가 gitleaks `anthropic-credential` 규칙에 걸리는지 값을 가린 채 확인한다 ([pre-commit.md](../pre-commit.md) 실험 기록 5와 같은 방법)
 - [ ] `cycle.py`가 구독 토큰 대신 `ANTHROPIC_API_KEY`를 넘긴다. 지금은 `ANTHROPIC_`으로 시작하는 변수를 모두 빼고 구독 토큰만 넘긴다
 - [ ] `ops/huninn/settings.json`의 `forceLoginMethod`를 `console`로 바꾸고 `ops/install-huninn-config.sh`로 다시 설치한다
 - [ ] `cycles.jsonl`의 비용을 API 청구 기준으로 표시한다 (`estimate: false`). Phase 1 추정치와 섞지 않는다
@@ -159,7 +159,7 @@ architecture.md "알림: 디스코드 봇". todo.md 열린 질문 "폰에서 승
 
 ### 4.5 실험 러너와 공통 로거
 
-설계는 `docs/experiments.md`. 원칙은 [edge-ai-blog-topics.md](edge-ai-blog-topics.md)와 architecture.md("실험은 미리 등록한 템플릿만 실행한다")를 따른다. 대기·재시도·집계는 Pi 코드가 하고, Claude는 예약과 해석만 한다 (claude-billing.md 실험 비용 원칙).
+설계는 `docs/experiments.md`. 원칙은 [edge-ai-blog-topics.md](../edge-ai-blog-topics.md)와 architecture.md("실험은 미리 등록한 템플릿만 실행한다")를 따른다. 대기·재시도·집계는 Pi 코드가 하고, Claude는 예약과 해석만 한다 (claude-billing.md 실험 비용 원칙).
 
 **시스템 준비** (sudo, ops/에 스크립트로 남긴다)
 
