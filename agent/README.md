@@ -14,7 +14,7 @@ Huninn이 시스템을 건드리는 통로인 blogops. 설계는 [docs/blogops.m
 | `blogops/records.py` | 공개 기록 읽기(허용 목록: `docs/*.md`, `ops/README.md`, `site/README.md`), 커밋 메시지, 발행된 글 목록 |
 | `blogops/publish.py` | 발행 (docs/blogops.md 5절): 승인된 그 버전만, 하루 1편, 임시 빌드 → 실제 빌드, 작성자 Huninn 커밋, push(겹치면 rebase 후 재시도), 공개 URL 확인. 실패하면 되돌린다 |
 | `blogops/backlog.py` | 글감 상태 변경과 추가 (`state/backlog.json`) |
-| `blogops/notify.py` | 디스코드 메시지 (봇 REST API): info → #일일요약, warn·critical → #긴급(critical은 멘션), 승인 요청 → #승인(멘션, 미리보기 링크와 승인·반려·접기 버튼, review 명령 안내). 결정이 나면 그 메시지를 결과로 고치고 버튼을 걷어낸다 |
+| `blogops/notify.py` | 디스코드 메시지 (봇 REST API): info → #일일요약, warn·critical → #긴급(critical은 멘션), 승인 요청 → #승인(멘션, 미리보기 링크와 승인·반려·접기 버튼). 결정이 나면 그 메시지를 결과로 고치고 버튼을 걷어낸다 |
 | `blogops/preview.py` | 승인 대기 초안의 미리보기 (docs/blogops.md 11절): 초안을 포함해 사이트 전체를 빌드해 `state/previews/<토큰>/`에 둔다. 토큰 주소, 지금 버전만, 결정이 나면 삭제 |
 | `blogops/buttons.py` | #승인 버튼 형식(`bo:<동작>:<초안ID>:<해시12자>`)과 REST용 components. discord.py 없이 쓴다 |
 | `blogops/decisions.py` | 승인·반려·접기. `review` 명령과 봇이 같이 쓴다. 기록·로그를 한 번만 남기고 `via`(cli·discord)로 구분. 결정 뒤 정리(`finish`) 포함 |

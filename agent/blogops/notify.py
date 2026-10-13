@@ -3,8 +3,8 @@
 봇 토큰으로 REST API에 메시지를 보낸다. 이 모듈은 상주하지 않는다.
     #일일요약  info   그날 한 일
     #긴급      warn·critical (critical은 운영자 멘션)
-    #승인      승인 요청 (운영자 멘션, 미리보기 링크와 승인·반려·접기 버튼, 명령 안내)
-버튼을 받는 쪽은 상주하는 봇(bot.py)이다. 봇이 멈춰도 알림은 가고, 명령으로 승인할 수 있다.
+    #승인      승인 요청 (운영자 멘션, 미리보기 링크와 승인·반려·접기 버튼)
+버튼을 받는 쪽은 상주하는 봇(bot.py)이다. 봇이 멈춰도 알림은 가고, review 명령으로 승인할 수 있다(메시지에는 적지 않는다).
 """
 from __future__ import annotations
 
@@ -73,15 +73,13 @@ def approval_message(config: Config, store: Store, draft_id: str, preview_ok: bo
     rejected = f"\n지난 반려 사유: {s['last_rejection']['reason']}" if s["last_rejection"] else ""
     guide = ("[미리보기]로 발행된 모습 그대로 읽고, 버튼으로 승인·반려한다. 접기는 이 글감을 접는다(반려 + 보류)."
              if preview_ok else
-             f"미리보기를 만들지 못했다. `{review} preview {draft_id}`로 다시 만들거나 아래 명령으로 읽는다.")
+             f"미리보기를 만들지 못했다. Pi에서 `{review} preview {draft_id}`로 다시 만들거나 "
+             f"`{review} show {draft_id} --body`로 읽는다.")
     return (f"**승인 요청: {s['title']}**\n"
             f"{s['description']}\n"
             f"시리즈 `{s['series']}` · 언어 {', '.join(s['langs'])} · 초안 `{draft_id}` · 해시 `{s['hash'][:12]}` · 품질 검사 통과"
             f"{rejected}\n"
             f"{guide}\n"
-            f"버튼이 안 되면 Pi에서: 읽기 `{review} show {draft_id} --body`\n"
-            f"승인 `{review} approve {draft_id}`\n"
-            f"반려 `{review} reject {draft_id} \"사유\"`\n"
             f"승인하면 다음 사이클(매일 14:00)에서 발행된다.")
 
 
