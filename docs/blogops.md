@@ -14,7 +14,7 @@ systemd 타이머가 매일 14:00(KST)에 `claude -p`를 한 번 돌린다. Huni
 4. **새 초안**: 승인을 기다리는 초안이 없을 때만 쓴다. `get_strategy`, `get_backlog`, `read_record`, `get_git_log`로 글감과 재료를 고르고 `create_draft` → `check_quality`(실패하면 최대 2번 고친다) → `request_approval`. 일요일에는 `get_week_summary`로 주간 보고서를 쓴다(한·영).
 5. **마무리**: 그날 한 일을 `notify_human`(info)으로 #일일요약에 보낸다.
 
-사람은 #승인 알림을 보고 Pi에서 `review approve` 또는 `review reject`를 실행한다(4절). 승인한 글은 다음 날 14:00 사이클에서 발행된다. 14:00에 초안이 오면 그날 편할 때 승인하는 흐름이다.
+사람은 #승인 알림의 [미리보기]로 발행될 모습 그대로 글을 읽고, 버튼으로 승인·반려·접기를 한다(11절). 폰이 아니어도 Pi에서 `review` 명령으로 같은 결정을 할 수 있다(4절). 승인한 글은 다음 날 14:00 사이클에서 발행된다. 14:00에 초안이 오면 그날 편할 때 승인하는 흐름이다. 반려하거나 접으면 14:00을 기다리지 않고 사이클을 바로 한 번 더 돌린다(하루 5회까지, 12절).
 
 blogops가 강제하는 한도:
 
@@ -25,6 +25,7 @@ blogops가 강제하는 한도:
 | 사이클당 툴 호출 | 60회 | `claude -p`에 턴 수 제한 옵션이 없다 (2.1.289 확인) |
 | 품질 검사 | 초안당 3번 실패하면 보류 | 보류하면 #긴급으로 알린다 |
 | 사이클 실행 시간·메모리 | 30분, `MemoryMax` | systemd가 강제한다 |
+| 반려·접기 직후 임시 실행 | 하루 5회 (KST) | 반려 → 재작성 → 반려가 되풀이되며 구독 한도를 쓰는 일을 막는다 (12절) |
 
 ## 2. 툴 (Phase 1, 18개)
 
@@ -42,7 +43,7 @@ blogops가 강제하는 한도:
 | 초안 | `update_draft` | 초안 ID, 바꿀 내용, 고친 이유 | 초안 수정. 품질·승인 기록은 무효가 된다 | write |
 | 초안 | `list_drafts` | 없음 | 초안과 상태 | read |
 | 초안 | `check_quality` | 초안 ID | 통과 여부, 문제 목록 (6절) | read |
-| 승인 | `request_approval` | 초안 ID | #승인에 요약과 승인·반려 명령을 보낸다 | write |
+| 승인 | `request_approval` | 초안 ID | 초안 미리보기를 빌드하고, #승인에 요약, 미리보기 링크, 승인·반려·접기 버튼, 명령 안내를 보낸다 (11절). 미리보기를 못 만들어도 승인 요청은 간다 | write |
 | 승인 | `get_approval_status` | 초안 ID | 상태(대기·승인·반려), 반려 사유 | read |
 | 발행 | `publish_post` | 초안 ID | 5절의 검사와 발행 | gated |
 | 발행 | `request_indexing` | URL 목록 | IndexNow 색인 요청 (Bing·네이버) | write |
@@ -62,11 +63,13 @@ state/
 │   ├── index.ko.md               Hugo 글 형식 그대로 (front matter + 본문)
 │   ├── index.en.md               영어판이 있을 때 (주간 보고서는 필수)
 │   ├── *.svg, *.png, *.jpg, *.webp  글에 넣는 그림 (운영자가 이 폴더에 넣는다. 2026-10-12)
-│   └── meta.json                 상태, 품질 검사 기록, 승인 요청 기록, 고친 이력
-└── approvals/<초안ID>.json        비공개. 사람의 승인·반려 기록
+│   └── meta.json                 상태, 품질 검사 기록, 승인 요청 기록(디스코드 메시지 위치), 미리보기 토큰, 고친 이력
+├── approvals/<초안ID>.json        비공개. 사람의 승인·반려 기록 (결정한 곳 via: cli·discord)
+└── previews/<토큰>/               비공개. 승인 대기 초안을 사이트 전체와 함께 빌드한 미리보기 (11절)
 logs/
 ├── YYYY-MM-DD.jsonl              비공개. 툴 호출과 결정 (하루 한 파일)
-└── cycles.jsonl                  비공개. 사이클별 소요 시간과 비용(추정)
+├── cycles.jsonl                  비공개. 사이클별 소요 시간과 비용(추정)
+└── .cycle-request                반려·접기 직후 사이클을 돌려 달라는 요청 (12절). 서비스가 시작하며 지운다
 ```
 
 - **초안 ID**: `YYYYMMDD-<슬러그>` (예: `20261008-naming`).
@@ -89,12 +92,15 @@ logs/
 
 ```bash
 review list                    # 승인 대기·반려·보류 초안
-review show <초안ID>            # 본문 경로, 요약, 품질 검사 결과
+review show <초안ID>            # 본문 경로, 요약, 품질 검사 결과, 미리보기 주소
+review preview <초안ID>         # 승인 대기 초안의 미리보기를 (없으면) 만들고 주소를 보인다
 review approve <초안ID>         # 지금 해시로 승인을 기록한다
 review reject <초안ID> "사유"   # 반려를 기록한다. 사유는 필수
+review reject <초안ID> "사유" --drop   # 접기: 반려 + 보류 + 글감 blocked (이 주제는 그만)
 ```
 
 - `approve`는 품질 검사를 통과한 해시와 지금 해시가 같을 때만 기록된다. 통과 뒤에 파일이 바뀌었으면 거부한다.
+- 반려만 하면 Huninn이 다음 사이클에 같은 글을 고친다. 글감 자체를 그만두려면 `--drop`(디스코드의 [접기])을 쓴다. 초안은 `held`가 되어 더 고치지 않고, 백로그 글감은 `blocked`로 바뀐다.
 - 승인·반려는 로그에 남긴다. 반려를 "사람 개입"으로 셀지는 집계 방식을 정할 때 함께 정한다.
 
 ## 5. 발행 흐름 (`publish_post`)
@@ -156,14 +162,19 @@ IndexNow 키 파일은 사이트 루트에 공개로 둔다(IndexNow가 요구�
 
 ```
 agent/
-├── pyproject.toml        Python 3.13, 의존성은 MCP Python SDK(mcp)
+├── pyproject.toml        Python 3.13, 의존성은 MCP Python SDK(mcp), 봇은 선택(`.[bot]`: discord.py)
 ├── blogops/
 │   ├── config.py         경로, 한도, 환경변수
 │   ├── store.py          초안·승인·백로그 파일, 해시
 │   ├── records.py        공개 기록 읽기(허용 목록), git log
 │   ├── quality.py        품질 검사
 │   ├── publish.py        발행
-│   ├── notify.py         디스코드 (봇 REST API, 상주 프로세스 없음)
+│   ├── notify.py         디스코드 메시지 (봇 REST API). #승인 메시지에 미리보기 링크와 버튼을 붙이고, 결정이 나면 그 메시지를 결과로 고친다
+│   ├── preview.py        승인 대기 초안의 미리보기 빌드 (11절)
+│   ├── buttons.py        #승인 버튼 형식 (custom_id, components). discord.py 없이 쓴다
+│   ├── decisions.py      승인·반려·접기. review 명령과 봇이 같이 쓴다
+│   ├── ondemand.py       반려·접기 직후 사이클을 바로 돌려 달라는 요청 (12절)
+│   ├── bot.py            디스코드 봇(상주). 버튼 클릭을 decisions에 넘긴다. discord.py 필요
 │   ├── indexnow.py
 │   ├── log.py            JSONL 기록, 사이클당 툴 호출 수
 │   ├── server.py         MCP 서버. 툴은 위 모듈을 부르기만 한다
@@ -173,7 +184,8 @@ ops/huninn/
 ├── prompt.md             하루 사이클 지시 (공개)
 ├── mcp.json              서버 이름 blogops (settings.json 허용 규칙 mcp__blogops와 맞춘다)
 └── run-cycle.sh          claude -p 실행, 비용 기록
-ops/systemd/huninn-cycle.service, huninn-cycle.timer
+ops/systemd/huninn-cycle.service, huninn-cycle.timer, huninn-cycle-now.path, huninn-bot.service
+ops/caddy/Caddyfile   :8080 공개 사이트, :8081 미리보기
 ```
 
 가상환경은 `agent/.venv`(git 제외)에 둔다.
@@ -187,9 +199,84 @@ ops/systemd/huninn-cycle.service, huninn-cycle.timer
 5. MCP 서버, `mcp.json`, `run-cycle.sh`, `prompt.md`. 손으로 한 번 돌려 초안과 승인 요청까지 확인한다.
 6. 운영 위치 분리(7절)와 타이머
 7. Huninn의 첫 글 → 게이트 2 시작
+8. 폰에서 읽고 승인하기: 미리보기 페이지와 디스코드 버튼 (11절)
+9. 반려·접기 직후 사이클을 바로 돌리기 (12절)
 
 ## 10. 결정 사항
 
 1. ~~운영 위치 분리~~ 결정 (2026-10-07): 작업실 `~/unattendant`와 매장 `~/unattendant-live`로 나눈다 (7절)
 2. ~~발행 시점~~ 결정 (2026-10-07): 승인한 다음 날 사이클에서 발행한다
 3. ~~사이클 시각~~ 결정 (2026-10-07): 매일 14:00(KST). 운영자가 오전에는 깨어 있지 않은 날이 많아서
+
+## 11. 폰에서 읽고 승인하기 (2026-10-13)
+
+승인은 Pi의 `review` 명령으로만 할 수 있었다. 운영자가 폰에서 글을 읽고 바로 승인·반려할 수 있게, #승인 메시지에 **미리보기 링크**와 **버튼**을 붙인다. 두 부분이다: 읽는 쪽(미리보기 페이지)과 결정하는 쪽(디스코드 봇).
+
+```
+request_approval ─▶ Hugo로 초안을 포함한 사이트 전체를 빌드 ─▶ state/previews/<토큰>/
+                 ─▶ #승인 메시지: [미리보기] [영어판] [승인] [반려] [접기]
+폰 ─▶ https://preview.unattendant.dev/<토큰>/posts/<슬러그>/
+        └ Cloudflare 터널 ─▶ Caddy :8081 (읽기 전용 file_server)
+폰 ─▶ 버튼 ─▶ 디스코드 ─▶ huninn-bot.service ─▶ decisions.py ─▶ state/approvals/
+```
+
+### 미리보기 페이지 (`preview.py`)
+
+- **실제 사이트 그대로**: 초안을 `content/posts/<슬러그>/`에 넣고 사이트 전체를 빌드한다. 글꼴, 다크 모드, 그림, 메뉴 이동이 발행된 모습과 같다. 한국어와 영어판을 둘 다 굽는다. 빌드는 1초 안팎이다. `--minify`는 쓰지 않는다(HTML minify가 `<body>`를 지워 "미승인 초안" 띠를 넣을 수 없다). 띠는 초안 페이지에만 들어간다.
+- **접근 통제는 토큰 주소**: 폴더 이름이 `secrets.token_hex(20)`(160비트)이다. 주소를 아는 사람만 읽는다. 토큰은 `meta.json`(비공개)에 두므로 `.env`에 새 비밀값이 생기지 않는다. 로그인은 없다. 더 막고 싶으면 Cloudflare Access를 `preview.unattendant.dev`에 겹치면 된다(코드 변경 없음).
+- **지금 버전만**: 승인 대기 초안의 지금 버전에만 미리보기가 있다. 내용이 바뀌어 해시가 달라지면 새 토큰이 나오고 옛 폴더는 지운다. 결정(승인·반려·접기)이 나면 바로 지운다. 링크가 보여 주는 내용과 승인 버튼이 승인할 내용은 늘 같은 버전이다.
+- **Caddy `:8081`**: 폴더 목록을 보여 주지 않고(`/`는 404), 점으로 시작하는 이름과 상위 경로는 내주지 않는다. 읽기 전용이다(POST 405). 모든 응답에 `X-Robots-Tag: noindex`, `Cache-Control: no-store`, `Referrer-Policy: no-referrer`를 붙이고 `/robots.txt`는 전체 차단이다. 사이트 CSS가 `/fonts/…`를, 상태 띠가 `/status.json`을 절대 경로로 부르므로 이 둘만 공개 사이트 폴더에서 그대로 내준다.
+- **비공개 폴더**: `state/previews/`는 `.gitignore`와 pre-commit 훅이 막는다. `sync.commit_state`가 `git add -- state`를 하므로 이 보호가 없으면 미완성 글이 공개 레포에 올라간다.
+- **Huninn에게는 주소를 돌려주지 않는다**: 토큰이 든 주소는 열쇠라서 디스코드 #승인으로만 간다. `request_approval`은 `preview: true/false`만 돌려준다.
+- **실패해도 막지 않는다**: 빌드가 실패하면 승인 요청은 그대로 가고, 메시지에 미리보기를 못 만들었다는 말과 `review preview` 안내가 붙는다.
+
+### 디스코드 버튼 (`bot.py`, `buttons.py`, `decisions.py`)
+
+| 버튼 | 누르면 |
+| --- | --- |
+| 미리보기, 영어판 | 링크 버튼. 브라우저로 미리보기 페이지가 열린다 |
+| 승인 | 나만 보이는 확인 메시지 [승인 확정] [취소]. 확정하면 승인이 기록된다 |
+| 반려 | 사유 입력창. 제출하면 반려가 기록되고, Huninn이 다음 사이클에 사유를 읽고 고친다 |
+| 접기 | 사유 입력창. 제출하면 반려 + 초안 보류 + 글감 `blocked` (이 주제는 그만) |
+
+- **게이트웨이 방식**: 봇이 디스코드로 먼저 연결을 열어서 포트도, 공개 주소도 필요 없다. 권한 인텐트는 쓰지 않는다(`Intents(guilds=True)`뿐). 버튼 `custom_id`가 `bo:<동작>:<초안ID>:<해시12자>`라 봇이 다시 떠도 이전 메시지의 버튼이 그대로 동작한다.
+- **사칭 방지**: 모든 클릭, 확인, 사유 제출에서 `DISCORD_OWNER_ID`와 클릭한 사람의 ID를 대조한다. 다르면 거부하고 `approval_denied`를 기록한다.
+- **해시 대조**: 버튼에 든 해시가 초안의 지금 해시와 다르면 거부한다. 확인 창을 오래 두거나 오래된 메시지의 버튼을 눌러도 새 내용을 승인하지 못한다. 기록 단계(`Store.record_decision(expect_hash=…)`)에서도 잠금 안에서 한 번 더 비교한다.
+- **같은 기록**: 승인·반려는 `review` 명령과 같은 `decisions.py`를 거친다. 어디서 했는지만 `via`(cli·discord)로 남는다.
+- **메시지 정리**: 결정이 나면 #승인 메시지를 결과 한 덩이("승인함 — 제목 · 시각")로 고치고 버튼과 링크를 걷어낸다. `review` 명령으로 결정해도 같다(승인 요청을 보낸 메시지 위치를 `meta.json`에 적어 둔다). 정리가 실패해도 결정은 이미 기록된 것이라 경고만 한다.
+- **봇이 멈추면**: 버튼이 "상호작용 실패"가 될 뿐이다. 알림은 계속 가고 메시지의 `review` 명령으로 승인할 수 있다. systemd가 봇을 다시 띄운다.
+- **서비스** (`huninn-bot.service`): 매장의 `blogops.bot`, `MemoryMax=200M`, 쓰기는 `state/`와 `logs/`만. 봇은 글을 쓰거나 발행하지 않고 claude 토큰도 읽지 않는다. 설치는 [ops/README.md](../ops/README.md) "Huninn 봇".
+
+### 남은 것
+
+- 반려·접기 직후 바로 다시 쓰기는 12절에서 한다.
+- 봇이 죽었는지를 `get_system_health`가 알리지는 않는다.
+- 미리보기 주소가 새는 것이 걱정되면 Cloudflare Access를 겹친다. 초안은 승인되면 어차피 공개될 글이라 지금은 토큰 주소로 충분하다고 판단했다(2026-10-13 운영자 결정).
+
+## 12. 반려·접기 직후 바로 쓰기 (2026-10-13)
+
+반려나 접기를 해도 Huninn은 다음 14:00 사이클(최대 하루 뒤)에야 움직였다. 운영자가 정한 대로(2026-10-13) 반려와 접기는 사이클을 바로 한 번 더 돌린다.
+
+| 결정 | 바로 도는 사이클이 하는 일 |
+| --- | --- |
+| 반려 | 같은 초안을 사유대로 고쳐 품질 검사를 거쳐 다시 승인을 요청한다 (프롬프트 3번) |
+| 접기 | 접은 글감을 빼고 다른 글감으로 새 초안을 쓴다 (프롬프트 4번) |
+| 승인 | **돌리지 않는다.** 승인한 글은 다음 14:00 사이클이 발행한다 |
+
+```
+[반려]·[접기] 또는 review reject ─▶ decisions.reject: 기록 · 보류 · 글감 blocked를 다 바꾼 뒤
+                                  ─▶ ondemand.request: logs/.cycle-request 파일 하나를 쓴다
+                                  ─▶ huninn-cycle-now.path가 파일을 보고 huninn-cycle.service를 시작한다
+                                  ─▶ 서비스가 시작할 때 요청 파일을 지운다 (ExecStartPre) ─▶ 평소 사이클
+```
+
+- **권한**: 봇과 `review` 명령은 파일 하나를 쓸 뿐이다. 서비스를 시작하는 권한(polkit)을 주지 않는다. 사이클을 시작하는 쪽은 systemd path 유닛이다.
+- **상한 하루 5회**(KST, `Config.ondemand_daily_limit`): 받아들인 요청을 `logs/YYYY-MM-DD.jsonl`의 `cycle_requested`(granted)로 센다. 5회를 넘으면 요청하지 않고 "오늘 임시 실행 5회를 다 썼다. 다음 14:00 사이클에서 처리한다"고 알린다. 반려 → 재작성 → 반려가 되풀이돼도 구독 한도를 하루 5번 이상 쓰지 않는다. 14:00 정규 사이클은 이 상한과 별개다.
+- **유닛이 없으면 약속하지 않는다**: `systemctl show huninn-cycle-now.path`로 유닛이 켜져 있고 지켜보는 파일이 이 설정의 요청 파일과 같은지 본다. 아니면(유닛 설치 전, 작업실에서 시험할 때) 요청 파일을 만들지 않고 "다음 14:00 사이클에서"라고 안내한다. 그래서 코드를 먼저 배포하고 유닛을 나중에 설치해도 안내가 거짓이 되지 않는다.
+- **순서**: 기록, 초안 보류, 글감 `blocked`를 모두 바꾼 뒤에 요청한다(테스트로 고정). 사이클이 곧바로 시작해도 접은 글감을 다시 고르지 않는다.
+- **겹침**: 요청 하나에 한 번만 돈다. 실행 중에 새 요청이 오면 끝난 뒤 한 번 더 돈다. 그 사이 14:00 타이머가 먼저 돌아도 그 실행이 요청 파일을 지우고 처리한다. 연달아 와도 한 번이다. 사용자 매니저의 임시 유닛으로 확인했다(요청 1번=1번 실행, 실행 중 요청=끝난 뒤 1번 더, 3번 연속=1번, 실제 `ondemand.request`의 파일 쓰기에도 반응).
+- **고장 방지**: 요청 파일은 서비스의 `ExecStartPre`와 `cycle.py`가 둘 다 시작할 때 지운다(유닛을 일부만 설치해도 같은 요청으로 계속 돌지 않게). path 유닛에도 `TriggerLimitBurst=8`/1시간을 둬서 그래도 지워지지 않는 고장이 나면 멈춘다.
+- **안내**: 디스코드 응답, #승인의 결과 메시지, `review` 출력이 같은 문장(`decisions.next_step`)을 쓴다. 예: "사이클을 바로 돌린다. 1~2분 안에 Huninn이 사유를 읽고 고친 뒤, 품질 검사를 거쳐 다시 승인을 요청한다 (임시 실행 2/5회)."
+- **알림**: 새 승인 요청이 오면 그 즉시 멘션이 간다. 밤에도 울린다.
+- **프롬프트**: "사이클은 매일 14:00에 한 번 돌고, 운영자가 반려하거나 접으면 바로 한 번 더 돈다(하루 5회까지)"를 `ops/huninn/prompt.md`에 더했다. 순서는 그대로다.
+- **알아 둘 것**: 접기는 `state/backlog.json`을 고치므로(미커밋) 바로 도는 사이클의 `git pull --ff-only`가 그 파일이 겹치는 커밋에는 막힌다. 평소에는 사이클 끝의 state 커밋이 정리한다. 설치는 [ops/README.md](../ops/README.md) "반려·접기 직후 바로 쓰기".
