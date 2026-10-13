@@ -26,6 +26,8 @@ Pi에서 블로그를 띄우는 데 필요한 설정과 설치 기록. 다른 �
 | `systemd/huninn-cycle.timer` | 위 서비스를 매일 14:00(KST)에 실행 |
 | `systemd/huninn-cycle-now.path` | 운영자가 반려·접기를 하면(`logs/.cycle-request`가 생기면) 위 서비스를 바로 시작한다. 아래 "반려·접기 직후 바로 쓰기" |
 | `systemd/huninn-bot.service` | 디스코드 봇 상시 실행: #승인 메시지의 승인·반려·접기 버튼을 받는다. 아래 "Huninn 봇" |
+| `systemd/huninn-status.service` | Pi 상태(CPU 온도·메모리·디스크·가동 시간)를 `/run/huninn/status.json`(RAM)에 한 번 쓴다. 아래 "Pi 상태 파일" |
+| `systemd/huninn-status.timer` | 위 서비스를 5분마다, 부팅 1분 뒤에도 실행 |
 
 ## 사이트 빌드
 
@@ -217,7 +219,7 @@ systemctl list-timers huninn-cycle.timer     # 다음 실행 시각
 | --- | --- |
 | Caddy | `:8081` 블록 (`ops/caddy/Caddyfile`). `127.0.0.1`에만 붙는다. 폴더 목록 없음, 점으로 시작하는 이름 차단, 읽기 전용 |
 | 응답 헤더 | `X-Robots-Tag: noindex, nofollow, noarchive`, `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, `/robots.txt` 전체 차단 |
-| 공개 사이트에서 가져오는 것 | `/fonts/*`, `/status.json` 둘뿐. 사이트 CSS와 상태 띠가 절대 경로로 부른다. 글꼴(이름에 해시가 있는 공개 파일)만 캐시를 허용해 폰에서 페이지마다 다시 받지 않는다 |
+| 공개 사이트에서 가져오는 것 | `/fonts/*`(공개 사이트 폴더)와 `/status.json`(`/run/huninn`, 아래 "Pi 상태 파일") 둘뿐. 사이트 CSS와 상태 띠가 절대 경로로 부른다. 글꼴(이름에 해시가 있는 공개 파일)만 캐시를 허용해 폰에서 페이지마다 다시 받지 않는다 |
 | 터널 | `preview.unattendant.dev` → `127.0.0.1:8081` (`ops/cloudflared/config.yml`) |
 | 주소 바꾸기 | 시험할 때 `BLOGOPS_PREVIEW_BASE_URL`로 기준 주소를 바꾼다 (기본 `https://preview.unattendant.dev`) |
 
@@ -243,6 +245,45 @@ curl -s -o /dev/null -w '%{http_code}\n' https://unattendant.dev/               
 승인 대기 초안이 있으면 `ops/huninn/review preview <초안ID>`로 미리보기를 만들고 주소를 본다. 폰에서 열리는지, 다크 모드와 그림이 보이는지 확인한다. 안 열리면 `systemctl status unattendant-tunnel`과 Caddy 로그를 본다.
 
 **2026-10-13 시험 (임시 Caddy를 18081 포트에 띄워 실제 설정을 확인)**: 실제 사이트와 실제 승인 대기 초안으로 빌드 1초, 글 페이지·홈·CSS·글꼴 200. 토큰 없는 `/`, 엉뚱한 토큰, 점 폴더·파일, `..`·`%2e%2e` 경로 탈출은 모두 404, POST 405, PUT 404, 응답 헤더 위 표대로, 안내 띠는 초안 페이지에만 있다. 운영 중인 Caddy와 터널은 건드리지 않았다.
+
+## Pi 상태 파일 (sudo)
+
+사이트 상태 띠와 통계 탭의 "지금 Pi"가 읽는 `/status.json`. 설계는 [status.md](../docs/status.md). 타이머가 5분마다 `agent/blogops/status.py`를 돌려 `/run/huninn/status.json`(RAM)에 쓰고, Caddy가 `/status.json`으로 내준다.
+
+| 구성 | 값 |
+| --- | --- |
+| 서비스 | `huninn-status.service`: `Type=oneshot`, `User=hun`, 매장 venv의 `python -m blogops.status`. `RuntimeDirectory=huninn`과 `RuntimeDirectoryPreserve=yes`(서비스가 끝나도 폴더를 지우지 않는다), `MemoryMax=64M`, `ProtectSystem=strict` |
+| 타이머 | `huninn-status.timer`: `OnCalendar=*:0/5`, `OnBootSec=1min`, `AccuracySec=10s` |
+| Caddy | `:8080`과 `:8081`의 `/status.json`이 `/run/huninn`에서 내준다. `:8080`은 `Cache-Control: no-store`를 붙인다 (`ops/caddy/Caddyfile`) |
+| 쓰는 값 | CPU 온도, 메모리, 디스크 여유, 가동 시간. 공개해도 되는 값뿐이다 |
+
+켜는 순서 (PR이 main에 합쳐지고 매장이 `git pull`을 받은 뒤):
+
+```bash
+cd ~/unattendant-live
+git pull --ff-only
+# 1) 검증 (서비스는 건드리지 않는다)
+~/.local/bin/caddy validate --adapter caddyfile --config ops/caddy/Caddyfile
+systemd-analyze verify ops/systemd/huninn-status.service ops/systemd/huninn-status.timer
+agent/.venv/bin/python -m blogops.status --print          # 값이 읽히는지만 본다 (파일은 안 쓴다)
+# 2) 설치와 시작 (sudo)
+sudo install -m 644 ops/systemd/huninn-status.service ops/systemd/huninn-status.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl start huninn-status.service                 # 손으로 한 번: /run/huninn/status.json이 생긴다
+cat /run/huninn/status.json
+sudo systemctl enable --now huninn-status.timer
+systemctl list-timers huninn-status.timer                  # 다음 실행 시각
+# 3) Caddy가 새 설정을 읽게 한다 (sudo). 블로그가 1~2초 끊긴다
+sudo systemctl restart unattendant-caddy
+systemctl is-active unattendant-caddy
+# 4) 확인
+curl -s -i http://127.0.0.1:8080/status.json | head -12     # 200, cache-control: no-store, JSON
+curl -s -i https://unattendant.dev/status.json | grep -iE '^(HTTP|cache-control|cf-cache-status)'   # 200, no-store, cf-cache-status가 HIT이 아니다
+```
+
+Caddy를 다시 시작하는 순간을 업타임 모니터가 잡으면 #긴급에 Down·Up 알림이 한 쌍 올 수 있다. 정상이다.
+
+되돌리기: `sudo systemctl disable --now huninn-status.timer`. 파일은 재부팅하면 사라지고 사이트는 띠에 "운영 준비 중"만 보인다. Caddyfile은 그대로 둬도 된다(파일이 없으면 404).
 
 ## Huninn 봇 (sudo)
 
