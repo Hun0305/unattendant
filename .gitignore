@@ -7,10 +7,11 @@ site/
 *.pem
 *credentials*.json
 
-# 비공개: 원본 로그와 미발행 초안 (Pi와 백업에만 둔다)
+# 비공개: 원본 로그와 미발행 초안, 초안 미리보기 빌드 (Pi와 백업에만 둔다)
 logs/
 state/drafts/
 state/approvals/
+state/previews/
 
 # 런타임 산출물
 __pycache__/

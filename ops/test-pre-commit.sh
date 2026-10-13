@@ -49,6 +49,7 @@ run ".env 파일"            BLOCKED .env   "FOO=bar"
 run "logs/ 아래 파일"        BLOCKED logs/x.jsonl '{"ok":true}'
 run "미발행 초안"            BLOCKED state/drafts/x.md '초안'
 run "승인 상태"              BLOCKED state/approvals/x.json '{"approved":false}'
+run "초안 미리보기 빌드"      BLOCKED state/previews/abc/index.html '<h1>미승인 초안</h1>'
 
 echo "통과 $pass / 실패 $fail" | tee -a "$OUT"
 [ "$fail" -eq 0 ]

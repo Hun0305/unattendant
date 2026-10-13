@@ -2,7 +2,7 @@
 
 state/drafts/<초안ID>/
     index.ko.md, index.en.md   Hugo 글 형식 (front matter + 본문)
-    meta.json                  작성·수정 이력, 품질 검사 기록, 승인 요청 기록, 보류, 발행
+    meta.json                  작성·수정 이력, 품질 검사 기록, 승인 요청 기록, 미리보기 토큰, 보류, 발행
 state/approvals/<초안ID>.json  사람의 승인·반려 기록
 
 초안의 상태는 따로 저장하지 않고, 지금 내용의 해시와 기록을 대조해 그때그때 계산한다.
@@ -257,6 +257,16 @@ class Store:
             meta["approval_requests"].append(record)
             _write_json(self._dir(draft_id) / "meta.json", meta)
         return record
+
+    def preview_record(self, draft_id: str) -> Optional[dict]:
+        return self.meta(draft_id).get("preview")
+
+    def set_preview(self, draft_id: str, token: str, content_hash: str) -> dict:
+        with self._lock():
+            meta = self.meta(draft_id)
+            meta["preview"] = {"token": token, "hash": content_hash, "at": self._ts()}
+            _write_json(self._dir(draft_id) / "meta.json", meta)
+            return meta["preview"]
 
     def mark_published(self, draft_id: str, record: dict) -> None:
         with self._lock():

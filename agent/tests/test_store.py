@@ -145,6 +145,15 @@ class StoreTest(unittest.TestCase):
         self.store.record_decision(draft_id, "rejected", reason="다시 보니 숫자 출처가 없다")
         self.assertEqual(self.store.status(draft_id), "rejected")
 
+    def test_preview_record(self):
+        draft_id = self.store.create_draft(slug="naming", series="ops-log", ko=KO)
+        ready(self.store, draft_id)
+        h = self.store.record_approval_request(draft_id)["hash"]
+        self.assertIsNone(self.store.preview_record(draft_id))
+        self.store.set_preview(draft_id, "t" * 40, h)
+        self.assertEqual(self.store.preview_record(draft_id)["token"], "t" * 40)
+        self.assertEqual(self.store.status(draft_id), "awaiting_approval")  # 이 기록은 상태에 영향이 없다
+
     def test_failed_quality_after_request_blocks_approval(self):
         draft_id = self.store.create_draft(slug="naming", series="ops-log", ko=KO)
         ready(self.store, draft_id)

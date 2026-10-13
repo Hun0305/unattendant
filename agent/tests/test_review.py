@@ -75,6 +75,27 @@ class ReviewTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(self.store.status(self.draft_id), "rejected")
 
+    def test_preview_command_and_show(self):
+        code, _, err = run("preview", self.draft_id)  # 아직 승인 대기가 아니다
+        self.assertEqual(code, 1)
+        self.assertIn("승인 대기", err)
+        self.request()
+        code, out, _ = run("show", self.draft_id)
+        self.assertNotIn("미리보기", out)  # 아직 만들지 않았다
+
+    def test_preview_command_builds_and_show_lists_url(self):
+        # 실제 Hugo 빌드는 test_preview.py가 본다. 여기서는 명령이 연결되는지만 본다
+        self.request()
+        fake = {"draft_id": self.draft_id, "token": "t" * 40, "hash": "h", "reused": False,
+                "urls": {"ko": "https://preview.example/ttt/posts/naming/"}}
+        with mock.patch("blogops.review.preview.ensure", return_value=fake):
+            code, out, _ = run("preview", self.draft_id)
+        self.assertEqual(code, 0)
+        self.assertIn("https://preview.example/ttt/posts/naming/", out)
+        with mock.patch("blogops.review.preview.current", return_value=fake):
+            _, out, _ = run("show", self.draft_id)
+        self.assertIn("미리보기 ko https://preview.example/ttt/posts/naming/", out)
+
     def test_unknown_draft(self):
         code, _, err = run("show", "20990101-nope")
         self.assertEqual(code, 1)
