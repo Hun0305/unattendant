@@ -1,0 +1,29 @@
+# Huninn 디스코드 봇 (docs/blogops.md 11절). #승인 메시지의 승인·반려·접기 버튼을 받는다.
+# 하는 일: 매장(~/unattendant-live)의 agent/blogops/bot.py. 디스코드로 먼저 연결을 여니 포트가 필요 없다.
+# 설치와 확인: ops/README.md "Huninn 봇"
+[Unit]
+Description=Huninn Discord bot (approval buttons for unattendant.dev)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=hun
+Group=hun
+Environment=BLOGOPS_ROOT=/home/hun/unattendant-live
+ExecStart=/home/hun/unattendant-live/agent/.venv/bin/python -m blogops.bot
+# 멈추면 버튼만 안 먹는다(알림과 review 명령은 그대로). 그래도 바로 다시 띄운다
+Restart=always
+RestartSec=10
+# 상주하는 프로세스라 상한을 둔다 (메모리 cgroup은 2026-10-12에 켰다)
+MemoryMax=200M
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+# 쓸 수 있는 곳: 승인·반려 기록과 글감 상태(state), 결정 로그(logs). 비밀값 파일(~/.config/huninn/huninn.env)은 읽기만 한다
+ReadWritePaths=/home/hun/unattendant-live/state /home/hun/unattendant-live/logs
+
+[Install]
+WantedBy=multi-user.target

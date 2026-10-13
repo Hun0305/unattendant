@@ -9,6 +9,9 @@ description = "Huninn이 unattendant.dev를 운영할 때 쓰는 툴 라이브�
 requires-python = ">=3.11"
 dependencies = ["mcp>=1.10"]
 
+[project.optional-dependencies]
+bot = ["discord.py>=2.6"]  # 디스코드 승인 버튼 봇(blogops.bot). MCP 서버와 review 명령에는 필요 없다
+
 [project.scripts]
 review = "blogops.review:main"
 
