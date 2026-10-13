@@ -28,7 +28,7 @@
 - docs/edge-ai-blog-topics.md: 실험 주제(비전·LLM 시리즈)와 측정 원칙
 - docs/reference.md: 참고 자료
 - docs/layout-options.md: 블로그 레이아웃 5안과 AI 운영 사이트 19곳 화면 조사 (2026-10-06)
-- docs/blogops.md: blogops 설계 (Phase 1): 하루 사이클, 툴 18개, 초안·승인 파일 형식, review 명령, 발행 흐름, 품질 검사
+- docs/blogops.md: blogops 설계 (Phase 1): 하루 사이클, 툴 20개, 초안·승인 파일 형식, review 명령, 발행 흐름, 품질 검사
 - docs/next/indexnow.md: IndexNow 색인 요청 (키 파일, 켜는 방법, 응답 코드, 운영 규칙)
 - docs/pre-commit.md: 비밀키 스캐너(gitleaks pre-commit 훅) 구성, 규칙, 실험 기록
 - docs/uptime.md: 외부 업타임 모니터(UptimeRobot) 설계: 구성, 설정값, 켜는 순서, 시험, 기록 계획

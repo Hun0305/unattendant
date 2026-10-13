@@ -16,10 +16,10 @@ from blogops import backlog
 from blogops.config import KST
 from helpers import good_body, make_env
 
-# docs/blogops.md 2절의 18개. 승인·반려는 툴이 아니다
+# docs/blogops.md 2절의 20개. 승인·반려는 툴이 아니다
 TOOLS = {"get_system_health", "get_strategy", "get_backlog", "manage_backlog", "list_posts", "search_posts",
          "read_record", "get_git_log", "create_draft", "update_draft", "list_drafts", "check_quality",
-         "request_approval", "get_approval_status", "publish_post", "request_indexing", "get_week_summary",
+         "request_approval", "get_approval_status", "publish_post", "get_post", "add_english", "request_indexing", "get_week_summary",
          "notify_human"}
 SOURCE = {"title": "pre-commit.md", "url": "https://github.com/Hun0305/unattendant/blob/main/docs/pre-commit.md"}
 
