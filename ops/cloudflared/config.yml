@@ -5,4 +5,7 @@ credentials-file: /home/hun/.cloudflared/bd749433-fd2f-48ba-b325-ff2115f1a40d.js
 ingress:
   - hostname: unattendant.dev
     service: http://127.0.0.1:8080
+  # 승인 대기 초안의 미리보기 (docs/blogops.md 11절). DNS는 cloudflared tunnel route dns로 따로 추가한다
+  - hostname: preview.unattendant.dev
+    service: http://127.0.0.1:8081
   - service: http_status:404
