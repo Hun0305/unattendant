@@ -26,6 +26,7 @@
 - docs/architecture.md: 설계 기준 문서. 무엇을 왜 만드는지(설계, 스택, 툴 스펙, 가드레일). 진행 상황은 넣지 않는다. 구조나 설계 판단이 필요하면 먼저 읽을 것
 - docs/hardware-plan.md: 장비 역할 분담, WOL 원격 작업
 - docs/edge-ai-blog-topics.md: 실험 주제(비전·LLM 시리즈)와 측정 원칙
+- docs/experiments.md: 실험 설계: LLM 모델 선정, 측정 지표·조건, 과제 세트, 측정 오염을 막는 규칙, 결과 형식, 템플릿, 비전 트랙 (2026-10-14 초안)
 - docs/reference.md: 참고 자료
 - docs/layout-options.md: 블로그 레이아웃 5안과 AI 운영 사이트 19곳 화면 조사 (2026-10-06)
 - docs/blogops.md: blogops 설계 (Phase 1): 하루 사이클, 툴 20개, 초안·승인 파일 형식, review 명령, 발행 흐름, 품질 검사

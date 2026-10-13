@@ -1,0 +1,161 @@
+# 실험에 쓰는 모델 목록 (docs/experiments.md 3절)
+#
+# - 사람이 고친다. Huninn은 여기 있는 모델만 고를 수 있다.
+# - 파일은 레포 밖 ~/models/gguf/에 받는다: python3 -I experiments/runner/fetch_models.py
+# - revision은 받은 저장소의 커밋, sha256은 Hugging Face가 밝힌 LFS 해시다. 받은 뒤 다시 계산해 대조한다.
+#   같은 이름의 파일이 나중에 바뀌어도 회차 비교가 깨지지 않게 하려는 것이다.
+# - arch는 GGUF 머리의 general.architecture다. upstream llama.cpp가 지원하는 구조만 넣는다.
+# - 값은 2026-10-14에 Hugging Face API로 확인했다.
+
+[[model]]
+id = "llama-3.2-1b"
+name = "Llama 3.2 1B Instruct"
+maker = "Meta"
+released = "2024-09"
+structure = "트랜스포머"
+license = "Llama 3.2 Community License"
+groups = ["round1", "anchor"]
+thinking = "없음"
+
+  [[model.file]]
+  quant = "Q4_K_M"
+  repo = "bartowski/Llama-3.2-1B-Instruct-GGUF"
+  revision = "067b946cf014b7c697f3654f621d577a3e3afd1c"
+  file = "Llama-3.2-1B-Instruct-Q4_K_M.gguf"
+  size = 807694464
+  sha256 = "6f85a640a97cf2bf5b8e764087b1e83da0fdb51d7c9fab7d0fece9385611df83"
+  arch = "llama"
+
+[[model]]
+id = "gemma-3-1b"
+name = "Gemma 3 1B it"
+maker = "Google"
+released = "2025-03"
+structure = "트랜스포머(슬라이딩 윈도)"
+license = "Gemma Terms of Use"
+groups = ["round1"]
+thinking = "없음"
+
+  [[model.file]]
+  quant = "Q4_K_M"
+  repo = "ggml-org/gemma-3-1b-it-GGUF"
+  revision = "f9c28bcd85737ffc5aef028638d3341d49869c27"
+  file = "gemma-3-1b-it-Q4_K_M.gguf"
+  size = 806058240
+  sha256 = "8ccc5cd1f1b3602548715ae25a66ed73fd5dc68a210412eea643eb20eb75a135"
+  arch = "gemma3"
+
+[[model]]
+id = "qwen3.5-0.8b"
+name = "Qwen3.5 0.8B"
+maker = "Alibaba"
+released = "2026-02"
+structure = "하이브리드(선형 어텐션 18층 + 어텐션 6층)"
+license = "Apache-2.0"
+groups = ["round1"]
+thinking = "있음, 기본 꺼짐 (chat_template_kwargs enable_thinking)"
+
+  [[model.file]]
+  quant = "Q4_K_M"
+  repo = "bartowski/Qwen_Qwen3.5-0.8B-GGUF"
+  revision = "f36b1ea49a332ede8fe5f389bbf5b3575ef71f48"
+  file = "Qwen_Qwen3.5-0.8B-Q4_K_M.gguf"
+  size = 579615840
+  sha256 = "fb044e93939a70469c905781334f5de1e6c8b608ced6cbc8c9249bd4127d9526"
+  arch = "qwen35"
+
+[[model]]
+id = "qwen3.5-2b"
+name = "Qwen3.5 2B"
+maker = "Alibaba"
+released = "2026-02"
+structure = "하이브리드(선형 어텐션 18층 + 어텐션 6층)"
+license = "Apache-2.0"
+groups = ["round1"]
+thinking = "있음, 기본 꺼짐 (chat_template_kwargs enable_thinking)"
+
+  [[model.file]]
+  quant = "Q4_K_M"
+  repo = "bartowski/Qwen_Qwen3.5-2B-GGUF"
+  revision = "7d26695454df6de5fbcce2e58681e62dae06ce43"
+  file = "Qwen_Qwen3.5-2B-Q4_K_M.gguf"
+  size = 1396198496
+  sha256 = "57a1085840f497d764a7fc5d346922dbde961efb54cc792ea81d694fd846a1d8"
+  arch = "qwen35"
+
+[[model]]
+id = "lfm2.5-1.2b"
+name = "LFM2.5 1.2B Instruct"
+maker = "Liquid AI"
+released = "2026-01"
+structure = "하이브리드(합성곱 10층 + 어텐션 6층)"
+license = "LFM Open License v1.0"
+groups = ["round1"]
+thinking = "없음 (생각 모드는 별도 Thinking 모델)"
+
+  [[model.file]]
+  quant = "Q4_K_M"
+  repo = "LiquidAI/LFM2.5-1.2B-Instruct-GGUF"
+  revision = "8ed288026e23958ad9dfa92d53ed773a8eee7125"
+  file = "LFM2.5-1.2B-Instruct-Q4_K_M.gguf"
+  size = 730895168
+  sha256 = "b1b3de114215d9507409a662a501a631095a479a419584e8a2ded6304b19b4f5"
+  arch = "lfm2"
+
+[[model]]
+id = "granite-4.0-h-1b"
+name = "Granite 4.0 H 1B"
+maker = "IBM"
+released = "2025-10"
+structure = "하이브리드(Mamba2 36층 + 어텐션 4층)"
+license = "Apache-2.0"
+groups = ["round1"]
+thinking = "없음"
+
+  [[model.file]]
+  quant = "Q4_K_M"
+  repo = "ibm-granite/granite-4.0-h-1b-GGUF"
+  revision = "c2cb1972f511add21f3bae244990b8ff3a3ffb23"
+  file = "granite-4.0-h-1b-Q4_K_M.gguf"
+  size = 901162208
+  sha256 = "da3d737121a96f3c9a316685212376257a7f167b74380855666dd488d6af3bcb"
+  arch = "granitehybrid"
+
+[[model]]
+id = "exaone-4.0-1.2b"
+name = "EXAONE 4.0 1.2B"
+maker = "LG AI연구원"
+released = "2025-07"
+structure = "트랜스포머"
+license = "EXAONE AI Model License"
+groups = ["round1"]
+thinking = "있음, 기본 꺼짐 (enable_thinking)"
+
+  [[model.file]]
+  quant = "Q4_K_M"
+  repo = "LGAI-EXAONE/EXAONE-4.0-1.2B-GGUF"
+  revision = "162446400ea4596377a3ce1d3ddffa32971af0a6"
+  file = "EXAONE-4.0-1.2B-Q4_K_M.gguf"
+  size = 812437792
+  sha256 = "7b5e753540183ae4d56e6febd9b48cdd944de53386e6faa8f51c8f98cb2b47df"
+  arch = "exaone4"
+
+[[model]]
+id = "hyperclovax-seed-1.5b"
+name = "HyperCLOVA X SEED Text Instruct 1.5B"
+maker = "네이버"
+released = "2025-04"
+structure = "트랜스포머"
+license = "HyperCLOVA X SEED Model License"
+groups = ["round1"]
+thinking = "없음"
+# 네이버는 자체 llama.cpp 포크를 안내한다. GGUF 구조는 llama라 upstream으로 열리지만, 답이 제대로 나오는지는 시험 실행에서 확인한다
+
+  [[model.file]]
+  quant = "Q4_K_M"
+  repo = "naver-ellm/HyperCLOVAX-SEED-Text-Instruct-1.5B-GGUF"
+  revision = "b9bbb68d6635a8b80263bf7165c8b908d64f28de"
+  file = "HyperCLOVAX-SEED-Text-Instruct-1.5B-Q4_K_M.gguf"
+  size = 1006572160
+  sha256 = "6e0841f886f55411327d4659308f2408424f0ac55a2d32f60a49f470c71381a6"
+  arch = "llama"

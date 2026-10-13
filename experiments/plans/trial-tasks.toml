@@ -1,0 +1,9 @@
+# llm-tasks 러너를 실제 llama-server로 처음 검증한다 (docs/experiments.md 13절 4번)
+# 과제 세트가 검수 전(draft)이라 결과는 글에 쓰지 않는다. 서버 옵션, 스트리밍, 메모리, 걸린 시간을 확인하는 용도다.
+
+name = "trial-tasks"
+
+[[job]]  # 기준 모델
+template = "llm-tasks"
+model = "llama-3.2-1b"
+promptset = "llm-tasks-v1"

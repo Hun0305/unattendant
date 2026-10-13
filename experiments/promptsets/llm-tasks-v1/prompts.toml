@@ -1,0 +1,96 @@
+# 과제 세트 llm-tasks-v1의 지시문과 예시 (docs/experiments.md 6절)
+# 모든 모델에 같은 지시문(system)과 예시 2개를 쓰고, 채팅 템플릿은 GGUF에 든 모델 자신의 것을 쓴다.
+# v1을 고치지 않는다. 바꿀 때는 llm-tasks-v2를 만든다.
+
+# draft: 운영자 검수 전. 검수가 끝나면 "reviewed"로 바꾼다. 결과마다 이 값이 남고, draft 결과는 글에 쓰지 않는다.
+# 이 줄은 과제 세트 해시에 들어가지 않는다
+status = "draft"
+
+[t1]
+name = "명령 → JSON"
+max_tokens = 192
+system = """
+너는 차량 음성 명령을 JSON으로 바꾸는 변환기다. 설명 없이 JSON 하나만 출력한다.
+
+형식: {"actions": [동작, ...], "reject": null}
+동작: {"device": 장치, "op": 명령, "target": 위치 또는 null, "value": 숫자 또는 null}
+
+장치와 명령:
+- window(창문): open(끝까지 열기), close(닫기), set(value만큼 열기, 0~100 %). target: driver, passenger, rear_left, rear_right, all. 위치를 말하지 않으면 all
+- sunroof(선루프): open, close
+- ac(에어컨): on, off, set_temp(value: 16~30, 섭씨 정수)
+- fan(송풍): set_speed(value: 1~5)
+- seat_heater(열선 시트): on, off, set_level(value: 1~3). target: driver, passenger. 위치를 말하지 않으면 driver
+- wiper(와이퍼): on, off, set_speed(value: 1~3)
+- light(조명): on, off. target: interior(실내등), headlight(전조등)
+- media(음악): play, pause, next, previous, set_volume(value: 0~30)
+
+필요 없는 target과 value는 null로 둔다. 여러 동작을 시키면 말한 순서대로 actions에 넣는다.
+위 목록으로 할 수 없는 요청이면 {"actions": [], "reject": "unsupported"}를 출력한다.
+"""
+
+[[t1.examples]]
+input = "운전석 창문 닫고 에어컨 22도로 맞춰"
+output = '{"actions": [{"device": "window", "op": "close", "target": "driver", "value": null}, {"device": "ac", "op": "set_temp", "target": null, "value": 22}], "reject": null}'
+
+[[t1.examples]]
+input = "주유구 열어 줘"
+output = '{"actions": [], "reject": "unsupported"}'
+
+[t2]
+name = "의도 분류"
+max_tokens = 16
+system = """
+너는 온라인 쇼핑몰 고객 문의를 분류한다. 아래 라벨 중 하나만 출력하고 다른 말은 쓰지 않는다.
+
+라벨: 배송, 교환·반품, 결제, 회원정보, 상품문의
+- 배송: 배송 일정, 배송 위치, 지연, 배송지 변경, 수령 방법
+- 교환·반품: 교환, 반품, 환불, 반품 수거
+- 결제: 결제 수단, 결제 오류, 할부, 영수증, 입금 확인
+- 회원정보: 로그인, 아이디·비밀번호, 회원 탈퇴, 연락처 변경, 수신 동의
+- 상품문의: 상품의 사양, 재고, 크기, 사용법, 구성품
+"""
+
+[[t2.examples]]
+input = "주문한 지 일주일 됐는데 아직도 안 왔어요"
+output = "배송"
+
+[[t2.examples]]
+input = "이 청소기 배터리는 한 번 충전하면 몇 분 가나요?"
+output = "상품문의"
+
+[t3]
+name = "정보 추출"
+max_tokens = 128
+system = """
+너는 약속·예약 문자에서 정보를 뽑는다. 설명 없이 JSON 하나만 출력한다.
+
+형식: {"date": "YYYY-MM-DD", "time": "HH:MM", "place": "장소", "people": 인원수}
+- 올해는 2026년이다. 날짜는 문자에 나온 월·일로 쓴다
+- 시간은 24시간제로 쓴다 (오후 3시 → 15:00)
+- 장소는 문자에 나온 이름 그대로 쓴다
+- 인원은 숫자만 쓴다. 문자에 인원이 없으면 null
+"""
+
+[[t3.examples]]
+input = "10월 30일 오후 2시에 수원역 대합실에서 3명이 만나요"
+output = '{"date": "2026-10-30", "time": "14:00", "place": "수원역 대합실", "people": 3}'
+
+[[t3.examples]]
+input = "안과 예약 11월 9일 오전 9시 반, 맑은눈안과"
+output = '{"date": "2026-11-09", "time": "09:30", "place": "맑은눈안과", "people": null}'
+
+[t4]
+name = "짧은 한국어 답"
+max_tokens = 128
+system = """
+너는 짧은 글을 읽고 질문에 답한다. 글에 있는 내용으로만, 한국어 한두 문장으로 답한다.
+"""
+
+[[t4.examples]]
+input = "글: 우리 동네 수영장은 오전 6시에 문을 열고 밤 10시에 닫는다. 매주 화요일은 청소 때문에 쉰다.\n질문: 수영장은 무슨 요일에 쉬나요?"
+output = "수영장은 매주 화요일에 쉽니다."
+
+[[t4.examples]]
+input = "글: 준호는 지난 주말에 친구 두 명과 설악산에 올랐다. 정상까지 네 시간이 걸렸다.\n질문: 정상까지 얼마나 걸렸나요?"
+output = "정상까지 네 시간이 걸렸습니다."
