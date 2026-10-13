@@ -165,8 +165,8 @@ class HuninnBot(discord.Client):
         except StoreError as e:
             await interaction.response.send_message(f"처리할 수 없다: {e}", ephemeral=True)
             return
-        next_step = decisions.NEXT_STEP[decision.kind]
-        await interaction.response.send_message(f"{decisions.HEADS[decision.kind]}\n{next_step}", ephemeral=True)
+        await interaction.response.send_message(f"{decisions.HEADS[decision.kind]}\n{decisions.next_step(decision)}",
+                                                ephemeral=True)
         await self._finish(interaction, decision)
 
     async def _finish(self, interaction: discord.Interaction, decision: decisions.Decision) -> None:

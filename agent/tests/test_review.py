@@ -29,11 +29,15 @@ class ReviewTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.env = mock.patch.dict(os.environ, {"BLOGOPS_ROOT": self.tmp.name})
         self.env.start()
+        # 기본은 즉시 실행 유닛이 없는 환경. 실제 systemctl을 부르지 않는다
+        self.watch = mock.patch("blogops.ondemand.watcher_active", return_value=False)
+        self.watcher = self.watch.start()
         self.store = Store(Config.from_env())
         self.draft_id = self.store.create_draft(slug="naming", series="ops-log", ko=KO, backlog_id="naming")
         (Path(self.tmp.name) / "state" / "backlog.json").write_text(json.dumps(BACKLOG, ensure_ascii=False), encoding="utf-8")
 
     def tearDown(self):
+        self.watch.stop()
         self.env.stop()
         self.tmp.cleanup()
 
@@ -94,6 +98,27 @@ class ReviewTest(unittest.TestCase):
         self.assertIn("접었다", out)
         self.assertEqual(self.store.status(self.draft_id), "held")
         self.assertEqual(backlog.items(Config.from_env(), "blocked")[0]["id"], "naming")
+
+    def test_reject_tells_what_happens_next(self):
+        self.request()
+        _, out, _ = run("reject", self.draft_id, "출처가 없다")
+        self.assertIn("다음 14:00 사이클에서 Huninn이 사유를 읽고 고친", out)  # 즉시 실행 유닛이 없으면 거짓말하지 않는다
+        self.assertFalse(Config.from_env().cycle_request_path.exists())
+
+    def test_reject_and_drop_run_the_cycle_right_away_when_the_unit_is_watching(self):
+        self.watcher.return_value = True
+        self.request()
+        _, out, _ = run("reject", self.draft_id, "출처가 없다")
+        self.assertIn("사이클을 바로 돌린다", out)
+        self.assertIn("임시 실행 1/5회", out)
+        self.assertTrue(Config.from_env().cycle_request_path.exists())
+
+    def test_approve_does_not_run_the_cycle(self):
+        self.watcher.return_value = True
+        self.request()
+        _, out, _ = run("approve", self.draft_id)
+        self.assertIn("다음 사이클(매일 14:00)에서 발행된다", out)
+        self.assertFalse(Config.from_env().cycle_request_path.exists())
 
     def test_reject_without_drop_keeps_backlog(self):
         self.request()

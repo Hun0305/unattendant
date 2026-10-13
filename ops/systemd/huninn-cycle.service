@@ -1,5 +1,6 @@
 # Huninn 하루 사이클 (docs/blogops.md 1절). huninn-cycle.timer가 매일 14:00(KST)에 한 번 실행한다.
 # 하는 일: 매장(~/unattendant-live)의 ops/huninn/run-cycle.sh → claude -p(blogops 툴만) → logs/cycles.jsonl
+# 다른 시작 경로: huninn-cycle-now.path (운영자가 반려·접기를 했을 때)
 # 설치와 확인: ops/README.md "Huninn 타이머"
 [Unit]
 Description=Huninn daily cycle (unattendant.dev)
@@ -10,6 +11,8 @@ After=network-online.target
 Type=oneshot
 User=hun
 Group=hun
+# 반려·접기 직후 요청 파일(huninn-cycle-now.path가 지켜본다)을 지운다. 타이머가 먼저 돌아도 그 요청은 이 실행이 처리한다
+ExecStartPre=-/bin/rm -f /home/hun/unattendant-live/logs/.cycle-request
 ExecStart=/home/hun/unattendant-live/ops/huninn/run-cycle.sh
 # claude, hugo, gitleaks가 ~/.local/bin에 있다. pre-commit 훅도 PATH에서 gitleaks를 찾는다
 Environment=PATH=/home/hun/.local/bin:/usr/local/bin:/usr/bin:/bin

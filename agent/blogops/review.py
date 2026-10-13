@@ -82,12 +82,8 @@ def _cmd_approve(store: Store, args) -> None:
 
 def _cmd_reject(store: Store, args) -> None:
     decision = decisions.reject(store.config, store, args.draft_id, args.reason, drop=args.drop)
-    if args.drop:
-        print(f"접었다: {args.draft_id}")
-        print("반려 사유를 남기고 초안을 보류했다. Huninn은 이 글을 더 고치지 않는다.")
-    else:
-        print(f"반려했다: {args.draft_id}")
-        print("다음 사이클에서 Huninn이 사유를 읽고 고친 뒤, 품질 검사를 거쳐 다시 승인을 요청한다.")
+    print(f"{'접었다' if args.drop else '반려했다'}: {args.draft_id}")
+    print(decisions.next_step(decision))
     _finish(store, decision)
 
 

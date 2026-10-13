@@ -63,6 +63,9 @@ class BotTest(unittest.IsolatedAsyncioTestCase):
         self.patch.start()
         self.patch_http = mock.patch("blogops.notify.patch_json", return_value=(200, {}))
         self.http = self.patch_http.start()
+        # 기본은 즉시 실행 유닛이 없는 환경. 실제 systemctl을 부르지 않는다
+        self.patch_watch = mock.patch("blogops.ondemand.watcher_active", return_value=False)
+        self.watcher = self.patch_watch.start()
         self.bot = bot_module.HuninnBot(self.config)
         self.draft_id = self.store.create_draft(
             slug="naming", series="ops-log", backlog_id="naming",
@@ -74,6 +77,7 @@ class BotTest(unittest.IsolatedAsyncioTestCase):
         self.store.record_approval_message(self.draft_id, self.hash, 102, 999)
 
     async def asyncTearDown(self):
+        self.patch_watch.stop()
         self.patch_http.stop()
         self.patch.stop()
         self.tmp.cleanup()
@@ -181,6 +185,40 @@ class BotTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(backlog.items(self.config, "blocked")[0]["id"], "naming")
         self.assertIn("접음", sub.response.sent[0]["content"])
         self.assertIn("접음", self.http.call_args.args[2]["content"])
+
+    async def test_reject_and_drop_run_the_cycle_right_away(self):
+        self.watcher.return_value = True
+        sub = interaction(OWNER)
+        await self.bot.on_reason(sub, "reject", self.draft_id, self.h12, "출처가 없다")
+        reply = sub.response.sent[0]["content"]
+        self.assertIn("사이클을 바로 돌린다", reply)
+        self.assertIn("임시 실행 1/5회", reply)
+        self.assertIn("사이클을 바로 돌린다", self.http.call_args.args[2]["content"])  # #승인 메시지도 같은 말을 한다
+        self.assertTrue(self.config.cycle_request_path.exists())
+
+    async def test_confirmed_approval_does_not_run_the_cycle(self):
+        self.watcher.return_value = True
+        ia = interaction(OWNER)
+        await self.bot.on_button(ia, "yes", self.draft_id, self.h12)
+        self.assertFalse(self.config.cycle_request_path.exists())
+        self.assertNotIn("임시 실행", self.http.call_args.args[2]["content"])
+        self.assertIn("14:00", self.http.call_args.args[2]["content"])  # 승인한 글은 다음 14:00에 발행된다
+
+    async def test_daily_limit_message(self):
+        self.watcher.return_value = True
+        with mock.patch("blogops.ondemand.count_today", return_value=5):
+            sub = interaction(OWNER)
+            await self.bot.on_reason(sub, "drop", self.draft_id, self.h12, "그만")
+        self.assertIn("5회를 다 썼다", sub.response.sent[0]["content"])
+        self.assertIn("다음 14:00 사이클에서", sub.response.sent[0]["content"])
+        self.assertFalse(self.config.cycle_request_path.exists())
+
+    async def test_without_the_path_unit_the_reply_does_not_promise_an_immediate_run(self):
+        sub = interaction(OWNER)  # watcher=False: huninn-cycle-now.path를 설치하기 전
+        await self.bot.on_reason(sub, "reject", self.draft_id, self.h12, "출처가 없다")
+        self.assertIn("다음 14:00 사이클에서", sub.response.sent[0]["content"])
+        self.assertNotIn("바로", sub.response.sent[0]["content"])
+        self.assertFalse(self.config.cycle_request_path.exists())
 
     async def test_modal_submit_reads_the_text_input(self):
         modal = bot_module.ReasonModal(self.bot, "reject", self.draft_id, self.h12)

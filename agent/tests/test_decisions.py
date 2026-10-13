@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from blogops import backlog, decisions, preview
+from blogops import backlog, decisions, ondemand, preview
 from blogops.store import StoreError
 from helpers import good_body, make_env
 
@@ -35,8 +35,12 @@ class DecisionsTest(unittest.TestCase):
         env_file.write_text(FAKE_ENV, encoding="utf-8")
         self.patch = mock.patch.dict(os.environ, {"BLOGOPS_ENV_FILE": str(env_file)})
         self.patch.start()
+        # 기본은 즉시 실행 유닛이 없는 환경. 실제 systemctl을 부르지 않는다
+        self.watch = mock.patch.object(ondemand, "watcher_active", return_value=False)
+        self.watcher = self.watch.start()
 
     def tearDown(self):
+        self.watch.stop()
         self.patch.stop()
         self.tmp.cleanup()
 
@@ -126,12 +130,87 @@ class DecisionsTest(unittest.TestCase):
         self.assertIn("2026-10-13 21:03 (디스코드)", text)
         self.assertIn("다음 사이클", text)
         self.assertNotIn("사유", text)
+        self.assertNotIn("임시 실행", text)  # 승인은 사이클을 돌리지 않는다. 다음 14:00에 발행된다
         dropped = decisions.Decision(draft_id, "dropped", "a" * 64, "2026-10-13T21:03:11+09:00", "cli", reason="그만")
         text = decisions.result_text("이름 짓기", dropped)
         self.assertIn("접음", text)
         self.assertIn("사유: 그만", text)
         self.assertIn("(Pi 명령)", text)
-        self.assertIn("이 글은 더 고치지 않는다", text)
+        self.assertIn("다음 14:00 사이클에서 Huninn이 다른 글감으로 새 초안을 쓴다", text)
+
+    def test_next_step_wording(self):
+        def decision(kind, cycle):
+            return decisions.Decision("20261013-a", kind, "a" * 64, "2026-10-13T21:03:11+09:00", "cli", cycle=cycle)
+
+        now = {"status": "requested", "count": 2, "limit": 5}
+        self.assertIn("사이클을 바로 돌린다", decisions.next_step(decision("rejected", now)))
+        self.assertIn("임시 실행 2/5회", decisions.next_step(decision("rejected", now)))
+        self.assertIn("다시 승인을 요청한다", decisions.next_step(decision("rejected", now)))
+        self.assertIn("다른 글감으로 새 초안을 쓴다", decisions.next_step(decision("dropped", now)))
+        self.assertIn("글감은 blocked로 바꿨다", decisions.next_step(decision("dropped", now)))
+        capped = {"status": "capped", "count": 5, "limit": 5}
+        self.assertIn("5회를 다 썼다. 다음 14:00 사이클에서", decisions.next_step(decision("rejected", capped)))
+        for cycle in (None, {"status": "unwatched", "count": 0, "limit": 5}):
+            text = decisions.next_step(decision("rejected", cycle))
+            self.assertIn("다음 14:00 사이클에서", text)
+            self.assertNotIn("바로", text)
+        self.assertIn("14:00", decisions.next_step(decision("approved", now)))
+        self.assertNotIn("임시 실행", decisions.next_step(decision("approved", now)))
+
+    def test_reject_and_drop_ask_for_an_immediate_cycle(self):
+        self.watcher.return_value = True
+        draft_id = self.awaiting()
+        decision = decisions.reject(self.config, self.store, draft_id, "출처가 없다", via="discord")
+        self.assertEqual(decision.cycle, {"status": "requested", "count": 1, "limit": 5})
+        self.assertTrue(self.config.cycle_request_path.exists())
+        self.assertIn("사이클을 바로 돌린다", decisions.result_text("이름 짓기", decision))
+        self.config.cycle_request_path.unlink()  # 서비스가 시작하며 지운다
+        other = self.store.create_draft(slug="other", series="ops-log", backlog_id="nope",
+                                        ko={"title": "다른 글", "description": "요약", "tags": [], "body": good_body()})
+        self.store.record_quality(other, True, [])
+        self.store.record_approval_request(other)
+        dropped = decisions.reject(self.config, self.store, other, "그만", drop=True)
+        self.assertEqual(dropped.cycle["count"], 2)
+        self.assertTrue(self.config.cycle_request_path.exists())
+
+    def test_the_request_comes_after_the_state_is_final(self):
+        # 사이클이 바로 시작해도 접은 글감을 다시 고르지 않으려면, 요청 시점에 글감이 이미 blocked여야 한다
+        self.watcher.return_value = True
+        seen = {}
+        real = ondemand.request
+
+        def spy(config, kind, draft_id):
+            seen["status"] = self.store.status(draft_id)
+            seen["backlog"] = [i["status"] for i in backlog.items(config) if i["id"] == "naming"]
+            return real(config, kind, draft_id)
+
+        draft_id = self.awaiting()
+        with mock.patch.object(ondemand, "request", side_effect=spy):
+            decisions.reject(self.config, self.store, draft_id, "이 주제는 그만", drop=True)
+        self.assertEqual(seen, {"status": "held", "backlog": ["blocked"]})
+
+    def test_approval_never_asks_for_a_cycle(self):
+        self.watcher.return_value = True
+        decision = decisions.approve(self.config, self.store, self.awaiting())
+        self.assertIsNone(decision.cycle)
+        self.assertFalse(self.config.cycle_request_path.exists())
+        self.assertEqual(self.decisions_in_log()[0]["decision"], "approved")
+        self.watcher.assert_not_called()
+
+    def test_stale_decision_does_not_ask_for_a_cycle(self):
+        self.watcher.return_value = True
+        draft_id = self.awaiting()
+        with self.assertRaises(StoreError):
+            decisions.reject(self.config, self.store, draft_id, "x", expect_hash="0" * 12)
+        self.assertFalse(self.config.cycle_request_path.exists())
+
+    def test_cycle_request_failure_is_a_warning(self):
+        draft_id = self.awaiting()
+        with mock.patch.object(ondemand, "request", side_effect=OSError("디스크가 가득 찼다")):
+            decision = decisions.reject(self.config, self.store, draft_id, "그만")
+        self.assertEqual(self.store.status(draft_id), "rejected")  # 결정은 기록됐다
+        self.assertIsNone(decision.cycle)
+        self.assertIn("바로 돌리도록 요청하지 못했다", decision.warnings[0])
 
     def test_finish_closes_discord_message_and_removes_preview(self):
         draft_id = self.awaiting()

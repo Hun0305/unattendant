@@ -192,6 +192,9 @@ def run(config: Config, *, model: str | None = None, timeout: float = TIMEOUT, t
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise CycleError("다른 사이클이 돌고 있다") from None
+        # 반려·접기 직후 요청(ondemand.py)은 이 실행이 처리한다. 서비스의 ExecStartPre도 지우지만,
+        # 유닛을 일부만 바꿔 설치해도 path 유닛이 같은 요청으로 계속 돌지 않게 여기서도 지운다
+        config.cycle_request_path.unlink(missing_ok=True)
         return _run_cycle(config, model or os.environ.get("HUNINN_MODEL") or DEFAULT_MODEL, timeout, transport)
 
 

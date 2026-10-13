@@ -33,6 +33,7 @@ class Config:
     daily_publish_limit: int = 1
     max_tool_calls_per_cycle: int = 60
     max_quality_failures: int = 3
+    ondemand_daily_limit: int = 5  # 반려·접기 직후 임시로 사이클을 돌리는 하루 상한 (docs/blogops.md 12절)
     body_min_chars: int = 1000  # 한국어 본문 (docs/blogops.md 6절)
     body_max_chars: int = 6000
     en_body_min_chars: int = 500  # 영어판 본문
@@ -72,6 +73,10 @@ class Config:
     @property
     def logs_dir(self) -> Path:
         return self.root / "logs"
+
+    @property
+    def cycle_request_path(self) -> Path:
+        return self.logs_dir / ".cycle-request"  # 이 파일이 생기면 huninn-cycle-now.path가 사이클을 시작한다
 
     @property
     def site_dir(self) -> Path:
