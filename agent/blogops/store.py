@@ -302,12 +302,16 @@ class Store:
     # ── 쓰기 (사람: review 명령) ──────────────────────────
 
     def record_decision(self, draft_id: str, decision: str, reason: Optional[str] = None,
-                        by: str = "operator") -> dict:
+                        by: str = "operator", via: str = "cli", expect_hash: Optional[str] = None) -> dict:
+        """expect_hash: 사람이 본 버전의 해시(앞부분만 가능). 지금 해시와 다르면 거부한다.
+        디스코드 버튼처럼 본 시점과 누른 시점 사이에 초안이 바뀔 수 있는 곳에서 쓴다."""
         if decision not in ("approved", "rejected"):
             raise StoreError(f"결정은 approved 또는 rejected다: {decision!r}")
         with self._lock():
             status = self.status(draft_id)
             h = self.content_hash(draft_id)
+            if expect_hash and not h.startswith(expect_hash):
+                raise StoreError("본 뒤에 초안이 바뀌었다. 최신 승인 요청 메시지에서 다시 확인해라")
             if decision == "approved":
                 if status != "awaiting_approval":
                     raise StoreError(f"승인 대기 중인 초안만 승인할 수 있다 (지금: {STATUS_LABELS[status]})")
@@ -318,7 +322,7 @@ class Store:
                     raise StoreError(f"승인 대기 또는 승인된 초안만 반려할 수 있다 (지금: {STATUS_LABELS[status]})")
                 if not (reason or "").strip():
                     raise StoreError("반려 사유가 필요하다. Huninn은 이 사유를 보고 고친다")
-            record = {"at": self._ts(), "decision": decision, "hash": h, "by": by}
+            record = {"at": self._ts(), "decision": decision, "hash": h, "by": by, "via": via}
             if decision == "rejected":
                 record["reason"] = reason.strip()
             data = _read_json(self._approval_path(draft_id), {"draft_id": draft_id, "decisions": []})

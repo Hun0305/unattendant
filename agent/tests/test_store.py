@@ -145,6 +145,19 @@ class StoreTest(unittest.TestCase):
         self.store.record_decision(draft_id, "rejected", reason="다시 보니 숫자 출처가 없다")
         self.assertEqual(self.store.status(draft_id), "rejected")
 
+    def test_decision_records_via_and_expected_hash(self):
+        draft_id = self.store.create_draft(slug="naming", series="ops-log", ko=KO)
+        ready(self.store, draft_id)
+        self.store.record_approval_request(draft_id)
+        h = self.store.content_hash(draft_id)
+        with self.assertRaises(StoreError) as cm:  # 사람이 본 버전이 아니면 거부한다
+            self.store.record_decision(draft_id, "approved", via="discord", expect_hash="0" * 12)
+        self.assertIn("초안이 바뀌었다", str(cm.exception))
+        self.assertEqual(self.store.status(draft_id), "awaiting_approval")
+        record = self.store.record_decision(draft_id, "approved", via="discord", expect_hash=h[:12])
+        self.assertEqual(record["via"], "discord")
+        self.assertEqual(self.store.record_decision(draft_id, "rejected", reason="다시 보니 아니다")["via"], "cli")
+
     def test_preview_record(self):
         draft_id = self.store.create_draft(slug="naming", series="ops-log", ko=KO)
         ready(self.store, draft_id)

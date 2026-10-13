@@ -7,11 +7,14 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from blogops import review
+from blogops import backlog, review
 from blogops.config import Config
 from blogops.store import Store
 
 KO = {"title": "이름 짓기", "description": "요약", "tags": ["meta"], "body": "본문."}
+BACKLOG = {"updated": "2026-10-07", "items": [
+    {"id": "naming", "title": "이름 짓기", "series": "ops-log", "status": "idea", "sources": [], "notes": "",
+     "added": "2026-10-07", "added_by": "operator"}]}
 
 
 def run(*argv):
@@ -27,7 +30,8 @@ class ReviewTest(unittest.TestCase):
         self.env = mock.patch.dict(os.environ, {"BLOGOPS_ROOT": self.tmp.name})
         self.env.start()
         self.store = Store(Config.from_env())
-        self.draft_id = self.store.create_draft(slug="naming", series="ops-log", ko=KO)
+        self.draft_id = self.store.create_draft(slug="naming", series="ops-log", ko=KO, backlog_id="naming")
+        (Path(self.tmp.name) / "state" / "backlog.json").write_text(json.dumps(BACKLOG, ensure_ascii=False), encoding="utf-8")
 
     def tearDown(self):
         self.env.stop()
@@ -74,6 +78,27 @@ class ReviewTest(unittest.TestCase):
         code, out, _ = run("reject", self.draft_id, "출처가 없다")
         self.assertEqual(code, 0)
         self.assertEqual(self.store.status(self.draft_id), "rejected")
+
+    def test_approve_records_cli_as_source(self):
+        self.request()
+        run("approve", self.draft_id)
+        self.assertEqual(self.store.decisions(self.draft_id)[-1]["via"], "cli")
+        logs = list((Path(self.tmp.name) / "logs").glob("*.jsonl"))
+        records = [json.loads(line) for line in logs[0].read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(records[-1]["via"], "cli")
+
+    def test_reject_drop_holds_and_blocks_backlog(self):
+        self.request()
+        code, out, err = run("reject", self.draft_id, "이 주제는 그만", "--drop")
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("접었다", out)
+        self.assertEqual(self.store.status(self.draft_id), "held")
+        self.assertEqual(backlog.items(Config.from_env(), "blocked")[0]["id"], "naming")
+
+    def test_reject_without_drop_keeps_backlog(self):
+        self.request()
+        run("reject", self.draft_id, "출처가 없다")
+        self.assertEqual(backlog.items(Config.from_env(), "blocked"), [])
 
     def test_preview_command_and_show(self):
         code, _, err = run("preview", self.draft_id)  # 아직 승인 대기가 아니다
