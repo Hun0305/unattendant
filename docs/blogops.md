@@ -9,9 +9,9 @@ blogops는 Huninn이 시스템을 건드리는 유일한 통로다. Python 라�
 systemd 타이머가 매일 14:00(KST)에 `claude -p`를 한 번 돌린다. Huninn이 따를 순서는 시스템 프롬프트(`ops/huninn/prompt.md`, 공개)에 적는다.
 
 1. **상태 점검**: `get_system_health`. 이상이 있으면 `notify_human`으로 알리고 새 글은 쓰지 않는다.
-2. **승인된 초안 발행**: `list_drafts`에서 승인된 초안이 있으면 `publish_post` → `request_indexing`.
+2. **승인된 초안 발행**: `list_drafts`에서 승인된 초안이 있으면 `publish_post` → `request_indexing`. 이어서 영어판이 없는 글에 `get_post` → `add_english` → `request_indexing`(5절 뒤 "영어판 붙이기").
 3. **반려된 초안 고치기**: `get_approval_status`로 반려 사유를 읽고 `update_draft` → `check_quality` → `request_approval`.
-4. **새 초안**: 승인을 기다리는 초안이 없을 때만 쓴다. `get_strategy`, `get_backlog`, `read_record`, `get_git_log`로 글감과 재료를 고르고 `create_draft` → `check_quality`(실패하면 최대 2번 고친다) → `request_approval`. 일요일에는 `get_week_summary`로 주간 보고서를 쓴다(한·영).
+4. **새 초안**: 승인을 기다리는 초안이 없을 때만 쓴다. `get_strategy`, `get_backlog`, `read_record`, `get_git_log`로 글감과 재료를 고르고 `create_draft` → `check_quality`(실패하면 최대 2번 고친다) → `request_approval`. 일요일에는 `get_week_summary`로 주간 보고서를 쓴다(한국어만 승인받는다).
 5. **마무리**: 그날 한 일을 `notify_human`(info)으로 #일일요약에 보낸다.
 
 사람은 #승인 알림의 [미리보기]로 발행될 모습 그대로 글을 읽고, 버튼으로 승인·반려·접기를 한다(11절). 폰이 아니어도 Pi에서 `review` 명령으로 같은 결정을 할 수 있다(4절). 승인한 글은 다음 날 14:00 사이클에서 발행된다. 14:00에 초안이 오면 그날 편할 때 승인하는 흐름이다. 반려하거나 접으면 14:00을 기다리지 않고 사이클을 바로 한 번 더 돌린다(하루 5회까지, 12절).
@@ -27,7 +27,7 @@ blogops가 강제하는 한도:
 | 사이클 실행 시간·메모리 | 30분, `MemoryMax` | systemd가 강제한다 |
 | 반려·접기 직후 임시 실행 | 하루 5회 (KST) | 반려 → 재작성 → 반려가 되풀이되며 구독 한도를 쓰는 일을 막는다 (12절) |
 
-## 2. 툴 (Phase 1, 18개)
+## 2. 툴 (Phase 1, 20개)
 
 | 영역 | 툴 | 입력 | 하는 일 | 권한 |
 | --- | --- | --- | --- | --- |
@@ -46,13 +46,15 @@ blogops가 강제하는 한도:
 | 승인 | `request_approval` | 초안 ID | 초안 미리보기를 빌드하고, #승인에 요약, 미리보기 링크, 승인·반려·접기 버튼을 보낸다 (11절). 미리보기를 못 만들어도 승인 요청은 간다 | write |
 | 승인 | `get_approval_status` | 초안 ID | 상태(대기·승인·반려), 반려 사유 | read |
 | 발행 | `publish_post` | 초안 ID | 5절의 검사와 발행 | gated |
+| 발행 | `get_post` | 슬러그, 언어(기본 ko) | 발행된 글의 제목·요약·태그·본문·출처·그림 파일. 영어판을 쓰려고 한국어판을 읽는다 | read |
+| 발행 | `add_english` | 슬러그, 제목, 요약, 태그, 본문 | 발행된 한국어판에 영어판을 붙인다. 승인 없이 올라가는 대신 검사를 통과해야 한다 (5절 뒤) | gated |
 | 발행 | `request_indexing` | URL 목록 | IndexNow 색인 요청 (Bing·네이버) | write |
 | 보고 | `get_week_summary` | 주(선택) | 한 주의 발행, 승인·반려와 사유, 품질 검사 결과, 사이클 비용(추정) | read |
 | 보고 | `notify_human` | 수준(info·warn·critical), 메시지 | 디스코드 #일일요약·#긴급 | write |
 
 - **승인과 반려는 툴이 아니다.** 사람만 쓰는 `review` 명령이다(4절). Huninn이 자기 글을 승인할 길이 없다.
 - **architecture.md의 21개 중 Phase 1에서 만들지 않는 것**: `update_strategy`(전략은 사람이 고치고 Huninn은 주간 보고서에서 제안한다), `get_site_stats`·`get_search_stats`·`get_trends`·실험 3개·`queue_naver_digest`(Phase 2), `unpublish_post`(사람이 직접 한다).
-- **새로 생기는 것**: `get_backlog`, `read_record`, `get_git_log`, `list_drafts`, `update_draft`, `get_week_summary`. 이 설계가 확정되면 architecture.md 툴 표에 반영한다.
+- **새로 생기는 것**: `get_backlog`, `read_record`, `get_git_log`, `list_drafts`, `update_draft`, `get_week_summary`, `get_post`, `add_english`. 이 설계가 확정되면 architecture.md 툴 표에 반영한다.
 
 ## 3. 파일
 
@@ -61,7 +63,7 @@ state/
 ├── strategy.md, backlog.json     공개 (git)
 ├── drafts/<초안ID>/               비공개
 │   ├── index.ko.md               Hugo 글 형식 그대로 (front matter + 본문)
-│   ├── index.en.md               영어판이 있을 때 (주간 보고서는 필수)
+│   ├── index.en.md               영어판이 있을 때 (주간 보고서는 필수, 운영기도 쓴다)
 │   ├── *.svg, *.png, *.jpg, *.webp  글에 넣는 그림 (운영자가 이 폴더에 넣는다. 2026-10-12)
 │   └── meta.json                 상태, 품질 검사 기록, 승인 요청 기록(디스코드 메시지 위치), 미리보기 토큰, 고친 이력
 ├── approvals/<초안ID>.json        비공개. 사람의 승인·반려 기록 (결정한 곳 via: cli·discord)
@@ -114,6 +116,17 @@ review reject <초안ID> "사유" --drop   # 접기: 반려 + 보류 + 글감 bl
 7. 공개 URL을 요청해 200과 제목을 확인한다. 확인되지 않으면 발행 실패로 기록하고 #긴급으로 알린다.
 8. 초안을 `published`로, 백로그 항목도 `published`로 바꾼다.
 
+### 영어판 붙이기 (`add_english`)
+
+운영자는 한국어판만 승인한다(전략 v4). 영어판은 발행 직후 Huninn이 `get_post`로 한국어판을 읽고 써서 올린다. 사람 승인이 없는 대신 아래를 지킨다.
+
+1. 사이트에 Huninn이 발행한 한국어판이 있고 영어판은 아직 없다. `author: human` 글은 거부한다.
+2. `date`, `series`, `sources`는 한국어판에서 그대로 가져온다. Huninn은 제목, 요약, 태그, 본문만 쓴다.
+3. 영어판 검사: 본문 500자 이상, h1 없음, 숫자가 있으면 출처, 링크한 파일 존재, 그림 파일 존재와 caption·alt, 내부 IP·MAC·이메일, gitleaks. 실패하면 파일을 쓰지 않고 문제 목록을 돌려준다.
+4. 임시 빌드 → 실제 빌드 → 커밋(작성자 Huninn, `content(ai): <영어 제목> (영어판)`) → push → `/en/posts/<슬러그>/` 확인. 실패하면 되돌린다.
+5. 하루 발행 한도(1편)에는 세지 않는다. 새 글이 아니라 같은 글의 다른 언어판이기 때문이다.
+6. 실패한 날은 영어판 없는 글로 남고, 다음 사이클이 가장 오래된 것부터 다시 붙인다.
+
 IndexNow 키 파일은 사이트 루트에 공개로 둔다(IndexNow가 요구하는 방식이라 비밀값이 아니다).
 
 **Phase 2 주의**: 실제 빌드는 `--cleanDestinationDir`로 `public/`을 비우고 다시 만든다. 상태 띠용 `status.json`을 `public/`에 쓰면 발행할 때마다 지워지므로, `/run/huninn/status.json`(RAM)에 쓰고 Caddy가 `/status.json`으로 내준다 ([status.md](status.md), 2026-10-14).
@@ -123,7 +136,7 @@ IndexNow 키 파일은 사이트 루트에 공개로 둔다(IndexNow가 요구�
 자동으로 확인할 수 있는 것만 본다. 사실이 맞는지는 사람이 승인할 때 본다.
 
 - **front matter**: `title`, `description`, `series`, `tags`가 있다. `author: human`, `sponsored`, `date`는 없다(`date`는 발행할 때 넣는다).
-- **시리즈**: Phase 1은 `ops-log`, `weekly-report`만. 주간 보고서는 영어판도 있어야 한다.
+- **시리즈**: Phase 1은 `ops-log`, `weekly-report`만. 영어판은 초안 검사 대상이 아니다. 한국어판이 발행된 뒤 붙인다(5절 뒤).
 - **분량**: 본문 1,000자 이상 6,000자 이하.
 - **출처**: 본문에 숫자가 있으면 `sources`가 1개 이상. 우리 레포를 가리키는 링크는 그 파일이 실제로 있는지 확인한다.
 - **금지 내용**: gitleaks(`ops/gitleaks.toml`)로 비밀값, 정규식으로 내부 IP·MAC 주소.

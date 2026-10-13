@@ -1,4 +1,4 @@
-"""blogops MCP 서버 (stdio). Huninn이 쓸 수 있는 툴은 여기 있는 18개뿐이다 (docs/blogops.md 2절).
+"""blogops MCP 서버 (stdio). Huninn이 쓸 수 있는 툴은 여기 있는 20개뿐이다 (docs/blogops.md 2절).
 
 실행: python -m blogops.server   (ops/huninn/run-cycle.sh가 mcp.json으로 띄운다)
 툴은 다른 모듈을 부르기만 한다. 조건 검사는 각 모듈이 한다.
@@ -13,7 +13,7 @@ from typing import Optional, TypedDict
 
 from mcp.server.mcpserver import MCPServer
 
-from . import backlog, health, indexnow, log, notify, publish, quality, records, summary
+from . import backlog, health, indexnow, log, notify, publish, quality, records, summary, translate
 from .backlog import BacklogError
 from .config import Config
 from .env import EnvError
@@ -247,6 +247,30 @@ def publish_post(draft_id: str) -> dict:
     result = publish.publish_post(config, store, draft_id)
     if result["warnings"]:
         notify.notify_human(config, "warn", f"발행은 됐지만 확인할 것이 있다: {result['url']}\n- "
+                            + "\n- ".join(result["warnings"]))
+    return result
+
+
+@tool
+def get_post(slug: str, lang: str = "ko") -> dict:
+    """발행된 글 하나의 제목·요약·태그·본문·출처·그림 파일. 영어판을 쓰려고 한국어판을 읽을 때 쓴다.
+    has_en이 true면 영어판이 이미 있다."""
+    config, _, _ = context()
+    return translate.read_post(config, slug, lang)
+
+
+@tool
+def add_english(slug: str, title: str, description: str, tags: list[str], body: str) -> dict:
+    """발행된 한국어판에 영어판을 붙인다(운영자 승인은 한국어판만 받는다). 한국어판을 바탕으로 직역하지 않고
+    영어로 자연스럽게 쓴다. 숫자·출처·링크·그림 단축 코드는 한국어판과 같게 두고 caption·alt만 영어로 쓴다.
+    # 제목 없이 ##부터, front matter는 넣지 않는다. 분량·링크·개인정보·비밀값·빌드 검사를 통과해야 올라간다.
+    성공하면 커밋·push하고 영어판 주소(url)를 돌려준다."""
+    config, _, _ = context()
+    if os.environ.get("BLOGOPS_NO_PUBLISH"):
+        raise PublishError("이번 실행에서는 발행하지 않는다 (BLOGOPS_NO_PUBLISH, 시험 실행)")
+    result = translate.add_english(config, slug, title=title, description=description, tags=tags, body=body)
+    if result["warnings"]:
+        notify.notify_human(config, "warn", f"영어판은 올라갔지만 확인할 것이 있다: {result['url']}\n- "
                             + "\n- ".join(result["warnings"]))
     return result
 

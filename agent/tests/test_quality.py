@@ -73,7 +73,9 @@ class QualityTest(unittest.TestCase):
 
     def test_series_rules(self):
         self.assertProblem(self.check(self.draft(slug="llm", series="pi-llm")), "시리즈가 아니다")
-        self.assertProblem(self.check(self.draft(slug="weekly", series="weekly-report")), "영어판")
+        # 영어판은 발행 뒤에 붙이므로 주간 보고서 초안에도 없어도 된다
+        result = self.check(self.draft(slug="weekly", series="weekly-report"))
+        self.assertFalse([p for p in result["problems"] if "영어" in p], result["problems"])
 
     def test_forbidden_fields(self):
         draft_id = self.draft()

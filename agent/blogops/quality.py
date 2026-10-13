@@ -83,11 +83,9 @@ def run_checks(config: Config, store: Store, draft_id: str, scan: Check, build: 
         if re.search(r"^# \S", re.sub(r"```.*?```", "", body, flags=re.S), re.M):
             problems.append(f"{lang}판 본문에 # 제목(h1)이 있다. 제목은 템플릿이 출력하니 소제목은 ##부터 쓴다")
 
-    # 시리즈와 영어판
+    # 시리즈. 영어판은 한국어판이 발행된 뒤 translate.add_english로 붙이므로 초안에는 없어도 된다
     if series not in CURRENT_SERIES:
         problems.append(f"지금 단계에서 쓸 수 있는 시리즈가 아니다: {series} (가능: {', '.join(CURRENT_SERIES)})")
-    if series == "weekly-report" and "en" not in parsed:
-        problems.append("주간 보고서는 영어판(index.en.md)도 있어야 한다")
 
     # 그림
     problems += _figure_problems(config, store, draft_id, bodies={lang: body for lang, (_, body) in parsed.items()})
@@ -203,6 +201,12 @@ def _privacy_problems(text: str) -> list[str]:
 
 
 def gitleaks_scan(config: Config, store: Store, draft_id: str) -> list[str]:
+    # 글 파일과 SVG만 검사한다 (meta.json의 해시는 빼고)
+    return scan_files(config, [*store.draft_paths(draft_id).values(),
+                               *(p for p in store.asset_paths(draft_id) if p.suffix.lower() == ".svg")])
+
+
+def scan_files(config: Config, paths: list[Path]) -> list[str]:
     binary = find_tool("gitleaks")
     if not binary:
         return ["gitleaks가 없어 비밀값 검사를 하지 못했다 (ops/install-gitleaks.sh)"]
@@ -210,8 +214,7 @@ def gitleaks_scan(config: Config, store: Store, draft_id: str) -> list[str]:
         tmp_path = Path(tmp)
         files = tmp_path / "files"
         files.mkdir()
-        for path in [*store.draft_paths(draft_id).values(),  # 글 파일과 SVG만 검사한다 (meta.json의 해시는 빼고)
-                     *(p for p in store.asset_paths(draft_id) if p.suffix.lower() == ".svg")]:
+        for path in paths:
             shutil.copy2(path, files / path.name)
         report = tmp_path / "report.json"
         result = subprocess.run(
