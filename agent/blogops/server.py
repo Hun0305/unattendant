@@ -219,8 +219,9 @@ def check_quality(draft_id: str) -> dict:
 
 @tool
 def request_approval(draft_id: str) -> dict:
-    """품질 검사를 통과한 초안의 승인을 요청한다. 디스코드 #승인으로 운영자에게 간다.
-    승인을 기다리는 초안은 한 번에 하나뿐이다."""
+    """품질 검사를 통과한 초안의 승인을 요청한다. 디스코드 #승인으로 운영자에게 간다
+    (미리보기 링크와 승인·반려·접기 버튼이 붙는다). 승인을 기다리는 초안은 한 번에 하나뿐이다.
+    preview가 false면 미리보기만 못 만든 것이고 승인 요청은 갔다(warnings 참고)."""
     config, store, _ = context()
     return notify.request_approval(config, store, draft_id)
 

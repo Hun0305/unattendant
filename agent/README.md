@@ -14,7 +14,12 @@ Huninn이 시스템을 건드리는 통로인 blogops. 설계는 [docs/blogops.m
 | `blogops/records.py` | 공개 기록 읽기(허용 목록: `docs/*.md`, `ops/README.md`, `site/README.md`), 커밋 메시지, 발행된 글 목록 |
 | `blogops/publish.py` | 발행 (docs/blogops.md 5절): 승인된 그 버전만, 하루 1편, 임시 빌드 → 실제 빌드, 작성자 Huninn 커밋, push(겹치면 rebase 후 재시도), 공개 URL 확인. 실패하면 되돌린다 |
 | `blogops/backlog.py` | 글감 상태 변경과 추가 (`state/backlog.json`) |
-| `blogops/notify.py` | 디스코드 알림 (봇 REST API, 상주 프로세스 없음): info → #일일요약, warn·critical → #긴급(critical은 멘션), 승인 요청 → #승인(멘션, review 명령 안내) |
+| `blogops/notify.py` | 디스코드 메시지 (봇 REST API): info → #일일요약, warn·critical → #긴급(critical은 멘션), 승인 요청 → #승인(멘션, 미리보기 링크와 승인·반려·접기 버튼, review 명령 안내). 결정이 나면 그 메시지를 결과로 고치고 버튼을 걷어낸다 |
+| `blogops/preview.py` | 승인 대기 초안의 미리보기 (docs/blogops.md 11절): 초안을 포함해 사이트 전체를 빌드해 `state/previews/<토큰>/`에 둔다. 토큰 주소, 지금 버전만, 결정이 나면 삭제 |
+| `blogops/buttons.py` | #승인 버튼 형식(`bo:<동작>:<초안ID>:<해시12자>`)과 REST용 components. discord.py 없이 쓴다 |
+| `blogops/decisions.py` | 승인·반려·접기. `review` 명령과 봇이 같이 쓴다. 기록·로그를 한 번만 남기고 `via`(cli·discord)로 구분. 결정 뒤 정리(`finish`) 포함 |
+| `blogops/ondemand.py` | 반려·접기 직후 사이클을 바로 돌려 달라는 요청 (docs/blogops.md 12절): `logs/.cycle-request` 파일 하나만 쓴다(systemd path 유닛이 사이클을 시작한다). 유닛이 이 파일을 지켜볼 때만 요청하고, 하루 5회 상한이 있다 |
+| `blogops/bot.py` | 디스코드 봇(상주, systemd `huninn-bot`): 버튼 클릭을 `decisions`에 넘긴다. 운영자 ID·해시 대조, 승인은 확인 한 번 더. discord.py 필요(선택 의존성) |
 | `blogops/indexnow.py` | IndexNow 색인 요청. 키 파일은 `site/static/<키>.txt`(공개) |
 | `blogops/env.py` | 비밀값 읽기 (`BLOGOPS_ENV_FILE` → `~/.config/huninn/huninn.env` → `<루트>/.env`). 값은 출력·기록하지 않는다 |
 | `blogops/httpjson.py` | JSON POST |
@@ -34,9 +39,13 @@ ops/huninn/review list
 ops/huninn/review show <초안ID> --body
 ops/huninn/review approve <초안ID>
 ops/huninn/review reject <초안ID> "사유"
+ops/huninn/review reject <초안ID> "사유" --drop   # 글감을 접는다: 반려 + 보류 + 글감 blocked (둘 다 사이클을 바로 한 번 더 돌린다)
+ops/huninn/review preview <초안ID>                # 승인 대기 초안의 미리보기 주소 (폰에서 읽기)
 ```
 
 래퍼가 들어 있는 체크아웃의 `state/`를 다룬다. 운영에서는 매장(`~/unattendant-live`)의 래퍼를 쓴다.
+
+폰에서는 디스코드 #승인 메시지의 [미리보기]로 읽고 [승인] [반려] [접기] 버튼으로 같은 결정을 한다 ([docs/blogops.md](../docs/blogops.md) 11절, 설치는 [ops/README.md](../ops/README.md) "Huninn 봇").
 
 ## 하루 사이클 (Huninn)
 
@@ -55,7 +64,9 @@ BLOGOPS_NO_PUBLISH=1 ops/huninn/run-cycle.sh     # 시험 실행: publish_post�
 
 ```bash
 cd agent && python3 -m venv .venv && .venv/bin/pip install -e .   # MCP Python SDK(mcp)
+.venv/bin/pip install -e ".[bot]"                                  # 디스코드 봇을 돌리거나 시험할 때만 (discord.py)
 .venv/bin/python -m unittest discover -s tests -v
+.venv/bin/python -m blogops.bot --check                            # 디스코드 접속만 확인 (메시지는 보내지 않는다)
 ```
 
-`test_server.py`는 mcp가 있어야 돈다(시스템 `python3`으로 돌리면 건너뛴다). `test_quality.py`의 도구 통합 테스트는 gitleaks와 hugo가 있어야 돈다. 사이트 위치는 `BLOGOPS_SITE_DIR`로 바꿀 수 있다(기본은 `<루트>/site`).
+`test_server.py`는 mcp가, `test_bot.py`는 discord.py가 있어야 돈다(없으면 건너뛴다). `test_preview.py`와 `test_notify.py`의 미리보기 시험은 hugo가 있어야 돈다. `test_quality.py`의 도구 통합 테스트는 gitleaks와 hugo가 있어야 돈다. 사이트 위치는 `BLOGOPS_SITE_DIR`로 바꿀 수 있다(기본은 `<루트>/site`).

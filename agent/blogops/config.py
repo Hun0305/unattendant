@@ -33,11 +33,13 @@ class Config:
     daily_publish_limit: int = 1
     max_tool_calls_per_cycle: int = 60
     max_quality_failures: int = 3
+    ondemand_daily_limit: int = 5  # 반려·접기 직후 임시로 사이클을 돌리는 하루 상한 (docs/blogops.md 12절)
     body_min_chars: int = 1000  # 한국어 본문 (docs/blogops.md 6절)
     body_max_chars: int = 6000
     en_body_min_chars: int = 500  # 영어판 본문
     asset_max_bytes: int = 200_000  # 글에 넣는 그림 파일 하나의 최대 크기 (SD카드와 모바일 때문)
     site_root: Optional[Path] = None  # 사이트 레포 위치. 없으면 <root>/site
+    preview_base_url: str = "https://preview.unattendant.dev"  # 승인 대기 초안의 미리보기 주소 (docs/blogops.md 11절)
     clock: Optional[Callable[[], datetime]] = None  # 테스트에서 시각을 고정할 때
 
     @classmethod
@@ -45,7 +47,9 @@ class Config:
         # BLOGOPS_ROOT가 없으면 이 파일이 들어 있는 체크아웃을 쓴다 (agent/blogops/config.py → 루트)
         root = os.environ.get("BLOGOPS_ROOT") or Path(__file__).resolve().parents[2]
         site = os.environ.get("BLOGOPS_SITE_DIR")
-        return cls(root=Path(root), site_root=Path(site) if site else None)
+        base = os.environ.get("BLOGOPS_PREVIEW_BASE_URL")
+        extra = {"preview_base_url": base.rstrip("/")} if base else {}
+        return cls(root=Path(root), site_root=Path(site) if site else None, **extra)
 
     def now(self) -> datetime:
         return self.clock() if self.clock else datetime.now(KST)
@@ -63,8 +67,16 @@ class Config:
         return self.state_dir / "approvals"
 
     @property
+    def previews_dir(self) -> Path:
+        return self.state_dir / "previews"  # 비공개. Caddy(:8081)가 서빙한다
+
+    @property
     def logs_dir(self) -> Path:
         return self.root / "logs"
+
+    @property
+    def cycle_request_path(self) -> Path:
+        return self.logs_dir / ".cycle-request"  # 이 파일이 생기면 huninn-cycle-now.path가 사이클을 시작한다
 
     @property
     def site_dir(self) -> Path:

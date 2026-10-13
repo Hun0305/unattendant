@@ -2,7 +2,7 @@
 
 state/drafts/<초안ID>/
     index.ko.md, index.en.md   Hugo 글 형식 (front matter + 본문)
-    meta.json                  작성·수정 이력, 품질 검사 기록, 승인 요청 기록, 보류, 발행
+    meta.json                  작성·수정 이력, 품질 검사 기록, 승인 요청 기록(디스코드 메시지 위치), 미리보기 토큰, 보류, 발행
 state/approvals/<초안ID>.json  사람의 승인·반려 기록
 
 초안의 상태는 따로 저장하지 않고, 지금 내용의 해시와 기록을 대조해 그때그때 계산한다.
@@ -258,6 +258,32 @@ class Store:
             _write_json(self._dir(draft_id) / "meta.json", meta)
         return record
 
+    def record_approval_message(self, draft_id: str, content_hash: str, channel_id: str, message_id: str) -> None:
+        """승인 요청을 보낸 디스코드 메시지의 위치. 결정이 나면 이 메시지의 버튼을 걷어내는 데 쓴다."""
+        with self._lock():
+            meta = self.meta(draft_id)
+            for request in reversed(meta.get("approval_requests", [])):
+                if request["hash"] == content_hash:
+                    request["message"] = {"channel_id": str(channel_id), "message_id": str(message_id)}
+                    _write_json(self._dir(draft_id) / "meta.json", meta)
+                    return
+
+    def approval_message_ref(self, draft_id: str, content_hash: str) -> Optional[dict]:
+        for request in reversed(self.meta(draft_id).get("approval_requests", [])):
+            if request["hash"] == content_hash and request.get("message"):
+                return request["message"]
+        return None
+
+    def preview_record(self, draft_id: str) -> Optional[dict]:
+        return self.meta(draft_id).get("preview")
+
+    def set_preview(self, draft_id: str, token: str, content_hash: str) -> dict:
+        with self._lock():
+            meta = self.meta(draft_id)
+            meta["preview"] = {"token": token, "hash": content_hash, "at": self._ts()}
+            _write_json(self._dir(draft_id) / "meta.json", meta)
+            return meta["preview"]
+
     def mark_published(self, draft_id: str, record: dict) -> None:
         with self._lock():
             meta = self.meta(draft_id)
@@ -276,12 +302,16 @@ class Store:
     # ── 쓰기 (사람: review 명령) ──────────────────────────
 
     def record_decision(self, draft_id: str, decision: str, reason: Optional[str] = None,
-                        by: str = "operator") -> dict:
+                        by: str = "operator", via: str = "cli", expect_hash: Optional[str] = None) -> dict:
+        """expect_hash: 사람이 본 버전의 해시(앞부분만 가능). 지금 해시와 다르면 거부한다.
+        디스코드 버튼처럼 본 시점과 누른 시점 사이에 초안이 바뀔 수 있는 곳에서 쓴다."""
         if decision not in ("approved", "rejected"):
             raise StoreError(f"결정은 approved 또는 rejected다: {decision!r}")
         with self._lock():
             status = self.status(draft_id)
             h = self.content_hash(draft_id)
+            if expect_hash and not h.startswith(expect_hash):
+                raise StoreError("본 뒤에 초안이 바뀌었다. 최신 승인 요청 메시지에서 다시 확인해라")
             if decision == "approved":
                 if status != "awaiting_approval":
                     raise StoreError(f"승인 대기 중인 초안만 승인할 수 있다 (지금: {STATUS_LABELS[status]})")
@@ -292,7 +322,7 @@ class Store:
                     raise StoreError(f"승인 대기 또는 승인된 초안만 반려할 수 있다 (지금: {STATUS_LABELS[status]})")
                 if not (reason or "").strip():
                     raise StoreError("반려 사유가 필요하다. Huninn은 이 사유를 보고 고친다")
-            record = {"at": self._ts(), "decision": decision, "hash": h, "by": by}
+            record = {"at": self._ts(), "decision": decision, "hash": h, "by": by, "via": via}
             if decision == "rejected":
                 record["reason"] = reason.strip()
             data = _read_json(self._approval_path(draft_id), {"draft_id": draft_id, "decisions": []})

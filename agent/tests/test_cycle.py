@@ -109,6 +109,24 @@ class CycleTest(CycleBase):
         self.assertEqual(server["env"]["BLOGOPS_NO_PUBLISH"], "1")
         self.assertEqual(server["env"]["BLOGOPS_SITE_DIR"], str(self.config.site_dir))
 
+    def test_run_consumes_the_cycle_request(self):
+        # 반려·접기 직후 요청 파일은 사이클이 시작하며 지운다 (path 유닛이 같은 요청으로 또 돌지 않게)
+        self.config.logs_dir.mkdir(exist_ok=True)
+        self.config.cycle_request_path.write_text('{"kind": "rejected"}\n', encoding="utf-8")
+        cycle.run(self.config, transport=FakeTransport())
+        self.assertFalse(self.config.cycle_request_path.exists())
+        cycle.run(self.config, transport=FakeTransport())  # 요청이 없어도 문제없다
+
+    def test_request_survives_when_another_cycle_is_running(self):
+        import fcntl
+        self.config.logs_dir.mkdir(exist_ok=True)
+        self.config.cycle_request_path.write_text("{}\n", encoding="utf-8")
+        with open(self.config.logs_dir / ".cycle.lock", "w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            with self.assertRaises(cycle.CycleError):
+                cycle.run(self.config, transport=FakeTransport())
+        self.assertTrue(self.config.cycle_request_path.exists())  # 도는 사이클이 끝난 뒤 다시 처리된다
+
     def test_failure_alerts(self):
         os.environ["FAKE_CLAUDE_MODE"] = "fail"
         t = FakeTransport()

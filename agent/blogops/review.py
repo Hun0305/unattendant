@@ -1,16 +1,19 @@
 """사람용 승인·반려 명령 (docs/blogops.md 4절). Huninn의 툴이 아니다.
 
     review list [--all]           승인 대기·반려·보류 초안 (--all이면 전부)
-    review show <초안ID> [--body]  요약, 품질 검사 결과, 파일 경로
+    review show <초안ID> [--body]  요약, 품질 검사 결과, 파일 경로, 미리보기 주소
+    review preview <초안ID>        승인 대기 초안의 미리보기를 (없으면) 만들고 주소를 보인다
     review approve <초안ID>        지금 내용의 해시로 승인을 기록한다
-    review reject <초안ID> "사유"  반려를 기록한다. 사유는 필수
+    review reject <초안ID> "사유"  반려를 기록한다. 사유는 필수. --drop이면 글감을 접는다(반려 + 보류 + 글감 blocked)
+
+디스코드 #승인의 버튼은 같은 기록을 남긴다 (blogops/decisions.py, bot.py).
 """
 from __future__ import annotations
 
 import argparse
 import sys
 
-from . import log
+from . import decisions, preview
 from .config import Config
 from .store import STATUS_LABELS, Store, StoreError
 
@@ -43,6 +46,11 @@ def _cmd_show(store: Store, args) -> None:
         print(f"지난 반려 {r['at']}: {r['reason']}")
     if s["held"]:
         print(f"보류    {s['held']['reason']}")
+    if s["status"] == "awaiting_approval":
+        found = preview.current(store.config, store, args.draft_id)
+        if found:
+            for lang, url in found["urls"].items():
+                print(f"미리보기 {lang} {url}")
     for lang, path in store.draft_paths(args.draft_id).items():
         print(f"파일    {path}")
     for path in store.asset_paths(args.draft_id):
@@ -52,20 +60,31 @@ def _cmd_show(store: Store, args) -> None:
         print("\n" + body)
 
 
+def _cmd_preview(store: Store, args) -> None:
+    result = preview.ensure(store.config, store, args.draft_id)
+    print(("이미 있는 미리보기" if result["reused"] else "미리보기를 만들었다") + f": {args.draft_id}")
+    for lang, url in result["urls"].items():
+        print(f"{lang}  {url}")
+    print("승인 대기가 끝나거나 내용이 바뀌면 이 주소는 사라진다.")
+
+
+def _finish(store: Store, decision: decisions.Decision) -> None:
+    for warning in decisions.finish(store.config, store, decision):
+        print(f"주의: {warning}", file=sys.stderr)
+
+
 def _cmd_approve(store: Store, args) -> None:
-    record = store.record_decision(args.draft_id, "approved")
-    log.append(store.config, "approval_decision", "operator",
-               draft_id=args.draft_id, decision="approved", hash=record["hash"])
-    print(f"승인했다: {args.draft_id} (해시 {record['hash'][:12]})")
+    decision = decisions.approve(store.config, store, args.draft_id)
+    print(f"승인했다: {args.draft_id} (해시 {decision.hash[:12]})")
     print("다음 사이클(매일 14:00)에서 발행된다. 그 전에 내용이 바뀌면 승인은 풀린다.")
+    _finish(store, decision)
 
 
 def _cmd_reject(store: Store, args) -> None:
-    record = store.record_decision(args.draft_id, "rejected", reason=args.reason)
-    log.append(store.config, "approval_decision", "operator",
-               draft_id=args.draft_id, decision="rejected", hash=record["hash"], reason=record["reason"])
-    print(f"반려했다: {args.draft_id}")
-    print("다음 사이클에서 Huninn이 사유를 읽고 고친 뒤, 품질 검사를 거쳐 다시 승인을 요청한다.")
+    decision = decisions.reject(store.config, store, args.draft_id, args.reason, drop=args.drop)
+    print(f"{'접었다' if args.drop else '반려했다'}: {args.draft_id}")
+    print(decisions.next_step(decision))
+    _finish(store, decision)
 
 
 def main(argv=None) -> int:
@@ -76,18 +95,22 @@ def main(argv=None) -> int:
     p = sub.add_parser("show", help="초안 요약")
     p.add_argument("draft_id")
     p.add_argument("--body", action="store_true", help="한국어 본문까지 출력")
+    p = sub.add_parser("preview", help="승인 대기 초안의 미리보기 주소")
+    p.add_argument("draft_id")
     p = sub.add_parser("approve", help="승인")
     p.add_argument("draft_id")
     p = sub.add_parser("reject", help="반려 (사유 필수)")
     p.add_argument("draft_id")
     p.add_argument("reason")
+    p.add_argument("--drop", action="store_true", help="이 글감을 접는다: 반려 + 보류 + 글감 blocked")
     args = parser.parse_args(argv)
 
     store = Store(Config.from_env())
-    handler = {"list": _cmd_list, "show": _cmd_show, "approve": _cmd_approve, "reject": _cmd_reject}[args.command]
+    handler = {"list": _cmd_list, "show": _cmd_show, "preview": _cmd_preview,
+               "approve": _cmd_approve, "reject": _cmd_reject}[args.command]
     try:
         handler(store, args)
-    except StoreError as e:
+    except (StoreError, preview.PreviewError) as e:
         print(f"review: {e}", file=sys.stderr)
         return 1
     return 0

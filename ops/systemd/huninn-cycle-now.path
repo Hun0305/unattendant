@@ -1,0 +1,17 @@
+# 운영자가 반려·접기를 하면 사이클을 바로 한 번 더 돌린다 (docs/blogops.md 12절).
+# 봇이나 review 명령이 logs/.cycle-request를 만들면 huninn-cycle.service를 시작한다.
+# 서비스가 시작할 때 그 파일을 지우므로(huninn-cycle.service의 ExecStartPre) 요청 하나에 한 번만 돈다.
+# 도는 중에 새 요청이 오면 끝난 뒤 한 번 더 돈다. 하루 5회 상한은 blogops(agent/blogops/ondemand.py)가 지킨다.
+# 설치와 확인: ops/README.md "반려·접기 직후 바로 쓰기"
+[Unit]
+Description=Run the Huninn cycle right away after the operator rejects or drops a draft
+
+[Path]
+PathExists=/home/hun/unattendant-live/logs/.cycle-request
+Unit=huninn-cycle.service
+# 요청 파일이 지워지지 않는 고장이 나도 계속 돌지 않게 한다 (정상이면 하루 5회)
+TriggerLimitIntervalSec=1h
+TriggerLimitBurst=8
+
+[Install]
+WantedBy=multi-user.target

@@ -7,13 +7,13 @@ Pi에서 블로그를 띄우는 데 필요한 설정과 설치 기록. 다른 �
 | 파일 | 역할 |
 | --- | --- |
 | `install-site-tools.sh` | Hugo extended, Caddy를 GitHub 릴리스 arm64 바이너리로 `~/.local/bin`에 설치 (체크섬 검증, sudo 불필요) |
-| `caddy/Caddyfile` | `site/public`을 `127.0.0.1:8080`에 서빙. TLS는 Cloudflare가 맡는다 |
+| `caddy/Caddyfile` | `site/public`을 `127.0.0.1:8080`에 서빙. TLS는 Cloudflare가 맡는다. `:8081` 블록은 초안 미리보기(`state/previews`)를 읽기 전용으로 서빙한다 (아래 "초안 미리보기 호스트") |
 | `systemd/unattendant-caddy.service` | Caddy 상시 실행 |
-| `cloudflared/config.yml` | Named Tunnel `unattendant` ingress (`unattendant.dev` → `127.0.0.1:8080`) |
+| `cloudflared/config.yml` | Named Tunnel `unattendant` ingress (`unattendant.dev` → `127.0.0.1:8080`, `preview.unattendant.dev` → `127.0.0.1:8081`) |
 | `systemd/unattendant-tunnel.service` | 터널 상시 실행 |
 | `install-log2ram.sh` | log2ram 설치 (Debian 패키지, 기본 설정, sudo, 재부팅 필요) |
 | `install-gitleaks.sh` | gitleaks 설치 + 두 레포의 `core.hooksPath`를 `ops/githooks`로 연결 |
-| `githooks/pre-commit` | 커밋 직전 검사: 금지 파일(`.env`, `*.pem`, `*.key`, `logs/`, `state/drafts/`, `state/approvals/`, SSH 키) + gitleaks 비밀값 패턴 |
+| `githooks/pre-commit` | 커밋 직전 검사: 금지 파일(`.env`, `*.pem`, `*.key`, `logs/`, `state/drafts/`, `state/approvals/`, `state/previews/`, SSH 키) + gitleaks 비밀값 패턴 |
 | `test-pre-commit.sh` | 임시 레포에서 가짜 비밀값으로 훅 동작 확인 |
 | `gitleaks.toml` | gitleaks 규칙. 기본 규칙 중 18개 + 전용 규칙 6개(cloudflared 자격증명·인증서·토큰, 디스코드 봇 토큰·웹훅, Claude Code 구독 토큰을 포함한 Anthropic 자격증명 전반) |
 | `huninn/settings.json` | Huninn 전용 Claude Code 설정 원본 (공개). 아래 "Huninn용 Claude Code 설정 폴더" |
@@ -24,6 +24,8 @@ Pi에서 블로그를 띄우는 데 필요한 설정과 설치 기록. 다른 �
 | `huninn/review` | 사람용 승인·반려 명령 ([agent/README.md](../agent/README.md)) |
 | `systemd/huninn-cycle.service` | Huninn 사이클 한 번 (매장의 `run-cycle.sh`, 30분 제한, 쓰기 가능한 곳 제한). 아래 "Huninn 타이머" |
 | `systemd/huninn-cycle.timer` | 위 서비스를 매일 14:00(KST)에 실행 |
+| `systemd/huninn-cycle-now.path` | 운영자가 반려·접기를 하면(`logs/.cycle-request`가 생기면) 위 서비스를 바로 시작한다. 아래 "반려·접기 직후 바로 쓰기" |
+| `systemd/huninn-bot.service` | 디스코드 봇 상시 실행: #승인 메시지의 승인·반려·접기 버튼을 받는다. 아래 "Huninn 봇" |
 
 ## 사이트 빌드
 
@@ -76,7 +78,7 @@ Host github-unattendant-site
 
 Pi를 새로 세우면 키를 새로 만들어 GitHub 레포 Settings → Deploy keys에 다시 등록한다.
 
-두 레포 모두 공개다. 비공개는 비밀값(`.env`, `~/.cloudflared/`, `~/.ssh/`), 원본 로그(`logs/`), 미발행 초안(`state/drafts/`, `state/approvals/`)뿐이고 `.gitignore`와 pre-commit 훅이 막는다. 자세한 기준은 [architecture.md](../docs/architecture.md)의 저장소 섹션에 있다.
+두 레포 모두 공개다. 비공개는 비밀값(`.env`, `~/.cloudflared/`, `~/.ssh/`), 원본 로그(`logs/`), 미발행 초안(`state/drafts/`, `state/approvals/`, 초안 미리보기 빌드 `state/previews/`)뿐이고 `.gitignore`와 pre-commit 훅이 막는다. 자세한 기준은 [architecture.md](../docs/architecture.md)의 저장소 섹션에 있다.
 
 ## 비밀키 스캐너 (pre-commit)
 
@@ -206,6 +208,110 @@ systemctl list-timers huninn-cycle.timer     # 다음 실행 시각
 | `MemoryMax=1G`, `Nice=10` | | 시험 실행에서 claude와 MCP 서버를 합친 RSS 최댓값이 312MB, 품질 검사 때 hugo 54MB·gitleaks 71MB가 더해진다. **지금은 메모리 cgroup이 꺼져 있어 `MemoryMax`가 걸리지 않는다** (아래 "메모리 제한") |
 
 **시험 (2026-10-07)**: 매장이 아직 없어서, 경로만 작업실로 바꾼 같은 설정을 `systemd-run --user`로 돌렸다(`BLOGOPS_NO_PUBLISH=1`). 성공, 15.6초, 툴 3회, 추정 $0.015. 쓰기 제한 안에서 claude 로그인, MCP 서버, 디스코드 알림이 동작했다. 사용자 단위 서비스라 실제 시스템 유닛과 완전히 같지는 않고, 발행(git commit·push) 경로는 시험하지 않았다. 매장에서 손으로 처음 돌릴 때 확인한다.
+
+## 초안 미리보기 호스트 (sudo)
+
+승인 대기 초안을 폰에서 발행된 모습 그대로 읽는 주소 `https://preview.unattendant.dev/<토큰>/…`. 설계는 [blogops.md](../docs/blogops.md) 11절. 매장에서 Hugo로 구운 폴더(`state/previews/<토큰>/`)를 Caddy가 읽기 전용으로 내주고, 터널이 밖으로 연결한다. 토큰은 160비트 무작위 값이고 승인 대기가 끝나면 폴더가 지워진다.
+
+| 구성 | 값 |
+| --- | --- |
+| Caddy | `:8081` 블록 (`ops/caddy/Caddyfile`). `127.0.0.1`에만 붙는다. 폴더 목록 없음, 점으로 시작하는 이름 차단, 읽기 전용 |
+| 응답 헤더 | `X-Robots-Tag: noindex, nofollow, noarchive`, `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, `/robots.txt` 전체 차단 |
+| 공개 사이트에서 가져오는 것 | `/fonts/*`, `/status.json` 둘뿐. 사이트 CSS와 상태 띠가 절대 경로로 부른다. 글꼴(이름에 해시가 있는 공개 파일)만 캐시를 허용해 폰에서 페이지마다 다시 받지 않는다 |
+| 터널 | `preview.unattendant.dev` → `127.0.0.1:8081` (`ops/cloudflared/config.yml`) |
+| 주소 바꾸기 | 시험할 때 `BLOGOPS_PREVIEW_BASE_URL`로 기준 주소를 바꾼다 (기본 `https://preview.unattendant.dev`) |
+
+켜는 순서 (PR이 main에 합쳐지고 매장이 `git pull`을 받은 뒤):
+
+```bash
+cd ~/unattendant-live
+git pull --ff-only
+# 1) 설정 검증 (서비스는 건드리지 않는다)
+~/.local/bin/caddy validate --adapter caddyfile --config ops/caddy/Caddyfile
+cloudflared --config ops/cloudflared/config.yml tunnel ingress validate
+# 2) DNS: 기존 터널에 호스트 이름을 추가한다. Cloudflare에 CNAME이 하나 생긴다 (sudo 불필요)
+cloudflared tunnel route dns unattendant preview.unattendant.dev
+# 3) 반영 (sudo): Caddy와 터널을 다시 시작한다. 블로그가 1~2초 끊긴다
+sudo systemctl restart unattendant-caddy unattendant-tunnel
+systemctl is-active unattendant-caddy unattendant-tunnel
+# 4) 확인: 8081이 열렸고, 토큰 없는 주소는 404
+ss -ltn | grep ':8081 '
+curl -s -o /dev/null -w '%{http_code}\n' https://preview.unattendant.dev/        # 404
+curl -s -o /dev/null -w '%{http_code}\n' https://unattendant.dev/               # 200 (공개 사이트는 그대로)
+```
+
+승인 대기 초안이 있으면 `ops/huninn/review preview <초안ID>`로 미리보기를 만들고 주소를 본다. 폰에서 열리는지, 다크 모드와 그림이 보이는지 확인한다. 안 열리면 `systemctl status unattendant-tunnel`과 Caddy 로그를 본다.
+
+**2026-10-13 시험 (임시 Caddy를 18081 포트에 띄워 실제 설정을 확인)**: 실제 사이트와 실제 승인 대기 초안으로 빌드 1초, 글 페이지·홈·CSS·글꼴 200. 토큰 없는 `/`, 엉뚱한 토큰, 점 폴더·파일, `..`·`%2e%2e` 경로 탈출은 모두 404, POST 405, PUT 404, 응답 헤더 위 표대로, 안내 띠는 초안 페이지에만 있다. 운영 중인 Caddy와 터널은 건드리지 않았다.
+
+## Huninn 봇 (sudo)
+
+디스코드 #승인 메시지의 [승인] [반려] [접기] 버튼을 받는 상시 프로세스 (`agent/blogops/bot.py`, 설계는 [blogops.md](../docs/blogops.md) 11절). 디스코드로 먼저 연결을 여는 방식이라 포트가 필요 없다. 봇 토큰, 운영자 ID, 채널 ID는 기존 `~/.config/huninn/huninn.env`에 이미 있다 (새 비밀값 없음).
+
+```bash
+cd ~/unattendant-live
+git pull --ff-only
+# discord.py 설치 (패키지 설치: discord.py, aiohttp 등 약 20MB, 선택 의존성 [bot])
+cd agent && .venv/bin/pip install -e ".[bot]" && cd ..
+# 접속만 확인한다 (메시지는 보내지 않는다. 봇이 2~3초 온라인으로 보인다)
+BLOGOPS_ROOT=~/unattendant-live agent/.venv/bin/python -m blogops.bot --check
+# 서비스 설치와 시작 (sudo)
+sudo install -m 644 ops/systemd/huninn-bot.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now huninn-bot
+journalctl -u huninn-bot -n 20 --no-pager      # "접속했다: <봇 이름>" 줄 확인
+systemctl show huninn-bot -p MemoryCurrent -p MemoryMax
+```
+
+| 설정 | 값 | 이유 |
+| --- | --- | --- |
+| 실행 | `Type=simple`, `User=hun`, `Restart=always` | 상주한다. 멈추면 버튼만 안 먹고 알림과 `review` 명령은 그대로라 10초 뒤 다시 띄우면 충분하다 |
+| `BLOGOPS_ROOT` | 매장 | 매장의 `state/`를 다룬다 |
+| `MemoryMax=200M` | | 상주 프로세스라 상한을 둔다. 메모리 cgroup은 2026-10-12에 켰다 |
+| 쓰기 제한 | `ProtectSystem=strict` + `ReadWritePaths=매장/state 매장/logs` | 승인·반려 기록, 글감 상태(접기), 결정 로그, 미리보기 정리만 쓴다. 비밀값 파일은 읽기만 한다 |
+| 권한 | 글을 쓰거나 발행하지 않는다. claude 토큰은 읽지 않는다 | 봇이 뚫려도 할 수 있는 일은 운영자 ID로 인증된 승인·반려뿐이다 |
+| 디스코드 권한 | 인텐트 `guilds`만. 권한 인텐트는 쓰지 않는다 | 클릭(interaction)은 인텐트 없이 온다. 메시지 내용을 읽지 않는다 |
+
+**순서 주의**: 매장이 새 코드를 받으면 다음 승인 요청부터 메시지에 버튼이 붙는다(사이클 시작 때 자동 `git pull`도 같다). 봇이 꺼져 있으면 그 버튼은 눌러도 "상호작용 실패"가 되니, 매장을 업데이트한 날 14:00 사이클 전에 봇부터 켜 둔다. 버튼이 안 될 때는 메시지에 적힌 `review` 명령으로 승인한다.
+
+**시험 (2026-10-13)**
+- `--check`로 실제 게이트웨이 접속 확인(권한 인텐트 없이).
+- 가짜 interaction 단위 시험 14개: 운영자 아님·오래된 해시·확인 취소·접기·디스코드 오류 등.
+- **실제 디스코드 시험 (20:36~20:37)**: 임시 폴더에 가짜 초안 3개를 만들어 실제 코드 경로(`notify.request_approval`)로 #승인에 보내고(디스코드가 버튼·링크 payload를 그대로 받았다, 미리보기 3개 빌드), 임시 봇을 띄워 두고 운영자가 폰에서 눌렀다. 승인(확인 창 → [승인 확정]), 반려(사유 입력창), 접기(사유 입력창) 모두 기록이 `via: discord`로 남았고, 원본 메시지가 결과로 바뀌며 버튼이 사라졌고(`close_approval_message` 3건), 미리보기 폴더가 지워졌다. 접기는 초안 `held` + 글감 `blocked`, 반려만으로는 글감이 그대로였다. 봇 로그에 경고·오류 없음, 거부(`approval_denied`) 0건. 승인 확인 창의 [취소]는 로그가 남지 않아 확인하지 못했다(단위 시험만).
+- 시험 중 발견해 고친 것: `bot.run(root_logger=True)`가 없으면 `blogops.*` 로거의 INFO("접속했다" 등)가 journal에 나오지 않는다.
+- 아직 못 한 것: [미리보기] 링크가 폰에서 열리는지(DNS·Caddy 반영 전이라 열리지 않는 게 정상), 매장에서 상주 서비스로 도는 것.
+
+## 반려·접기 직후 바로 쓰기 (sudo)
+
+운영자가 반려하거나 접으면 14:00을 기다리지 않고 사이클을 바로 한 번 더 돌린다 (하루 5회까지, 승인은 해당 없음). 설계는 [blogops.md](../docs/blogops.md) 12절. 봇이나 `review` 명령이 `logs/.cycle-request` 파일을 쓰면 path 유닛이 `huninn-cycle.service`를 시작하고, 서비스가 시작하며 그 파일을 지운다.
+
+```bash
+cd ~/unattendant-live
+git pull --ff-only
+# 바뀐 서비스(ExecStartPre 한 줄 추가)와 새 path 유닛을 설치한다 (sudo). 타이머는 그대로다
+sudo install -m 644 ops/systemd/huninn-cycle.service ops/systemd/huninn-cycle-now.path /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now huninn-cycle-now.path
+# 확인: active, 지켜보는 파일이 매장의 요청 파일
+systemctl show huninn-cycle-now.path -p ActiveState -p Paths
+systemctl list-timers huninn-cycle.timer            # 타이머는 그대로 다음 14:00
+```
+
+| 설정 | 값 | 이유 |
+| --- | --- | --- |
+| `PathExists` | `~/unattendant-live/logs/.cycle-request` | `logs/`는 git 제외다. `state/`에 두면 사이클 끝의 state 커밋에 딸려 올라간다 |
+| `ExecStartPre` (서비스) | `rm -f` 요청 파일 | 요청 하나에 한 번만 돈다. 도는 중에 새 요청이 오면 끝난 뒤 한 번 더 돈다. 타이머가 먼저 돌아도 그 실행이 요청을 처리한다. `cycle.py`도 시작할 때 같은 파일을 지운다(두 유닛 파일을 같이 설치할 것) |
+| `TriggerLimit` | 1시간에 8번 | 요청 파일이 지워지지 않는 고장이 나도 계속 돌지 않게 한다. 정상이면 하루 5번이 한도다(blogops가 센다) |
+| 하루 5회 상한 | `Config.ondemand_daily_limit` (KST) | 받아들인 요청을 `logs/YYYY-MM-DD.jsonl`의 `cycle_requested`로 센다. 넘으면 요청하지 않고 다음 14:00 사이클로 안내한다 |
+| 권한 | 봇과 `review`는 파일만 쓴다 | 서비스 시작 권한(polkit)을 주지 않는다 |
+
+**순서**: 코드를 먼저 배포하고 이 유닛을 나중에 켜도 된다. `systemctl show huninn-cycle-now.path`로 유닛이 켜져 있고 이 설정의 요청 파일을 지켜볼 때만 "사이클을 바로 돌린다"고 말하고, 아니면 "다음 14:00 사이클에서"라고 안내한다.
+
+**첫 확인**: 승인 대기 초안을 하나 반려해(사유 입력) 1~2분 안에 #승인에 새 승인 요청이 오는지 본다. `journalctl -u huninn-cycle -n 20 --no-pager`, `logs/cycles.jsonl`에 사이클이 하나 더 생기고 `logs/<날짜>.jsonl`에 `cycle_requested`(granted)가 남는다. 접기는 새 글감으로 새 초안이 온다. 실제 사이클이 돌아 구독 한도를 쓰니 시험 삼아 누르지는 말 것.
+
+**끄기**: `sudo systemctl disable --now huninn-cycle-now.path`. 이후 반려·접기는 다음 14:00 사이클에서 처리된다고 안내한다(코드 변경 없음).
+
+**2026-10-13 시험 (사용자 매니저의 임시 유닛, 같은 systemd 257)**: 요청 파일 1번 → 서비스 1번 실행 후 파일 삭제, 실행 중 요청 → 끝나자마자 1번 더, 실행 전 3번 연속 요청 → 1번만. 실제 `ondemand.request`로도 확인했다: 같은 경로를 지켜보면 `watcher_active` True, 다른 경로면 False, 파일 쓰기(임시 파일 → 이름 바꾸기)에도 유닛이 반응해 1.5초 안에 서비스가 시작됐고, 실행 중 두 번째 요청은 끝난 뒤 한 번 더 돌았다. 시험 유닛은 지웠다. 시스템 유닛 설치는 아직 하지 않았다.
 
 ## 메모리 제한 (cgroup)
 
