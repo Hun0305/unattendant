@@ -47,7 +47,7 @@ Phase 2는 Phase 1이 만든 것 위에 선다. 아래가 끝나야 시작한다
 | 2 | 모델과 effort | `claude-sonnet-5-5` 유지. effort를 명시하고 `medium`에서 시작 | API 기본 effort는 `high`이고, 여러 단계로 툴을 쓰는 작업은 `medium`이 권장 시작점이다. API 전환 뒤 1주 실측으로 `low`·`high`, Opus 5.5와 비교해 정한다 (todo.md 기존 항목) |
 | 3 | 예산 상한 (제안값) | 코드: 사이클 $1, 하루 $2, 월 $25. Console 워크스페이스 한도: 월 $30 | Phase 1 시험 사이클이 추정 $0.11~0.14, 월 추정이 Sonnet 5.5로 약 $12다 ([claude-billing.md](../claude-billing.md)). 코드가 먼저 멈추고 Console 한도는 마지막 장치다. 2주 실측 뒤 조정한다 |
 | 4 | 가공 운영 지표의 형식과 위치 (todo.md 열린 질문) | 운영 레포 `metrics/daily.csv`(하루 한 줄)와 `metrics/interventions.csv`(사람이 한 일 한 줄씩). 매일 커밋 | GitHub이 CSV를 표로 보여 주고, 누구나 내려받아 다시 계산할 수 있다. 원본 `logs/`는 그대로 비공개다 |
-| 5 | status.json 위치 | `public/` 밖에 쓰고, Caddy가 `/status.json`만 그 파일로 서빙한다. Cloudflare 캐시에서 뺀다 | 빌드(`--cleanDestinationDir`)가 `public/`을 비운다 (blogops.md 5절). site/README.md의 `public/status.json` 문구도 고친다 |
+| 5 | status.json 위치 | **결정(2026-10-14)**: `/run/huninn/status.json`(tmpfs)에 쓰고, Caddy가 `/status.json`만 그 파일로 서빙한다. 캐시하지 않는다. 쓰는 부분은 Phase 1로 앞당겼다 ([status.md](../status.md)) | 빌드(`--cleanDestinationDir`)가 `public/`을 비운다 (blogops.md 5절). site/README.md의 `public/status.json` 문구도 고친다 |
 | 6 | 폰 승인 방식 (todo.md 열린 질문) | #승인 메시지에 초안 파일(ko·en)을 첨부하고 [승인]·[반려] 버튼을 단다. Pi의 `review` 명령은 그대로 둔다 | 폰에서 읽고 바로 누를 수 있다. 봇이 멈춰도 승인할 길이 남는다 |
 | 7 | 대시보드 접근과 역할 | Tailscale 주소에만 붙이고(Tailscale 설정은 바꾸지 않는다), 승인은 하지 않는 읽기 전용으로 시작 | 인터넷으로 열리는 길이 늘지 않는다. 승인 경로는 버튼과 `review` 둘이면 된다. architecture.md는 대시보드에서도 승인을 처리한다고 적었다 |
 | 8 | 전략 자동 갱신의 범위 | 주 1회(일요일), 근거 필수. "글을 쓸 때"의 금지 항목 같은 고정 절은 바꿀 수 없다 | 발행 한도와 예산은 전략이 아니라 코드라서, 전략이 바뀌어도 안전장치는 그대로다 |
@@ -138,7 +138,7 @@ architecture.md "관측성과 포트폴리오 지표"의 지표를 실제로 계
 - [ ] 장애 기록: 사이클 실패, 발행 실패, 상태 점검 문제, 업타임 모니터 다운을 장애로 열고, 다음 정상 신호에서 닫는다 (자동 복구 여부, 걸린 시간)
 - [ ] 업타임: 업타임 모니터의 가용률을 읽어 온다. 읽기 전용 API 키를 쓰면 gitleaks 규칙부터 확인한다. 무료 플랜은 기록을 3개월만 보관하므로 **기한은 모니터를 만든 날 + 3개월 전**(대략 2027-01 초)이다. Phase 2 시작이 이보다 늦으면 이 항목만 먼저 만든다. 설계는 [uptime.md](../uptime.md) 7절
 - [ ] 지표 계산 (하루 한 번, 타이머): 연속 무인 운영일, 개입 수, 장애 자동 복구율, 품질 첫 통과율, 글당 비용, 업타임 → 2절 4번 파일로 커밋
-- [ ] status.json (5분마다, 타이머): 형식은 site/README.md. 위치와 캐시는 2절 5번(Caddyfile 변경과 재시작은 sudo). "오늘 비용"은 기록은 달러로 하고 고정 환율로 원화를 환산한 뒤, 숫자 탭에 기준 환율과 날짜를 적는다
+- [ ] status.json에 연속 무인 운영일과 오늘 비용 더하기 (Pi 상태를 5분마다 쓰는 부분은 Phase 1로 앞당겨 만들었다: [status.md](../status.md)). "오늘 비용"은 기록은 달러로 하고 고정 환율로 원화를 환산한 뒤, 숫자 탭에 기준 환율과 날짜를 적는다
 - [ ] 숫자 탭: 확정한 정의로 지표 표를 고치고 실제 값을 보여 준다
 - [ ] 백업 타이머: `logs/`, `state/drafts/`, `state/approvals/`를 매일 압축해 USB에 둔다 (architecture.md 백업 표). USB 마운트(sudo)는 ops/에 남기고, 한 번은 실제로 풀어서 복구해 본다
 - [ ] 30일 지난 `logs/*.jsonl`은 백업한 뒤 압축한다

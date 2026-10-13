@@ -32,6 +32,7 @@
 - docs/next/indexnow.md: IndexNow 색인 요청 (키 파일, 켜는 방법, 응답 코드, 운영 규칙)
 - docs/pre-commit.md: 비밀키 스캐너(gitleaks pre-commit 훅) 구성, 규칙, 실험 기록
 - docs/uptime.md: 외부 업타임 모니터(UptimeRobot) 설계: 구성, 설정값, 켜는 순서, 시험, 기록 계획
+- docs/status.md: Pi 상태 파일(status.json) 설계: 상태 띠·통계 탭이 읽는 값, 위치, 형식, 화면 동작, 확인한 것
 - docs/claude-billing.md: Claude 사용 방식 비교(Pro 구독 vs API 크레딧), 비용 추정, 선택 근거
 - docs/next/comments.md: 댓글 기능 구상 비교(giscus vs Pi 자체 댓글 서버), 미결정
 - docs/todo.md: 로드맵(단계·게이트), 단계별 체크리스트, 열린 질문. 언제 무엇을 어디까지 했는지. 작업을 끝내면 여기에 체크할 것

@@ -12,12 +12,15 @@ from typing import Iterator
 from .config import Config
 
 
-def write_atomic(path: Path, text: str) -> None:
-    # 쓰는 도중 전원이 나가도 반쯤 쓴 파일이 남지 않게, 같은 폴더에 쓰고 바꿔치기한다
+def write_atomic(path: Path, text: str, mode: int | None = None) -> None:
+    # 쓰는 도중 전원이 나가도 반쯤 쓴 파일이 남지 않게, 같은 폴더에 쓰고 바꿔치기한다.
+    # mode를 주지 않으면 임시 파일의 기본값(소유자만 읽고 쓴다)이 그대로 간다
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
+            if mode is not None:
+                os.fchmod(f.fileno(), mode)
             f.write(text)
             f.flush()
             os.fsync(f.fileno())

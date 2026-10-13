@@ -26,6 +26,7 @@ Huninn이 시스템을 건드리는 통로인 blogops. 설계는 [docs/blogops.m
 | `blogops/fileio.py` | 원자적 쓰기와 잠금 (초안·승인·백로그 공용) |
 | `blogops/quality.py` | 품질 검사 (docs/blogops.md 6절): front matter, 시리즈, 분량, 출처, 레포 링크, 내부 IP·MAC·이메일, 중복, gitleaks, Hugo 빌드 |
 | `blogops/health.py` | 상태 점검: 디스크, CPU 온도, 메모리, 사이트 응답, 마지막 빌드, 초안 상태별 수 |
+| `blogops/status.py` | Pi 상태 파일 (docs/status.md): CPU 온도·메모리·디스크 여유·가동 시간을 읽어 `/run/huninn/status.json`(RAM)에 쓴다. 타이머(`huninn-status`)가 5분마다 한 번 돌리고, 사이트의 상태 띠와 통계 탭이 읽는다. 읽지 못한 값은 필드를 뺀다 |
 | `blogops/summary.py` | 주간 보고서 재료: 발행, 승인·반려와 사유, 품질 검사 첫 통과율, 보류, 사이클 수와 추정 비용 |
 | `blogops/server.py` | MCP 서버(stdio). 툴 18개는 위 모듈을 부르기만 한다. 툴 오류는 `ok: false` 결과로 돌려주고, 호출마다 로그를 남긴다 |
 | `blogops/cycle.py` | 하루 사이클 실행: `claude -p`를 blogops 툴만 쥐여 돌리고 `logs/cycles.jsonl`에 기록, 실패하면 #긴급 |
