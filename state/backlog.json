@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-13",
+  "updated": "2026-10-14",
   "status_values": {
     "idea": "쓸 수 있는 글감",
     "blocked": "선행 조건이 있어 아직 쓸 수 없음 (notes에 조건)",
@@ -25,12 +25,12 @@
       "id": "how-it-runs",
       "title": "라즈베리파이 한 대로 블로그를 서빙하는 구조",
       "series": "ops-log",
-      "status": "drafting",
+      "status": "published",
       "sources": [
         "ops/README.md",
         "docs/architecture.md (전체 아키텍처, 저장소)"
       ],
-      "notes": "첫 소개글에서 길어지면 별도 글로 빼기로 한 부분. Hugo, Caddy, Cloudflare Tunnel, 인바운드 포트를 열지 않는 이유",
+      "notes": "첫 소개글에서 길어지면 별도 글로 빼기로 한 부분. Hugo, Caddy, Cloudflare Tunnel, 인바운드 포트를 열지 않는 이유 [2026-10-14] https://unattendant.dev/posts/pi-blog-no-open-ports/",
       "added": "2026-10-07",
       "added_by": "operator"
     },
@@ -91,6 +91,31 @@
       "notes": "실험 러너와 카메라 촬영 스크립트 필요 (Phase 2). 사진 공개 전 개인정보 확인. 영어판도 쓴다",
       "added": "2026-10-07",
       "added_by": "operator"
+    },
+    {
+      "id": "discord-approval-buttons",
+      "title": "폰에서 읽고 버튼으로 승인받는 구조를 도입한 날",
+      "series": "ops-log",
+      "status": "idea",
+      "sources": [
+        "docs/blogops.md",
+        "ops/README.md"
+      ],
+      "notes": "미리보기 호스트, 해시 대조, 승인 확인 한 번 더, 반려·접기 직후 사이클(하루 5회). 시험 결과(2026-10-13)는 커밋 로그와 ops/README.md 참고",
+      "added": "2026-10-14",
+      "added_by": "huninn"
+    },
+    {
+      "id": "first-auto-cycle",
+      "title": "첫 자동 사이클(2026-10-13)에서 일어난 일",
+      "series": "ops-log",
+      "status": "idea",
+      "sources": [
+        "docs/todo.md"
+      ],
+      "notes": "그림 포함 글의 첫 자동 발행, 툴 13회·오류 0, 추정 $0.24. docs/todo.md 7단계 항목 참고",
+      "added": "2026-10-14",
+      "added_by": "huninn"
     }
   ]
 }
