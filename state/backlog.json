@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-14",
+  "updated": "2026-10-15",
   "status_values": {
     "idea": "쓸 수 있는 글감",
     "blocked": "선행 조건이 있어 아직 쓸 수 없음 (notes에 조건)",
@@ -109,7 +109,7 @@
       "id": "first-auto-cycle",
       "title": "첫 자동 사이클(2026-10-13)에서 일어난 일",
       "series": "ops-log",
-      "status": "idea",
+      "status": "drafting",
       "sources": [
         "docs/todo.md"
       ],
