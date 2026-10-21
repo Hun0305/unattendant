@@ -91,11 +91,31 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 - [ ] 1주 뒤 `status`의 `lan4_seen`을 보고 같은 대역 허용을 집 안 기기만으로 좁힐지 정한다
 - [ ] 다음 단계: 접속하는 기기에 SSH 키를 설정한 뒤 키 로그인만 받게 한다
 
+### 엔진 선택과 Gemini 비교 (2026-10-22)
+
+사이클 엔진을 고를 수 있게 하고 Gemini 4 Argon(Antigravity CLI `agy`, Google AI Pro 구독)과 Claude Sonnet 5.5를 비교한다. 설계, 가드레일 대응, 시험 목록(P·T·D 번호)은 [engines.md](engines.md). 코드는 `feat/engine-select` 브랜치에서 만든다.
+
+- [x] 장애 기록: 2026-10-17~21 사이클 5회 연속 실패. 구독 토큰이 취소됐다(`OAuth token revoked`). #긴급 알림은 매번 갔다(`notify_error` 없음)
+- [x] 조사와 설계 문서 (2026-10-22): Gemini CLI는 AI Pro 로그인과 Argon을 지원하지 않아(2026-06-18 Antigravity CLI로 대체) agy로 간다 (engines.md 2절)
+- [ ] 사람이 먼저 할 일
+  - [ ] P1 Claude 구독 토큰 재발급 → `huninn.env`
+  - [ ] P2 Huninn용 agy 로그인 (`HOME=~/.config/huninn/agy`, T1과 같이)
+  - [ ] P3 Google Developer Program 혜택 활성화 (월 $10 Cloud 크레딧, B안 대비)
+  - [ ] P4 Antigravity AI credits 초과 사용 꺼짐 확인
+- [ ] 가드레일 시험 T1~T9 (blogops 연결 전). 하나라도 막히지 않으면 다음으로 가지 않는다. 특히 T1 설정 폴더 분리, T4 파일 읽기·쓰기 차단, T5 지시문 격리, T8 자동 업데이트
+- [ ] `cycle.py` 엔진 선택: `HUNINN_ENGINE`, `--engine`, 엔진별 명령·환경변수·결과 파싱, `engine`·`engine_error` 필드, Argon 단가표로 추정 비용, 테스트
+- [ ] `ops/huninn/agy-settings.json`과 설치 스크립트, `BLOGOPS_ENGINE`·`BLOGOPS_MODEL`을 초안 `meta.json`에 기록
+- [ ] 모래상자: `BLOGOPS_NO_NOTIFY`, `--item <백로그 ID>`, worktree + 사이트 사본
+- [ ] T10~T11 시험 사이클과 실패 신호 확인
+- [ ] 블라인드 비교: 글감 3개 × 엔진 2개, 결과 `experiments/engine-compare/` (engines.md 5절)
+- [ ] 판정과 기본 엔진 결정. 바꾸면 ops/README.md·blogops.md·`huninn-cycle.service`(ReadWritePaths, 메모리) 반영 → 매장 적용
+- [ ] D1~D4 문서 확인 (약관, 자격증명 수명, 쿼터, 크레딧 청구)
+
 ### 준비
 
 - [x] claude.ai usage credits 꺼짐 확인 (한도를 넘으면 API 정가로 결제되는 것을 막는다)
 - [x] gitleaks에 구독 토큰 규칙 `anthropic-credential` 추가, 테스트 15개 통과. 실제 토큰(`sk-ant-oat01-…`)이 이 규칙에만 걸리는 것을 2026-10-07에 확인 ([pre-commit.md](pre-commit.md) 실험 기록 5)
-- [x] `claude setup-token`으로 1년 토큰 발급 → `.env`의 `CLAUDE_CODE_OAUTH_TOKEN` (만료 2027-10-06)
+- [x] `claude setup-token`으로 1년 토큰 발급 → `.env`의 `CLAUDE_CODE_OAUTH_TOKEN` (만료 2027-10-06). 2026-10-17에 취소됨(`revoked`), 재발급은 아래 "엔진 선택과 Gemini 비교" P1
 - [x] Huninn 전용 `CLAUDE_CONFIG_DIR` 폴더 `~/.config/huninn/claude` (700, 레포 밖)
 - [x] Huninn용 `settings.json` 작성·설치: 원본 `ops/huninn/settings.json` → `ops/install-huninn-config.sh` (설명은 [ops/README.md](../ops/README.md))
 - [x] 발급한 구독 토큰이 gitleaks 규칙에 걸리는지 확인 (2026-10-07): `.env`를 값을 가린 채 검사, 토큰 줄이 `anthropic-credential`에만 걸림 (pre-commit.md 실험 기록 5)

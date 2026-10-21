@@ -6,7 +6,7 @@ blogops는 Huninn이 시스템을 건드리는 유일한 통로다. Python 라�
 
 ## 1. 하루 사이클
 
-systemd 타이머가 매일 14:00(KST)에 `claude -p`를 한 번 돌린다. Huninn이 따를 순서는 시스템 프롬프트(`ops/huninn/prompt.md`, 공개)에 적는다.
+systemd 타이머가 매일 14:00(KST)에 `claude -p`를 한 번 돌린다. 엔진은 Antigravity CLI(Gemini)로도 바꿀 수 있게 만드는 중이다([engines.md](engines.md), 2026-10-22). Huninn이 따를 순서는 시스템 프롬프트(`ops/huninn/prompt.md`, 공개)에 적는다.
 
 1. **상태 점검**: `get_system_health`. 이상이 있으면 `notify_human`으로 알리고 새 글은 쓰지 않는다.
 2. **승인된 초안 발행**: `list_drafts`에서 승인된 초안이 있으면 `publish_post` → `request_indexing`. 이어서 영어판이 없는 글에 `get_post` → `add_english` → `request_indexing`(5절 뒤 "영어판 붙이기").

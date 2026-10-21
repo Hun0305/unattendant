@@ -35,6 +35,7 @@
 - docs/uptime.md: 외부 업타임 모니터(UptimeRobot) 설계: 구성, 설정값, 켜는 순서, 시험, 기록 계획
 - docs/status.md: Pi 상태 파일(status.json) 설계: 상태 띠·통계 탭이 읽는 값, 위치, 형식, 화면 동작, 확인한 것
 - docs/claude-billing.md: Claude 사용 방식 비교(Pro 구독 vs API 크레딧), 비용 추정, 선택 근거
+- docs/engines.md: LLM 엔진 선택(Claude Code vs Antigravity CLI·Gemini 4 Argon), agy 가드레일 대응, 시험 목록, 비교 방법 (2026-10-22)
 - docs/next/comments.md: 댓글 기능 구상 비교(giscus vs Pi 자체 댓글 서버), 미결정
 - docs/todo.md: 로드맵(단계·게이트), 단계별 체크리스트, 열린 질문. 언제 무엇을 어디까지 했는지. 작업을 끝내면 여기에 체크할 것
 - docs/와 실제 상태가 다르면 임의로 고치지 말고 먼저 물어볼 것
