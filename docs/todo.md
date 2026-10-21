@@ -403,7 +403,7 @@ architecture.md "관측성과 포트폴리오 지표"의 지표를 실제로 계
   - [x] `llm-tasks` (2026-10-14, 커밋 전): 과제 세트, TTFT, 서버 timings, 콜드 로드, 결정성 확인. 가짜 llama-server로 시험. 실제 서버 검증은 계획 `trial-tasks`(매일 02:00 타이머, `round1-bench` 다음)
   - [ ] `llm-ppl` (양자화 비교용)
 - [ ] 큐에서 하나씩 꺼내 systemd 유닛으로 실행한다 (`MemoryMax`, 시간 제한, `Nice`)
-  - [x] 1단계 (2026-10-14, 커밋 전): 계획 파일(`experiments/plans/`)을 차례로 도는 `night.py`. 끝낸 작업은 `logs/exp-plans/`에 남겨 다음 밤에 이어 돈다. 실행은 사용자 매니저의 임시 타이머(`systemd-run --user --on-calendar`, `MemoryMax=2500M`, `MemorySwapMax=0`, `OOMScoreAdjust=500`). 시스템 유닛과 blogops 큐 연동은 남음
+  - [x] 1단계 (2026-10-14, `50be236`): 계획 파일(`experiments/plans/`)을 차례로 도는 `night.py`. 끝낸 작업은 `logs/exp-plans/`에 남겨 다음 밤에 이어 돈다. 실행은 사용자 매니저 유닛(`MemoryMax=2500M`, `MemorySwapMax=0`, `OOMScoreAdjust=500`). 처음에는 임시 타이머(`systemd-run --user --on-calendar`)였는데 재부팅하면 사라져서 2026-10-22 상시 유닛으로 바꿨다(`ops/systemd/user/exp-night.*`, `ops/install-exp-timer.sh`). 시스템 유닛과 blogops 큐 연동은 남음
 - [ ] 실행 규칙
   - 한 번에 하나만. 비전 촬영과 LLM 실험은 겹치지 않는다
   - LLM 실험은 밤(예: 02:00~06:00)에만, 하루 사이클과 겹치지 않게 돈다
@@ -425,6 +425,7 @@ architecture.md "관측성과 포트폴리오 지표"의 지표를 실제로 계
 - [ ] 1B급 4비트 모델 하나로 tokens/s, TTFT, 최대 메모리를 잰다. 프롬프트 세트를 고정한다
   - [x] 모델 8종 받기와 sha256 대조 (2026-10-14, `~/models/gguf/` 6.6GB, `experiments/models.toml`에 저장소 커밋과 해시 고정)
   - [ ] 첫 밤 실행: `round1-bench`(속도 9개 작업). 2026-10-14 02:13부터 대기(`exp-night-20261014`, VS Code 서버가 없어지면 시작, 05:30까지), 남은 것은 매일 02:00(`exp-night.timer`). 결과로 걸린 시간·최대 메모리·온도를 보고 `MemoryMax`와 시간대를 고친다
+    - 2026-10-22 확인: 아직 한 번도 돌지 않았다. 10-14~18 매일 밤 VS Code 서버 프로세스가 떠 있어 미뤄졌고(`night-postponed`), 10-19 03:09 재부팅으로 임시 타이머가 사라졌다. 상시 사용자 유닛으로 다시 예약했다(첫 실행 10-23 02:00). 시간대는 그대로 두기로 했으니(운영자 결정) 측정하려는 밤에는 VS Code 원격 연결을 끊어 둔다
   - [ ] 과제 세트 `llm-tasks-v1` 정답 검수 (운영자). 초안 100문항과 채점기는 2026-10-14 작성(정답을 넣으면 만점인지 자체 확인)
   - [ ] 검수가 끝나면 `prompts.toml`의 `status`를 `reviewed`로 바꾸고, 계획 `round1-tasks`(8종 품질)를 밤 타이머에 넣는다
 - [ ] 첫 글: 측정 조건 표, 원본 CSV 링크, "참고용 벤치마크" 고지, 직접 만든 그래프

@@ -40,19 +40,19 @@ systemd-run --user --wait -p MemoryMax=2500M -p MemorySwapMax=0 -p OOMScoreAdjus
 systemd-run --user --wait -p MemoryMax=2500M -p MemorySwapMax=0 -p OOMScoreAdjust=500 \
   --working-directory="$PWD" python3 experiments/runner/llm_tasks.py --model llama-3.2-1b   # --json-constraint, --thinking
 
-# 계획 하나를 밤 시간대에 (예약)
-systemd-run --user --unit=exp-night --on-calendar='*-*-* 02:00:00' \
-  -p MemoryMax=2500M -p MemorySwapMax=0 -p OOMScoreAdjust=500 -p Nice=5 -p RuntimeMaxSec=4h \
-  -E PYTHONUNBUFFERED=1 --working-directory="$PWD" \
-  /usr/bin/python3 "$PWD"/experiments/runner/night.py --plan experiments/plans/round1-bench.toml \
-  --plan experiments/plans/trial-tasks.toml --until 05:30 --recheck-min 10     # --plan을 여러 번 주면 차례로 돈다
-
+# 밤 실행 (매일 02:00~05:30): 사용자 매니저 유닛을 설치한다. 재부팅해도 남는다
+ops/install-exp-timer.sh                        # ops/systemd/user/exp-night.* → ~/.config/systemd/user/, 타이머 켜기
 systemctl --user list-timers exp-night.timer   # 다음 실행 시각
 journalctl --user-unit=exp-night.service       # 실행 기록 (logs/experiments.jsonl에도 남는다)
-systemctl --user stop exp-night.timer           # 예약 취소
+systemctl --user stop exp-night.timer           # 오늘 예약만 멈춘다 (다시 켜기: start)
+ops/install-exp-timer.sh --remove               # 타이머를 끄고 유닛을 지운다
 ```
 
-임시 유닛은 사용자 매니저에 있어서 재부팅하면 사라진다. 사용자 매니저는 tty1 자동 로그인 세션이 붙잡고 있다. 시작 조건이 안 맞으면 `night-wait` 기록에 사유가 남는다.
+- 돌릴 계획은 `ops/systemd/user/exp-night.service`의 `--plan`이다(여러 번 주면 차례로 돈다. 지금은 `round1-bench` → `trial-tasks`). 바꾸면 설치 스크립트를 다시 돌린다.
+- 놓친 실행은 따라잡지 않는다(`Persistent=false`). `--until`은 "다음 05:30"이라 낮에 시작하면 다음 날 새벽까지 돌기 때문이다. 같은 이유로 낮에 `systemctl --user start exp-night`로 손으로 시작하지 않는다.
+- 작업실(`~/unattendant`)에서 돈다. 02:00에 작업실이 실험 파일이 없는 브랜치에 있으면 실패하고 다음 밤에 다시 돈다.
+- 사용자 매니저는 tty1 자동 로그인 세션이 붙잡고 있다(`Linger=no`). 시작 조건이 안 맞으면 `night-wait` 기록에 사유가 남는다.
+- 2026-10-14부터 10-19까지는 같은 설정을 임시 유닛(`systemd-run --user --on-calendar`)으로 돌렸는데, 재부팅하면 사라져서 바꿨다(2026-10-22).
 
 ## 시험
 

@@ -28,6 +28,8 @@ Pi에서 블로그를 띄우는 데 필요한 설정과 설치 기록. 다른 �
 | `systemd/huninn-bot.service` | 디스코드 봇 상시 실행: #승인 메시지의 승인·반려·접기 버튼을 받는다. 아래 "Huninn 봇" |
 | `systemd/huninn-status.service` | Pi 상태(CPU 온도·메모리·디스크·가동 시간)를 `/run/huninn/status.json`(RAM)에 한 번 쓴다. 아래 "Pi 상태 파일" |
 | `systemd/huninn-status.timer` | 위 서비스를 5분마다, 부팅 1분 뒤에도 실행 |
+| `systemd/user/exp-night.service`, `.timer` | 엣지 AI 밤 실험(매일 02:00~05:30, `MemoryMax=2500M`). 사용자 매니저 유닛이다 |
+| `install-exp-timer.sh` | 위 두 유닛을 `~/.config/systemd/user/`에 설치하고 타이머를 켠다 (sudo 불필요). 설명은 [experiments/README.md](../experiments/README.md) "실행" |
 
 ## 사이트 빌드
 

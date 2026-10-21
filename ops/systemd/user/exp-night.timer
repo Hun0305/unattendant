@@ -1,0 +1,12 @@
+# 밤 실험을 매일 02:00에 시작한다 (exp-night.service). 설치: ops/install-exp-timer.sh
+[Unit]
+Description=Start the edge AI night experiments at 02:00
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+# 꺼져 있던 동안 놓친 실행을 부팅 뒤에 따라잡지 않는다. night.py의 --until은 "다음 05:30"이라
+# 낮에 시작하면 다음 날 새벽까지 돌며 14:00 사이클·사람 작업과 겹친다
+Persistent=false
+
+[Install]
+WantedBy=timers.target
