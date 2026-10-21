@@ -209,7 +209,7 @@ systemctl list-timers huninn-cycle.timer     # 다음 실행 시각
 | `PATH` | `~/.local/bin` 포함 | claude, hugo, gitleaks가 여기 있다. systemd 기본 PATH에는 없다 |
 | `DISABLE_AUTOUPDATER=1` | | claude 바이너리는 사람과 같이 쓴다. Huninn이 도는 동안에는 업데이트하지 않는다 |
 | 쓰기 제한 | `ProtectSystem=strict` + `ReadWritePaths` | 매장, `~/.config/huninn`, `~/.cache`, `~/.local/state/claude`에만 쓸 수 있다. 작업실과 다른 프로젝트는 읽기만 된다. claude는 설정 폴더 밖에 MCP 로그(`~/.cache/claude-cli-nodejs/`, 툴 이름과 시간만)와 잠금 파일을 쓰고, hugo는 `~/.cache/hugo_cache`를 쓴다 |
-| `MemoryMax=1G`, `Nice=10` | | 시험 실행에서 claude와 MCP 서버를 합친 RSS 최댓값이 312MB, 품질 검사 때 hugo 54MB·gitleaks 71MB가 더해진다. **지금은 메모리 cgroup이 꺼져 있어 `MemoryMax`가 걸리지 않는다** (아래 "메모리 제한") |
+| `MemoryMax=1G`, `Nice=10` | | 시험 실행에서 claude와 MCP 서버를 합친 RSS 최댓값이 312MB, 품질 검사 때 hugo 54MB·gitleaks 71MB가 더해진다. 매장 실측 최댓값은 427.6MB(2026-10-12). 메모리 cgroup은 2026-10-12에 켜서 `MemoryMax`가 실제로 걸린다 (아래 "메모리 제한") |
 
 **시험 (2026-10-07)**: 매장이 아직 없어서, 경로만 작업실로 바꾼 같은 설정을 `systemd-run --user`로 돌렸다(`BLOGOPS_NO_PUBLISH=1`). 성공, 15.6초, 툴 3회, 추정 $0.015. 쓰기 제한 안에서 claude 로그인, MCP 서버, 디스코드 알림이 동작했다. 사용자 단위 서비스라 실제 시스템 유닛과 완전히 같지는 않고, 발행(git commit·push) 경로는 시험하지 않았다. 매장에서 손으로 처음 돌릴 때 확인한다.
 
@@ -247,6 +247,8 @@ curl -s -o /dev/null -w '%{http_code}\n' https://unattendant.dev/               
 승인 대기 초안이 있으면 `ops/huninn/review preview <초안ID>`로 미리보기를 만들고 주소를 본다. 폰에서 열리는지, 다크 모드와 그림이 보이는지 확인한다. 안 열리면 `systemctl status unattendant-tunnel`과 Caddy 로그를 본다.
 
 **2026-10-13 시험 (임시 Caddy를 18081 포트에 띄워 실제 설정을 확인)**: 실제 사이트와 실제 승인 대기 초안으로 빌드 1초, 글 페이지·홈·CSS·글꼴 200. 토큰 없는 `/`, 엉뚱한 토큰, 점 폴더·파일, `..`·`%2e%2e` 경로 탈출은 모두 404, POST 405, PUT 404, 응답 헤더 위 표대로, 안내 띠는 초안 페이지에만 있다. 운영 중인 Caddy와 터널은 건드리지 않았다.
+
+**운영 (2026-10-22 확인)**: 반영됐다. 매장 터널 설정에 `preview.unattendant.dev`가 있고, Caddy가 `127.0.0.1:8081`에서 듣고, `https://preview.unattendant.dev/`는 404다(설계대로).
 
 ## Pi 상태 파일 (sudo)
 
@@ -287,6 +289,8 @@ Caddy를 다시 시작하는 순간을 업타임 모니터가 잡으면 #긴급�
 
 되돌리기: `sudo systemctl disable --now huninn-status.timer`. 파일은 재부팅하면 사라지고 사이트는 띠에 "운영 준비 중"만 보인다. Caddyfile은 그대로 둬도 된다(파일이 없으면 404).
 
+**운영 (2026-10-22 확인)**: 설치돼 있다(`huninn-status.timer` enabled·active). `https://unattendant.dev/status.json`이 200, `cache-control: no-store`, `cf-cache-status: DYNAMIC`이고, 헤드리스 Chromium으로 연 홈의 띠에 CPU 온도·메모리·갱신 시각이 보인다.
+
 ## Huninn 봇 (sudo)
 
 디스코드 #승인 메시지의 [승인] [반려] [접기] 버튼을 받는 상시 프로세스 (`agent/blogops/bot.py`, 설계는 [blogops.md](../docs/blogops.md) 11절). 디스코드로 먼저 연결을 여는 방식이라 포트가 필요 없다. 봇 토큰, 운영자 ID, 채널 ID는 기존 `~/.config/huninn/huninn.env`에 이미 있다 (새 비밀값 없음).
@@ -322,7 +326,9 @@ systemctl show huninn-bot -p MemoryCurrent -p MemoryMax
 - 가짜 interaction 단위 시험 14개: 운영자 아님·오래된 해시·확인 취소·접기·디스코드 오류 등.
 - **실제 디스코드 시험 (20:36~20:37)**: 임시 폴더에 가짜 초안 3개를 만들어 실제 코드 경로(`notify.request_approval`)로 #승인에 보내고(디스코드가 버튼·링크 payload를 그대로 받았다, 미리보기 3개 빌드), 임시 봇을 띄워 두고 운영자가 폰에서 눌렀다. 승인(확인 창 → [승인 확정]), 반려(사유 입력창), 접기(사유 입력창) 모두 기록이 `via: discord`로 남았고, 원본 메시지가 결과로 바뀌며 버튼이 사라졌고(`close_approval_message` 3건), 미리보기 폴더가 지워졌다. 접기는 초안 `held` + 글감 `blocked`, 반려만으로는 글감이 그대로였다. 봇 로그에 경고·오류 없음, 거부(`approval_denied`) 0건. 승인 확인 창의 [취소]는 로그가 남지 않아 확인하지 못했다(단위 시험만).
 - 시험 중 발견해 고친 것: `bot.run(root_logger=True)`가 없으면 `blogops.*` 로거의 INFO("접속했다" 등)가 journal에 나오지 않는다.
-- 아직 못 한 것: [미리보기] 링크가 폰에서 열리는지(DNS·Caddy 반영 전이라 열리지 않는 게 정상), 매장에서 상주 서비스로 도는 것.
+- 아직 못 한 것 (2026-10-13 당시): [미리보기] 링크가 폰에서 열리는지(DNS·Caddy 반영 전이라 열리지 않는 게 정상), 매장에서 상주 서비스로 도는 것.
+
+**운영 (2026-10-22 확인)**: 매장에서 상주 서비스로 돈다(`huninn-bot` enabled·active, 메모리 43MB / 200M). 2026-10-13 21:46 첫 실제 승인부터 결정은 디스코드로 했다(승인 2건, 반려 2건, 모두 `via: discord`). 폰에서 [미리보기] 링크를 연 기록은 없다.
 
 ## 반려·접기 직후 바로 쓰기 (sudo)
 
@@ -355,6 +361,8 @@ systemctl list-timers huninn-cycle.timer            # 타이머는 그대로 다
 **끄기**: `sudo systemctl disable --now huninn-cycle-now.path`. 이후 반려·접기는 다음 14:00 사이클에서 처리된다고 안내한다(코드 변경 없음).
 
 **2026-10-13 시험 (사용자 매니저의 임시 유닛, 같은 systemd 257)**: 요청 파일 1번 → 서비스 1번 실행 후 파일 삭제, 실행 중 요청 → 끝나자마자 1번 더, 실행 전 3번 연속 요청 → 1번만. 실제 `ondemand.request`로도 확인했다: 같은 경로를 지켜보면 `watcher_active` True, 다른 경로면 False, 파일 쓰기(임시 파일 → 이름 바꾸기)에도 유닛이 반응해 1.5초 안에 서비스가 시작됐고, 실행 중 두 번째 요청은 끝난 뒤 한 번 더 돌았다. 시험 유닛은 지웠다. 시스템 유닛 설치는 아직 하지 않았다.
+
+**운영 (2026-10-22 확인)**: 매장에 설치돼 있다(`huninn-cycle-now.path` enabled·active, 매장 `logs/.cycle-request`를 지켜본다). 첫 실제 사용은 2026-10-16: 디스코드 반려 14:18:30 → 사이클 14:18:31 시작, 14:20:14 → 14:20:14 시작. 두 번 다 제목을 고쳐 다시 승인을 요청했다.
 
 ## 인바운드 가드 (sudo)
 
@@ -391,11 +399,13 @@ sudo ops/install-firewall.sh status     # 막은 횟수(counter), 같은 대역�
 
 ## 메모리 제한 (cgroup)
 
+**2026-10-12에 켰다.** 지금(2026-10-22) `/sys/fs/cgroup/cgroup.controllers`에 `memory`가 있고, 커널 명령줄에 부트로더의 `cgroup_disable=memory` 뒤로 `cgroup_enable=memory cgroup_memory=1`이 붙어 뒤의 것이 이긴다. `unattendant-caddy`(33MB / 200M), `huninn-bot`(43MB / 200M)의 `MemoryCurrent`가 잡힌다. 아래는 켜기 전 기록과 켠 방법이다.
+
 2026-10-07 확인: **이 Pi는 메모리 cgroup이 꺼져 있다.** 부트로더가 커널 명령줄에 `cgroup_disable=memory`를 붙이고(`/boot/firmware/cmdline.txt`에는 없다), 부팅 로그에 `cgroup: Disabling memory control group subsystem`이 남는다. `/sys/fs/cgroup/cgroup.controllers`에도 `memory`가 없다.
 
-그래서 유닛의 `MemoryMax`는 지금 효과가 없다. `unattendant-caddy`의 `MemoryMax=200M`도 걸려 있지 않다(`systemctl show`에 값은 있지만 `MemoryCurrent=[not set]`). CLAUDE.md의 "실험은 systemd 서비스 + MemoryMax로만 돌린다"도 이 상태로는 지켜지지 않는다.
+그래서 그때는 유닛의 `MemoryMax`가 효과가 없었다. `unattendant-caddy`의 `MemoryMax=200M`도 걸려 있지 않았다(`systemctl show`에 값은 있지만 `MemoryCurrent=[not set]`). CLAUDE.md의 "실험은 systemd 서비스 + MemoryMax로만 돌린다"도 그 상태로는 지켜지지 않았다.
 
-켜는 방법 (아직 하지 않았다. 운영자가 정한다):
+켜는 방법 (2026-10-12 운영자가 이대로 켰다. 백업은 `cmdline.txt.bak`):
 
 ```bash
 sudo cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.bak

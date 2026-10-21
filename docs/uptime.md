@@ -98,7 +98,7 @@ Pi 밖에서 사이트를 5분마다 열어 보고, 열리지 않으면 디스�
 | 공개 상태 페이지 | https://stats.uptimerobot.com/fVZhbBgUDa (이름 `unattendant.dev status`, 2026-10-13 21:37 생성) |
 
 - 시작은 모니터를 만든 시각이다. 사이트는 2026-10-06부터 열려 있어 그 전 구간은 비어 있다. 소개 페이지도 "모니터를 붙인 뒤부터"라고 적는다.
-- 원본은 UptimeRobot이다. 무료는 기록을 3개월만 보관하므로, 3개월이 지나기 전에 Pi로 가져온다. 기한은 모니터를 만든 날 + 3개월 전(대략 2027-01 초)이고, 내용은 [todo_phase2.md](next/todo_phase2.md) 4.3절 "업타임"이다.
+- 원본은 UptimeRobot이다. 무료는 기록을 3개월만 보관하므로, 3개월이 지나기 전에 Pi로 가져온다. 기한은 모니터를 만든 날 + 3개월 전(대략 2027-01 초)이고, 할 일은 [todo.md](todo.md) Phase 2 "운영 지표, 개입 기록, 백업"의 업타임 항목이다.
 - 내보내기(`agent/blogops/uptime.py`, 하루 1회 타이머): 읽기 전용 API 키로 전날의 장애와 가동률을 가져와 `logs/uptime.jsonl`(비공개 원본)과 `metrics/daily.csv`(공개)에 쌓는다. 첫 실행은 시작일부터 되메우므로 3개월 안이면 첫날 기록을 잃지 않는다. 무료 API는 분당 10회라 하루 1번이면 충분하다.
 - API 키는 `huninn.env`에 넣기 전에 gitleaks 규칙과 `ops/test-pre-commit.sh` 경우를 먼저 더한다([pre-commit.md](pre-commit.md)). 키 형식은 받아서 봐야 안다.
 - 장애 열기·닫기도 같은 데이터로 한다. 장애 자동 복구율은 여기서 계산한다.
