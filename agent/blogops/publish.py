@@ -12,12 +12,14 @@
 from __future__ import annotations
 
 import html
+import json
 import os
 import shutil
 import subprocess
 import tempfile
 import time
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
@@ -115,6 +117,47 @@ def receipt(store: Store, draft_id: str, meta: dict) -> dict:
         "cpu_temp_c": status.cpu_temp_c(),
         "mem_used_gb": mem[0] if mem else None,
         "mem_total_gb": mem[1] if mem else None,
+    }
+    return {k: v for k, v in record.items() if v is not None}
+
+
+def _cycle_at(cycles: list[dict], ts: str) -> dict | None:
+    """ts(ISO 시각)가 들어 있는 정규 사이클(started ≤ ts ≤ ts 기록 시각). 없으면 None."""
+    when = datetime.fromisoformat(ts)
+    for c in cycles:
+        if c.get("dry_run") or not c.get("started"):
+            continue
+        if datetime.fromisoformat(c["started"]) <= when <= datetime.fromisoformat(c["ts"]):
+            return c
+    return None
+
+
+def backfill_receipt(config: Config, store: Store, draft_id: str) -> dict:
+    """receipt가 생기기 전(2026-10-27)에 발행된 글의 발행 기록을 남은 기록으로 다시 만든다.
+    사이클과 모델은 logs/cycles.jsonl에서 발행·작성 시각이 들어 있는 사이클로 찾는다(손으로 돌린 때는 빠진다).
+    발행하던 순간의 Pi 상태는 남아 있지 않아 넣지 않고, 나중에 채웠다는 표시(backfilled)를 단다."""
+    meta = store.meta(draft_id)
+    if not meta.get("published"):
+        raise PublishError(f"발행되지 않은 초안이다: {draft_id}")
+    cycles_file = config.logs_dir / "cycles.jsonl"
+    cycles = []
+    if cycles_file.exists():
+        for line in cycles_file.read_text(encoding="utf-8").splitlines():
+            try:
+                cycles.append(json.loads(line))
+            except ValueError:
+                continue
+    published = _cycle_at(cycles, meta["published"]["at"])
+    drafted = _cycle_at(cycles, meta["created_at"])
+    decisions = [d for d in store.decisions(draft_id) if d["at"] <= meta["published"]["at"]]
+    record = {
+        "cycle": published["cycle"] if published else None,
+        "model": meta.get("model") or (drafted or {}).get("model"),
+        "drafted": meta["created_at"],
+        "quality_checks": len([q for q in meta.get("quality", []) if q["at"] <= meta["published"]["at"]]),
+        "rejections": sum(d["decision"] == "rejected" for d in decisions),
+        "approved": next((d["at"] for d in reversed(decisions) if d["decision"] == "approved"), None),
+        "backfilled": config.now().date().isoformat(),
     }
     return {k: v for k, v in record.items() if v is not None}
 

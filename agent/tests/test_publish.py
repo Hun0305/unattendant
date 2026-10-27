@@ -1,3 +1,5 @@
+import io
+import json
 import subprocess
 import tempfile
 import unittest
@@ -82,6 +84,58 @@ class PublishTest(unittest.TestCase):
         self.assertEqual(r["approved"], self.store.decisions(draft_id)[-1]["at"])
         self.assertNotIn("mem_used_gb", r)  # 읽지 못한 값은 뺀다
         self.assertNotIn("제목이 전문용어뿐이다", (self.site / "content/posts/naming/index.ko.md").read_text())
+
+    def test_backfill_receipt_from_records(self):
+        # 발행 기록 기능 전에 발행된 글: 남은 기록(meta, 승인 기록, cycles.jsonl)으로 다시 만든다
+        draft_id = self.store.create_draft(slug="naming", series="ops-log", ko=KO)
+        self.store.record_quality(draft_id, True, [])
+        self.store.record_approval_request(draft_id)
+        self.store.record_decision(draft_id, "approved")
+        publish.publish_post(self.config, self.store, draft_id, verify=ok)
+        meta_path = self.config.drafts_dir / draft_id / "meta.json"
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        meta["created_at"] = "2026-10-01T14:01:00+09:00"  # 초안은 전날 사이클에서 썼다
+        meta_path.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+        with self.assertRaises(PublishError):
+            publish.backfill_receipt(self.config, self.store,
+                                     self.store.create_draft(slug="other", series="ops-log", ko=KO))
+        cycles = [
+            {"ts": "2026-10-01T14:05:00+09:00", "started": "2026-10-01T14:00:00+09:00", "cycle": "cycle-draft",
+             "model": "claude-sonnet-5-5"},
+            {"ts": meta["published"]["at"], "started": meta["published"]["at"], "cycle": "cycle-dry", "dry_run": True},
+            {"ts": meta["published"]["at"], "started": meta["published"]["at"], "cycle": "cycle-pub", "model": "x"},
+        ]
+        self.config.logs_dir.mkdir(parents=True, exist_ok=True)
+        (self.config.logs_dir / "cycles.jsonl").write_text(
+            "".join(json.dumps(c) + "\n" for c in cycles) + "깨진 줄\n", encoding="utf-8")
+        r = publish.backfill_receipt(self.config, self.store, draft_id)
+        self.assertEqual((r["cycle"], r["model"], r["quality_checks"], r["rejections"]),
+                         ("cycle-pub", "claude-sonnet-5-5", 1, 0))  # 모델은 초안을 쓴 사이클 것
+        self.assertEqual(r["approved"], self.store.decisions(draft_id)[-1]["at"])
+        self.assertIn("backfilled", r)
+        self.assertNotIn("cpu_temp_c", r)  # 발행하던 순간의 Pi 상태는 남아 있지 않다
+
+    def test_review_receipts_lists_posts_without_receipt(self):
+        from blogops import review
+        draft_id = self.store.create_draft(slug="naming", series="ops-log", ko=KO)
+        self.store.record_quality(draft_id, True, [])
+        self.store.record_approval_request(draft_id)
+        self.store.record_decision(draft_id, "approved")
+        publish.publish_post(self.config, self.store, draft_id, verify=ok)
+        post = self.site / "content/posts/naming/index.ko.md"
+        before = post.read_text(encoding="utf-8")
+        env = {"BLOGOPS_ROOT": str(self.config.root), "BLOGOPS_SITE_DIR": str(self.site)}
+        with mock.patch.dict("os.environ", env), mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            review.main(["receipts"])
+        self.assertIn("발행 기록이 빠진 글이 없다", out.getvalue())  # 새로 발행한 글에는 이미 있다
+        fields, body = frontmatter.parse(before)
+        fields.pop("receipt")
+        post.write_text(frontmatter.render(fields, body), encoding="utf-8")
+        with mock.patch.dict("os.environ", env), mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            review.main(["receipts"])
+        self.assertIn('receipt: {"', out.getvalue())
+        self.assertIn("1편", out.getvalue())
+        self.assertNotIn("receipt", post.read_text(encoding="utf-8"))  # 파일은 고치지 않는다
 
     def test_publish_copies_figures(self):
         shortcode = self.site / "layouts" / "_shortcodes"

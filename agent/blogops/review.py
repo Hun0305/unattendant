@@ -6,6 +6,7 @@
     review preview <초안ID>        승인 대기 초안의 미리보기를 (없으면) 만들고 주소를 보인다
     review approve <초안ID>        지금 내용의 해시로 승인을 기록한다
     review reject <초안ID> "사유"  반려를 기록한다. 사유는 필수. --drop이면 글감을 접는다(반려 + 보류 + 글감 blocked)
+    review receipts               발행 기록(receipt)이 없는 발행 글의 기록을 남은 기록으로 만들어 보인다. 파일은 고치지 않는다
 
 디스코드 #승인의 버튼은 같은 기록을 남긴다 (blogops/decisions.py, bot.py).
 """
@@ -13,9 +14,10 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import json
 import sys
 
-from . import decisions, preview
+from . import decisions, frontmatter, preview, publish
 from .config import Config
 from .store import STATUS_LABELS, Store, StoreError
 
@@ -110,6 +112,32 @@ def _cmd_reject(store: Store, args) -> None:
     _finish(store, decision)
 
 
+def _cmd_receipts(store: Store, args) -> None:
+    # 사이트 글을 고치는 것은 운영자가 한다(공개된 글이 바뀌므로). 여기서는 front matter에 넣을 줄만 보인다
+    found = 0
+    for d in store.list_drafts():
+        meta = store.meta(d["draft_id"])
+        if not meta.get("published"):
+            continue
+        slug = meta["published"]["url"].rstrip("/").rsplit("/", 1)[-1]
+        path = store.config.site_dir / "content" / "posts" / slug / "index.ko.md"
+        try:
+            fields, _ = frontmatter.parse(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            print(f"{slug}: 글을 읽지 못했다 ({e})", file=sys.stderr)
+            continue
+        if "receipt" in fields:
+            continue
+        found += 1
+        record = publish.backfill_receipt(store.config, store, d["draft_id"])
+        print(f"{path}\nreceipt: {json.dumps(record, ensure_ascii=False)}\n")
+    if not found:
+        print("발행 기록이 빠진 글이 없다.")
+    else:
+        print(f"{found}편. 위 줄을 각 한국어판 front matter에 넣는다(영어판은 한국어판 기록을 쓴다). "
+              "Pi 상태는 남아 있지 않아 빠진다.")
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="review", description="Huninn 초안 승인·반려")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -129,11 +157,12 @@ def main(argv=None) -> int:
     p.add_argument("draft_id")
     p.add_argument("reason")
     p.add_argument("--drop", action="store_true", help="이 글감을 접는다: 반려 + 보류 + 글감 blocked")
+    sub.add_parser("receipts", help="발행 기록이 빠진 발행 글의 기록 (보이기만 한다)")
     args = parser.parse_args(argv)
 
     store = Store(Config.from_env())
     handler = {"list": _cmd_list, "show": _cmd_show, "diff": _cmd_diff, "preview": _cmd_preview,
-               "approve": _cmd_approve, "reject": _cmd_reject}[args.command]
+               "approve": _cmd_approve, "reject": _cmd_reject, "receipts": _cmd_receipts}[args.command]
     try:
         handler(store, args)
     except (StoreError, preview.PreviewError) as e:

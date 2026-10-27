@@ -98,6 +98,7 @@ logs/
 review list                    # 승인 대기·반려·보류 초안
 review show <초안ID>            # 본문 경로, 요약, 품질 검사 결과, 고친 이력, 미리보기 주소
 review diff <초안ID> [--en]     # 지난 반려 판과 지금 판의 차이 (반려가 없으면 첫 판과). 2026-10-27
+review receipts                 # 발행 기록(receipt)이 없는 발행 글의 기록을 남은 기록으로 만들어 보인다. 파일은 고치지 않는다. 2026-10-27
 review preview <초안ID>         # 승인 대기 초안의 미리보기를 (없으면) 만들고 주소를 보인다
 review approve <초안ID>         # 지금 해시로 승인을 기록한다
 review reject <초안ID> "사유"   # 반려를 기록한다. 사유는 필수
