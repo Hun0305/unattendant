@@ -27,7 +27,7 @@ blogops가 강제하는 한도:
 | 사이클 실행 시간·메모리 | 30분, `MemoryMax` | systemd가 강제한다 |
 | 반려·접기 직후 임시 실행 | 하루 5회 (KST) | 반려 → 재작성 → 반려가 되풀이되며 구독 한도를 쓰는 일을 막는다 (12절) |
 
-## 2. 툴 (Phase 1, 20개)
+## 2. 툴 (Phase 1, 21개)
 
 | 영역 | 툴 | 입력 | 하는 일 | 권한 |
 | --- | --- | --- | --- | --- |
@@ -42,6 +42,7 @@ blogops가 강제하는 한도:
 | 초안 | `create_draft` | 백로그 ID, 슬러그, 제목, 요약, 시리즈, 태그, 본문(ko, en), 출처 | 초안 폴더 생성 | write |
 | 초안 | `update_draft` | 초안 ID, 바꿀 내용, 고친 이유 | 초안 수정. 품질·승인 기록은 무효가 된다 | write |
 | 초안 | `list_drafts` | 없음 | 초안과 상태 | read |
+| 초안 | `get_draft` | 초안 ID | 언어별 제목·요약·태그·본문, 출처, 그림 파일, 상태, 마지막 품질 검사와 반려 사유. 반려된 초안을 고치기 전에 읽는다 (2026-10-27 추가) | read |
 | 초안 | `check_quality` | 초안 ID | 통과 여부, 문제 목록 (6절) | read |
 | 승인 | `request_approval` | 초안 ID | 초안 미리보기를 빌드하고, #승인에 요약, 미리보기 링크, 승인·반려·접기 버튼을 보낸다 (11절). 미리보기를 못 만들어도 승인 요청은 간다 | write |
 | 승인 | `get_approval_status` | 초안 ID | 상태(대기·승인·반려), 반려 사유 | read |
@@ -54,7 +55,7 @@ blogops가 강제하는 한도:
 
 - **승인과 반려는 툴이 아니다.** 사람만 쓰는 `review` 명령이다(4절). Huninn이 자기 글을 승인할 길이 없다.
 - **architecture.md의 21개 중 Phase 1에서 만들지 않는 것**: `update_strategy`(전략은 사람이 고치고 Huninn은 주간 보고서에서 제안한다), `get_site_stats`·`get_search_stats`·`get_trends`·실험 3개·`queue_naver_digest`(Phase 2), `unpublish_post`(사람이 직접 한다).
-- **새로 생기는 것**: `get_backlog`, `read_record`, `get_git_log`, `list_drafts`, `update_draft`, `get_week_summary`, `get_post`, `add_english`. 이 설계가 확정되면 architecture.md 툴 표에 반영한다.
+- **새로 생기는 것**: `get_backlog`, `read_record`, `get_git_log`, `list_drafts`, `get_draft`, `update_draft`, `get_week_summary`, `get_post`, `add_english`. 이 설계가 확정되면 architecture.md 툴 표에 반영한다.
 
 ## 3. 파일
 

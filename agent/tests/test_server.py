@@ -16,9 +16,9 @@ from blogops import backlog
 from blogops.config import KST
 from helpers import good_body, make_env
 
-# docs/blogops.md 2절의 20개. 승인·반려는 툴이 아니다
+# docs/blogops.md 2절의 21개. 승인·반려는 툴이 아니다
 TOOLS = {"get_system_health", "get_strategy", "get_backlog", "manage_backlog", "list_posts", "search_posts",
-         "read_record", "get_git_log", "create_draft", "update_draft", "list_drafts", "check_quality",
+         "read_record", "get_git_log", "create_draft", "update_draft", "list_drafts", "get_draft", "check_quality",
          "request_approval", "get_approval_status", "publish_post", "get_post", "add_english", "request_indexing", "get_week_summary",
          "notify_human"}
 SOURCE = {"title": "pre-commit.md", "url": "https://github.com/Hun0305/unattendant/blob/main/docs/pre-commit.md"}
@@ -66,6 +66,13 @@ class ServerTest(unittest.TestCase):
         drafts = server.list_drafts()["drafts"]
         self.assertEqual((drafts[0]["title"], drafts[0]["status"]), ("이름 짓기: 후보 5개에서 고른 이유", "writing"))
         self.assertFalse(server.request_approval(draft_id=draft_id)["ok"])  # 품질 검사 전
+        draft = server.get_draft(draft_id=draft_id)  # 고치기 전에 본문까지 읽을 수 있다
+        self.assertTrue(draft["ok"], draft)
+        self.assertEqual(draft["langs"]["ko"]["title"], "이름 짓기: 후보 5개에서 고른 이유")
+        self.assertEqual(draft["langs"]["ko"]["body"].strip(), good_body().strip())
+        self.assertEqual(draft["sources"], [SOURCE])
+        self.assertEqual((draft["status"], draft["last_rejection"]), ("writing", None))
+        self.assertFalse(server.get_draft(draft_id="20261008-nope")["ok"])
 
     def test_publish_blocked_in_dry_run_and_indexing_skipped(self):
         with mock.patch.dict(os.environ, {"BLOGOPS_NO_PUBLISH": "1"}):

@@ -18,7 +18,7 @@ architecture.md의 핵심 원칙("툴 로직은 `blogops` 하나에 두고 런�
 
 | 그대로 | 바뀜 |
 | --- | --- |
-| blogops 툴 20개와 서버 쪽 검사(품질, 승인, 발행 한도, 사이클당 툴 호출 60회) | `cycle.py`: 실행 명령, 환경변수, 결과 파싱을 엔진별로 나눈다 |
+| blogops 툴 21개와 서버 쪽 검사(품질, 승인, 발행 한도, 사이클당 툴 호출 60회) | `cycle.py`: 실행 명령, 환경변수, 결과 파싱을 엔진별로 나눈다 |
 | MCP 서버(stdio), 시스템 프롬프트 내용(`ops/huninn/prompt.md`) | 엔진별 설정 원본: `ops/huninn/settings.json`(Claude), `ops/huninn/agy-settings.json`(새로 만든다) |
 | 매장·작업실 구조, 14:00 타이머, 반려 직후 실행, 동기화 | `logs/cycles.jsonl`에 `engine` 필드, 비용 계산 방식 |
 | 모든 글은 사람이 승인한다 (Phase 1) | 프롬프트를 넣는 방식: agy는 시스템 프롬프트를 바꿀 수 없다 (4절) |

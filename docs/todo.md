@@ -161,6 +161,7 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 - [x] 그림 포함 글의 첫 자동 발행 확인 (2026-10-13 14:00 사이클): `ai-site-first-screens`가 승인된 상태. 그림 2개 복사, 커밋 메시지의 "그림 2개", 공개 URL의 그림 접근, 새 초안의 그림 제안(전략 v3)을 확인한다
   - 결과: 사이트 레포 `3d7ff5f`(작성자 Huninn, `content(ai)`), 커밋 본문에 "그림 2개: first-screens-map.svg, home-e.png", 글 폴더에 두 파일 복사, 공개 URL 글·그림 둘 다 200. 사이클 성공(툴 13회·오류 0, 추정 $0.24), state 커밋 `81117ed` push
 - [ ] IndexNow 실제 사용 (뒤로 미룸, 2026-10-07 결정): 키 파일 `site/static/<키>.txt`를 사이트 레포에 커밋·배포한 뒤 첫 소개글로 실제 색인 요청. 그 전까지 `request_indexing`은 키가 없다고 알리고 건너뛴다. 방법은 [indexnow.md](next/indexnow.md)
+- [x] `get_draft` 툴 (2026-10-27, `feat/blogops-improvements`): Huninn이 초안 본문을 읽을 툴이 없어, 반려된 초안을 고칠 때 반려 사유만 보고 `update_draft`로 제목만 바꿀 수 있었다. 매장 로그 2026-10-16: `first-auto-cycle`을 고친 두 사이클 모두 `get_approval_status` 바로 뒤에 제목만 바꾼 `update_draft`(body 빈 값)를 불렀고, 두 번째 반려 사유는 "이전 수정안과 거의 같음"이었다. 언어별 제목·요약·태그·본문, 출처, 그림, 상태, 마지막 품질 검사와 반려 사유를 돌려준다. `prompt.md` 3·4번(반려된 초안, 쓰다 만 초안)에서 먼저 읽게 했다. 툴 21개
 - [x] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시 (Phase 2 실제 청구와 섞지 않는다) → 2026-10-07 `cycle.py`가 `logs/cycles.jsonl`에 남긴다(모델별 사용량 포함). `get_week_summary`가 주간 합계를 쓴다
 
 ### 사이트

@@ -147,6 +147,21 @@ class Store:
             "published": meta.get("published"),
         }
 
+    def read(self, draft_id: str) -> dict:
+        """초안 하나의 언어별 제목·요약·태그·본문과 출처, 상태, 마지막 품질 검사와 반려 기록.
+        반려된 초안을 고치려면 본문부터 읽어야 한다 (update_draft는 바꿀 항목만 받는다)."""
+        s = self.summary(draft_id)
+        langs, sources = {}, []
+        for lang in s["langs"]:
+            fields, body = self.fields(draft_id, lang)
+            langs[lang] = {"title": fields.get("title"), "description": fields.get("description"),
+                           "tags": fields.get("tags") or [], "body": body}
+            sources = sources or fields.get("sources") or []
+        return {"draft_id": draft_id, "status": s["status"], "series": s["series"], "backlog_id": s["backlog_id"],
+                "langs": langs, "sources": sources, "figures": [p.name for p in self.asset_paths(draft_id)],
+                "last_quality": s["last_quality"], "last_rejection": s["last_rejection"],
+                "updated_at": s["updated_at"]}
+
     def list_drafts(self) -> list[dict]:
         if not self.config.drafts_dir.is_dir():
             return []

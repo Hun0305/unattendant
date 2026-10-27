@@ -23,8 +23,8 @@
    - 숫자, 날짜, 이름, 링크, 코드 블록은 한국어판과 같게 둔다. 그림 단축 코드(`{{< fig >}}`)는 같은 `src`를 쓰고 `caption`과 `alt`만 영어로 쓴다.
    - `# 제목`과 front matter는 쓰지 않는다. 거부되면 `error`의 문제를 고쳐 한 번만 더 부른다. 그래도 안 되면 `notify_human`(warn)으로 알리고 멈춘다(다음 사이클이 영어판 없는 글부터 다시 시도한다).
    - 성공하면 영어판 `url`로도 `request_indexing`을 부른다.
-3. **반려된 초안**: `rejected` 초안이 있으면 가장 오래된 하나를 고친다. `get_approval_status`로 반려 사유를 읽고 `update_draft`로 고친다. `note`에는 사유를 어떻게 반영했는지 쓴다. 그다음 `check_quality` → `request_approval`.
-4. **새 초안**: `awaiting_approval` 초안이 없을 때만 쓴다. 승인 대기는 한 번에 하나다. `writing`이나 `ready`로 남은 초안이 있으면 새로 쓰지 말고 그것부터 마무리한다(`check_quality` → `request_approval`).
+3. **반려된 초안**: `rejected` 초안이 있으면 가장 오래된 하나를 고친다. `get_draft`로 본문과 반려 사유(`last_rejection`)를 함께 읽고, 반려 사유가 짚은 문제를 제목만이 아니라 본문까지 고친다. `update_draft`의 `note`에는 사유를 어떻게 반영했는지 쓴다. 그다음 `check_quality` → `request_approval`.
+4. **새 초안**: `awaiting_approval` 초안이 없을 때만 쓴다. 승인 대기는 한 번에 하나다. `writing`이나 `ready`로 남은 초안이 있으면 새로 쓰지 말고 `get_draft`로 읽어 그것부터 마무리한다(`check_quality` → `request_approval`).
    - 일요일에는 주간 보고서를 쓴다(아래 "주간 보고서").
    - 다른 날은 `get_strategy`를 읽고 `get_backlog`(status `idea`)에서 글감을 하나 고른다. 재료와 출처가 가장 확실한 것을 고른다.
    - 글감의 `sources`를 `read_record`로 읽는다. 필요하면 `get_git_log`로 그 무렵의 결정을 확인한다. `search_posts`로 이미 쓴 글과 겹치지 않는지 본다.

@@ -1,4 +1,4 @@
-"""blogops MCP 서버 (stdio). Huninn이 쓸 수 있는 툴은 여기 있는 20개뿐이다 (docs/blogops.md 2절).
+"""blogops MCP 서버 (stdio). Huninn이 쓸 수 있는 툴은 여기 있는 21개뿐이다 (docs/blogops.md 2절).
 
 실행: python -m blogops.server   (ops/huninn/run-cycle.sh가 mcp.json으로 띄운다)
 툴은 다른 모듈을 부르기만 한다. 조건 검사는 각 모듈이 한다.
@@ -203,6 +203,14 @@ def list_drafts() -> dict:
     _, store, _ = context()
     return {"drafts": [{k: d[k] for k in ("draft_id", "status", "title", "series", "backlog_id", "updated_at")}
                        for d in store.list_drafts()]}
+
+
+@tool
+def get_draft(draft_id: str) -> dict:
+    """초안 하나를 읽는다: 언어별(langs.ko, langs.en) 제목·요약·태그·본문, 출처, 그림 파일, 상태,
+    마지막 품질 검사와 마지막 반려(사유). 반려된 초안이나 이전 사이클에 쓰다 만 초안을 고치기 전에 읽는다."""
+    _, store, _ = context()
+    return store.read(draft_id)
 
 
 @tool
