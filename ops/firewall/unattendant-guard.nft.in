@@ -1,0 +1,52 @@
+#!/usr/sbin/nft -f
+# 인바운드 가드 (2026-10-14): SSH·FTP·MQTT·rpcbind를 집 안(같은 네트워크)과 Tailscale에서만 받는다.
+# 블로그는 Cloudflare 터널(Pi가 밖으로 여는 연결)로 나가므로 영향이 없다 (architecture.md "외부 공격").
+#
+# 이 파일은 원본이다. ops/install-firewall.sh가 @LAN4@를 설치할 때의 eth0 IPv4 대역으로 채워
+# /etc/nftables.d/unattendant-guard.nft로 설치한다. 대역(공인 IP)이 공개 레포에 남지 않게 하려는 것이다.
+# 이 표 하나만 지우고 다시 만든다. Tailscale이 만든 표나 다른 규칙은 건드리지 않는다.
+
+table inet unattendant_guard
+delete table inet unattendant_guard
+
+table inet unattendant_guard {
+	# 집 안과 Tailscale에서만 받는 포트
+	set guarded_tcp {
+		type inet_service
+		elements = { 21, 22, 111, 1883 }	# FTP, SSH, rpcbind, MQTT
+	}
+	set guarded_udp {
+		type inet_service
+		elements = { 111 }			# rpcbind
+	}
+
+	# 같은 네트워크의 IPv4 대역. 설치할 때 채운다
+	set lan4 {
+		type ipv4_addr
+		flags interval
+		elements = { @LAN4@ }
+	}
+
+	# 같은 대역에서 가드 포트에 새로 접속한 주소 (7일 보관). 대역을 기기 단위로 좁힐 때 본다
+	set lan4_seen {
+		type ipv4_addr
+		size 256
+		flags dynamic, timeout
+		timeout 7d
+	}
+
+	chain input {
+		type filter hook input priority filter; policy accept;
+
+		# 여기서 accept해도 이 표 안에서만 끝난다. 다른 표의 규칙은 그대로 거친다
+		iifname "lo" accept
+		iifname "tailscale0" accept
+		ip6 saddr fe80::/10 accept		# 링크 로컬: 같은 링크(집 안)에서만 올 수 있다
+		ip saddr @lan4 tcp dport @guarded_tcp ct state new update @lan4_seen { ip saddr }
+		ip saddr @lan4 tcp dport @guarded_tcp accept
+		ip saddr @lan4 udp dport @guarded_udp accept
+
+		tcp dport @guarded_tcp counter drop comment "guarded tcp from outside"
+		udp dport @guarded_udp counter drop comment "guarded udp from outside"
+	}
+}

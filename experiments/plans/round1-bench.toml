@@ -1,0 +1,60 @@
+# 1회차 본 비교: 속도 (docs/experiments.md 3.2절, 5.1절)
+# night.py가 위에서부터 차례로 돌고, 다 못 돌면 다음 밤에 남은 것부터 돈다.
+# 첫 밤은 시험 실행(13절 4번)을 겸한다: 기준 모델의 걸린 시간, 최대 메모리, 온도를 보고 MemoryMax와 시간대를 고친다.
+# 작업 하나의 예상 시간(추정): 1B급 15~25분, 2B 30~45분. 실제 값은 결과의 bench.jsonl에 남는다.
+
+name = "round1-bench"
+
+[[job]]  # 기준 모델 먼저
+template = "llm-bench"
+model = "llama-3.2-1b"
+tests = ["pp512", "tg128", "tg128@d2048"]
+threads = [4]
+
+[[job]]
+template = "llm-bench"
+model = "qwen3.5-0.8b"
+tests = ["pp512", "tg128", "tg128@d2048"]
+threads = [4]
+
+[[job]]
+template = "llm-bench"
+model = "lfm2.5-1.2b"
+tests = ["pp512", "tg128", "tg128@d2048"]
+threads = [4]
+
+[[job]]
+template = "llm-bench"
+model = "gemma-3-1b"
+tests = ["pp512", "tg128", "tg128@d2048"]
+threads = [4]
+
+[[job]]
+template = "llm-bench"
+model = "exaone-4.0-1.2b"
+tests = ["pp512", "tg128", "tg128@d2048"]
+threads = [4]
+
+[[job]]
+template = "llm-bench"
+model = "granite-4.0-h-1b"
+tests = ["pp512", "tg128", "tg128@d2048"]
+threads = [4]
+
+[[job]]  # upstream llama.cpp로 열리는지도 여기서 확인한다 (models.toml 주석)
+template = "llm-bench"
+model = "hyperclovax-seed-1.5b"
+tests = ["pp512", "tg128", "tg128@d2048"]
+threads = [4]
+
+[[job]]  # 본 비교에서 가장 크다
+template = "llm-bench"
+model = "qwen3.5-2b"
+tests = ["pp512", "tg128", "tg128@d2048"]
+threads = [4]
+
+[[job]]  # 스레드 실험 (5.3절). 스레드 4는 첫 작업에서 쟀다
+template = "llm-bench"
+model = "llama-3.2-1b"
+tests = ["pp512", "tg128"]
+threads = [1, 2, 3]

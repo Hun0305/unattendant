@@ -1,0 +1,30 @@
+{"id": "t1-01", "input": "선루프 열어 줘", "gold": {"actions": [{"device": "sunroof", "op": "open", "target": null, "value": null}], "reject": null}}
+{"id": "t1-02", "input": "에어컨 켜", "gold": {"actions": [{"device": "ac", "op": "on", "target": null, "value": null}], "reject": null}}
+{"id": "t1-03", "input": "에어컨 온도 24도로 맞춰 줘", "gold": {"actions": [{"device": "ac", "op": "set_temp", "target": null, "value": 24}], "reject": null}}
+{"id": "t1-04", "input": "운전석 창문 반만 열어", "gold": {"actions": [{"device": "window", "op": "set", "target": "driver", "value": 50}], "reject": null}}
+{"id": "t1-05", "input": "뒷좌석 왼쪽 창문 닫아 줘", "gold": {"actions": [{"device": "window", "op": "close", "target": "rear_left", "value": null}], "reject": null}}
+{"id": "t1-06", "input": "창문 전부 끝까지 열어", "gold": {"actions": [{"device": "window", "op": "open", "target": "all", "value": null}], "reject": null}}
+{"id": "t1-07", "input": "조수석 열선 켜 줘", "gold": {"actions": [{"device": "seat_heater", "op": "on", "target": "passenger", "value": null}], "reject": null}}
+{"id": "t1-08", "input": "운전석 시트 열선 3단으로", "gold": {"actions": [{"device": "seat_heater", "op": "set_level", "target": "driver", "value": 3}], "reject": null}}
+{"id": "t1-09", "input": "와이퍼 제일 빠르게", "gold": {"actions": [{"device": "wiper", "op": "set_speed", "target": null, "value": 3}], "reject": null}}
+{"id": "t1-10", "input": "실내등 꺼 줘", "gold": {"actions": [{"device": "light", "op": "off", "target": "interior", "value": null}], "reject": null}}
+{"id": "t1-11", "input": "전조등 켜", "gold": {"actions": [{"device": "light", "op": "on", "target": "headlight", "value": null}], "reject": null}}
+{"id": "t1-12", "input": "음악 잠깐 멈춰", "gold": {"actions": [{"device": "media", "op": "pause", "target": null, "value": null}], "reject": null}}
+{"id": "t1-13", "input": "볼륨 15로 해 줘", "gold": {"actions": [{"device": "media", "op": "set_volume", "target": null, "value": 15}], "reject": null}}
+{"id": "t1-14", "input": "바람 세기 2단계로 줄여 줘", "gold": {"actions": [{"device": "fan", "op": "set_speed", "target": null, "value": 2}], "reject": null}}
+{"id": "t1-15", "input": "이전 곡 틀어 줘", "gold": {"actions": [{"device": "media", "op": "previous", "target": null, "value": null}], "reject": null}}
+{"id": "t1-16", "input": "창문 다 닫고 에어컨 켜 줘", "gold": {"actions": [{"device": "window", "op": "close", "target": "all", "value": null}, {"device": "ac", "op": "on", "target": null, "value": null}], "reject": null}}
+{"id": "t1-17", "input": "에어컨 끄고 선루프 열어", "gold": {"actions": [{"device": "ac", "op": "off", "target": null, "value": null}, {"device": "sunroof", "op": "open", "target": null, "value": null}], "reject": null}}
+{"id": "t1-18", "input": "와이퍼 켜고 전조등도 켜 줘", "gold": {"actions": [{"device": "wiper", "op": "on", "target": null, "value": null}, {"device": "light", "op": "on", "target": "headlight", "value": null}], "reject": null}}
+{"id": "t1-19", "input": "운전석 창문 30퍼센트만 열고 음악 틀어 줘", "gold": {"actions": [{"device": "window", "op": "set", "target": "driver", "value": 30}, {"device": "media", "op": "play", "target": null, "value": null}], "reject": null}}
+{"id": "t1-20", "input": "온도 20도로 내리고 바람은 4단으로", "gold": {"actions": [{"device": "ac", "op": "set_temp", "target": null, "value": 20}, {"device": "fan", "op": "set_speed", "target": null, "value": 4}], "reject": null}}
+{"id": "t1-21", "input": "조수석 창문 닫고 조수석 열선 2단으로 해 줘", "gold": {"actions": [{"device": "window", "op": "close", "target": "passenger", "value": null}, {"device": "seat_heater", "op": "set_level", "target": "passenger", "value": 2}], "reject": null}}
+{"id": "t1-22", "input": "음악 멈추고 실내등 켜", "gold": {"actions": [{"device": "media", "op": "pause", "target": null, "value": null}, {"device": "light", "op": "on", "target": "interior", "value": null}], "reject": null}}
+{"id": "t1-23", "input": "뒷좌석 오른쪽 창문 열고, 다음 곡으로 넘겨 줘", "gold": {"actions": [{"device": "window", "op": "open", "target": "rear_right", "value": null}, {"device": "media", "op": "next", "target": null, "value": null}], "reject": null}}
+{"id": "t1-24", "input": "선루프 닫고 창문도 전부 닫고 에어컨 22도", "gold": {"actions": [{"device": "sunroof", "op": "close", "target": null, "value": null}, {"device": "window", "op": "close", "target": "all", "value": null}, {"device": "ac", "op": "set_temp", "target": null, "value": 22}], "reject": null}}
+{"id": "t1-25", "input": "열선 끄고 와이퍼도 꺼 줘", "gold": {"actions": [{"device": "seat_heater", "op": "off", "target": "driver", "value": null}, {"device": "wiper", "op": "off", "target": null, "value": null}], "reject": null}}
+{"id": "t1-26", "input": "근처 주유소 찾아 줘", "gold": {"actions": [], "reject": "unsupported"}}
+{"id": "t1-27", "input": "사이드미러 접어 줘", "gold": {"actions": [], "reject": "unsupported"}}
+{"id": "t1-28", "input": "타이어 공기압 알려 줘", "gold": {"actions": [], "reject": "unsupported"}}
+{"id": "t1-29", "input": "운전석 시트를 뒤로 밀어 줘", "gold": {"actions": [], "reject": "unsupported"}}
+{"id": "t1-30", "input": "엄마한테 전화 걸어 줘", "gold": {"actions": [], "reject": "unsupported"}}

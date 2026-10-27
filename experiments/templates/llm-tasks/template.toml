@@ -1,0 +1,29 @@
+# 템플릿 llm-tasks (docs/experiments.md 5.1절, 6절, 10절)
+# llama-server로 과제 세트를 돌려 정확도, 첫 토큰까지 시간(TTFT), 답 하나 걸린 시간, 콜드 로드를 잰다.
+# Huninn과 계획(plan)은 아래 범위 안의 값만 고를 수 있다. 실행은 experiments/runner/llm_tasks.py.
+# 측정 방법을 바꾸면 version을 올린다. 결과마다 이 파일의 version과 해시가 남는다.
+
+id = "llm-tasks"
+version = 1
+memory_max = "2500M"        # 실행 유닛의 MemoryMax. MemorySwapMax=0과 같이 건다 (7.1절)
+window = "02:00-05:30"
+cold_starts = 3             # 콜드 로드: 모델 파일을 페이지 캐시에서 비우고 서버가 준비될 때까지. 반복 횟수
+server_ready_timeout_s = 300
+request_timeout_s = 300     # 문항 하나의 최대 시간
+determinism_items = 10      # 끝난 뒤 앞 N문항을 한 번 더 돌려 출력이 같은지 본다 (6절)
+
+[params]
+quants = ["Q4_K_M", "Q4_0", "Q5_K_M", "Q8_0"]
+promptsets = ["llm-tasks-v1"]
+json_constraint = [false, true]   # T1에 JSON 스키마 제약(llama.cpp 문법)을 건다 (5.3절)
+thinking = [false, true]          # 생각 모드 (5.3절). 생각 모드가 없는 모델에는 효과가 없다
+
+[fixed]
+threads = 4
+ctx_size = 4096
+load_mode = "none"          # mmap 끔 (5.2절)
+temperature = 0.0           # 그리디. 제작사 권장 샘플링과 다르다는 것을 글에 밝힌다 (6절)
+seed = 42
+thinking_max_tokens = 1024  # 생각 모드를 켤 때 과제별 최대 토큰 대신 쓴다
+# 슬롯 1개, 프롬프트 캐시·RAM 프롬프트 캐시(기본 8GB)·문맥 체크포인트 끔, 메모리 자동 맞춤 끔, 웹 UI 끔
+server_args = ["-np", "1", "--no-cache-prompt", "--cache-ram", "0", "--ctx-checkpoints", "0", "--fit", "off", "--no-webui"]

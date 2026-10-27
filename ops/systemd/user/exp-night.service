@@ -1,0 +1,22 @@
+# 엣지 AI 밤 실험 (docs/experiments.md 7절). exp-night.timer가 매일 02:00에 시작한다.
+# 사용자 매니저 유닛이라 sudo 없이 설치한다: ops/install-exp-timer.sh. 설명은 experiments/README.md "실행"
+# 하는 일: 작업실(~/unattendant)의 night.py가 계획의 작업을 05:30까지 차례로 돈다. 시작 조건(VS Code 서버, Huninn 사이클,
+# MemAvailable, 부하)이 안 맞으면 10분마다 다시 보고, 끝낸 작업은 logs/exp-plans/에 남겨 다음 밤에 이어 돈다.
+# 계획을 바꾸려면 ExecStart의 --plan을 고치고 설치 스크립트를 다시 돌린다
+[Unit]
+Description=unattendant edge AI night experiments (until 05:30)
+
+[Service]
+Type=exec
+WorkingDirectory=%h/unattendant
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 %h/unattendant/experiments/runner/night.py \
+    --plan experiments/plans/round1-bench.toml --plan experiments/plans/trial-tasks.toml \
+    --until 05:30 --recheck-min 10
+# 메모리가 모자라면 실험이 먼저 죽는다. 상한이 없으면 러너가 시작하지 않는다 (CLAUDE.md: 실험은 MemoryMax로만)
+MemoryMax=2500M
+MemorySwapMax=0
+OOMScoreAdjust=500
+Nice=5
+# --until이 지나면 새 작업을 시작하지 않고, 도는 작업은 끝까지 간다. 06:00이 마지막 장치다
+RuntimeMaxSec=4h

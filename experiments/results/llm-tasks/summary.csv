@@ -1,0 +1,6 @@
+run_id,date,model,quant,promptset,promptset_status,condition,task,items,correct,accuracy_pct,parsed,schema_ok,fields_correct,drift,ttft_p50_s,ttft_p90_s,total_p50_s,gen_tps_p50,prompt_tps_p50,timing_items,cold_load_s,peak_rss_mb,complete,llama_cpp,model_sha256
+20261027T042705-llama-3.2-1b-Q4_K_M-llm-tasks-v1,2026-10-27T04:27:05+09:00,llama-3.2-1b,Q4_K_M,llm-tasks-v1,draft,default,t1,30,12,40.0,30,21,,,39.317,40.456,47.639,4.09,12.73,28,20.44,1030.4,True,v0.6.0@d812350,6f85a640a97c
+20261027T042705-llama-3.2-1b-Q4_K_M-llm-tasks-v1,2026-10-27T04:27:05+09:00,llama-3.2-1b,Q4_K_M,llm-tasks-v1,draft,default,t2,30,14,46.7,,,,,20.539,20.878,20.939,8.2,12.81,30,20.44,1030.4,True,v0.6.0@d812350,6f85a640a97c
+20261027T042705-llama-3.2-1b-Q4_K_M-llm-tasks-v1,2026-10-27T04:27:05+09:00,llama-3.2-1b,Q4_K_M,llm-tasks-v1,draft,default,t3,20,11,55.0,,,68,,26.467,26.964,35.457,4.24,12.79,20,20.44,1030.4,True,v0.6.0@d812350,6f85a640a97c
+20261027T042705-llama-3.2-1b-Q4_K_M-llm-tasks-v1,2026-10-27T04:27:05+09:00,llama-3.2-1b,Q4_K_M,llm-tasks-v1,draft,default,t4,20,17,85.0,,,,0,18.991,19.596,22.119,4.58,12.9,20,20.44,1030.4,True,v0.6.0@d812350,6f85a640a97c
+20261027T042705-llama-3.2-1b-Q4_K_M-llm-tasks-v1,2026-10-27T04:27:05+09:00,llama-3.2-1b,Q4_K_M,llm-tasks-v1,draft,default,all,100,54,54.0,,,,,21.004,39.45,24.206,4.41,12.8,98,20.44,1030.4,True,v0.6.0@d812350,6f85a640a97c

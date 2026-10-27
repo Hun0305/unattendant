@@ -1,0 +1,45 @@
+# 1회차 본 비교: 품질 (docs/experiments.md 3.2절, 6절)
+# 과제 세트 검수가 끝난 뒤(prompts.toml status = "reviewed") 밤 실행에 넣는다. 그 전 결과는 글에 쓰지 않는다.
+# 작업 하나의 예상 시간(추정): 1B급 40~60분, 2B는 그 두 배. 실제 값은 결과의 items.jsonl에 남는다.
+
+name = "round1-tasks"
+
+[[job]]
+template = "llm-tasks"
+model = "llama-3.2-1b"
+promptset = "llm-tasks-v1"
+
+[[job]]
+template = "llm-tasks"
+model = "qwen3.5-0.8b"
+promptset = "llm-tasks-v1"
+
+[[job]]
+template = "llm-tasks"
+model = "lfm2.5-1.2b"
+promptset = "llm-tasks-v1"
+
+[[job]]
+template = "llm-tasks"
+model = "gemma-3-1b"
+promptset = "llm-tasks-v1"
+
+[[job]]
+template = "llm-tasks"
+model = "exaone-4.0-1.2b"
+promptset = "llm-tasks-v1"
+
+[[job]]
+template = "llm-tasks"
+model = "granite-4.0-h-1b"
+promptset = "llm-tasks-v1"
+
+[[job]]
+template = "llm-tasks"
+model = "hyperclovax-seed-1.5b"
+promptset = "llm-tasks-v1"
+
+[[job]]
+template = "llm-tasks"
+model = "qwen3.5-2b"
+promptset = "llm-tasks-v1"

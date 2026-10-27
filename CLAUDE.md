@@ -26,6 +26,7 @@
 - docs/architecture.md: 설계 기준 문서. 무엇을 왜 만드는지(설계, 스택, 툴 스펙, 가드레일). 진행 상황은 넣지 않는다. 구조나 설계 판단이 필요하면 먼저 읽을 것
 - docs/hardware-plan.md: 장비 역할 분담, WOL 원격 작업
 - docs/edge-ai-blog-topics.md: 실험 주제(비전·LLM 시리즈)와 측정 원칙
+- docs/experiments.md: 실험 설계: LLM 모델 선정, 측정 지표·조건, 과제 세트, 측정 오염을 막는 규칙, 결과 형식, 템플릿, 비전 트랙 (2026-10-14 초안)
 - docs/reference.md: 참고 자료
 - docs/layout-options.md: 블로그 레이아웃 5안과 AI 운영 사이트 19곳 화면 조사 (2026-10-06)
 - docs/blogops.md: blogops 설계 (Phase 1): 하루 사이클, 툴 20개, 초안·승인 파일 형식, review 명령, 발행 흐름, 품질 검사
@@ -34,6 +35,9 @@
 - docs/uptime.md: 외부 업타임 모니터(UptimeRobot) 설계: 구성, 설정값, 켜는 순서, 시험, 기록 계획
 - docs/status.md: Pi 상태 파일(status.json) 설계: 상태 띠·통계 탭이 읽는 값, 위치, 형식, 화면 동작, 확인한 것
 - docs/claude-billing.md: Claude 사용 방식 비교(Pro 구독 vs API 크레딧), 비용 추정, 선택 근거
+- docs/engines.md: LLM 엔진 선택(Claude Code vs Antigravity CLI·Gemini 4 Argon), agy 가드레일 대응, 시험 목록, 비교 방법 (2026-10-22)
+- docs/gemini-consulting.md: 테크블로그 전수 진단 및 컨설팅 보고서: 라이브 장애 4건, 발행글·초안 6편 해부, 반전 레이아웃, 코드·SEO 결함 15건, 추천 글감 25선, 추가 기능 (2026-10-22)
+- docs/next/goal-sessions-2026-10.md: 자율 작업 세션 2회(2026-10-22, 2026-10-27) 보고: 한 일, 겹친 기능, 남은 일, 2026-10-28 커밋 정리
 - docs/next/comments.md: 댓글 기능 구상 비교(giscus vs Pi 자체 댓글 서버), 미결정
 - docs/todo.md: 로드맵(단계·게이트), 단계별 체크리스트, 열린 질문. 언제 무엇을 어디까지 했는지. 작업을 끝내면 여기에 체크할 것
 - docs/와 실제 상태가 다르면 임의로 고치지 말고 먼저 물어볼 것

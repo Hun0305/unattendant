@@ -1,0 +1,23 @@
+{
+  "$comment": "T1 출력의 형식만 제약하는 JSON 스키마. JSON 제약 조건(llm-tasks의 json_constraint)에서 llama-server의 response_format으로 넘긴다. 장치와 명령의 짝, 값 범위는 채점기(score.py)가 본다",
+  "type": "object",
+  "properties": {
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "device": {"enum": ["window", "sunroof", "ac", "fan", "seat_heater", "wiper", "light", "media"]},
+          "op": {"enum": ["open", "close", "set", "on", "off", "set_temp", "set_speed", "set_level", "play", "pause", "next", "previous", "set_volume"]},
+          "target": {"enum": ["driver", "passenger", "rear_left", "rear_right", "all", "interior", "headlight", null]},
+          "value": {"type": ["integer", "null"]}
+        },
+        "required": ["device", "op", "target", "value"],
+        "additionalProperties": false
+      }
+    },
+    "reject": {"enum": [null, "unsupported"]}
+  },
+  "required": ["actions", "reject"],
+  "additionalProperties": false
+}
