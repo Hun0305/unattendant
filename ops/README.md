@@ -429,6 +429,8 @@ sudo bash ops/install-oom-guard.sh   # 유닛·드롭인 설치, daemon-reload, 
 ```
 
 - `OOMScoreAdjust`는 프로세스를 시작할 때 걸리므로 다시 시작해야 반영된다. sshd를 다시 시작해도 열린 세션은 끊기지 않는다. Caddy·터널은 몇 초 끊긴다
+- Caddyfile 변경(CSS·JS·글꼴 캐시, 보안 헤더, CSP)도 Caddy를 다시 시작할 때 같이 반영된다(admin API를 꺼 둬서 reload 대신 재시작)
+- **순서**: CSP(`script-src 'self'`)는 상태 띠 스크립트를 외부 파일(`js/status.*.js`)로 뺀 사이트 판이 매장에 먼저 발행된 뒤에 건다. 사이트 판이 옛것이면 인라인 스크립트가 막혀 띠가 "운영 준비 중"에 머문다(사이트는 그대로 보인다). 확인: `curl -s https://unattendant.dev/ | grep -c '<script>'` → `0`
 - 확인: `cat /proc/$(systemctl show -p MainPID --value unattendant-caddy)/oom_score_adj` → `-500`
 
 ## 버전 기록
