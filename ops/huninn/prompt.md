@@ -26,7 +26,7 @@
 3. **반려된 초안**: `rejected` 초안이 있으면 가장 오래된 하나를 고친다. `get_draft`로 본문과 반려 사유(`last_rejection`)를 함께 읽고, 반려 사유가 짚은 문제를 제목만이 아니라 본문까지 고친다. `update_draft`의 `note`에는 사유를 어떻게 반영했는지 쓴다. 그다음 `check_quality` → `request_approval`.
 4. **새 초안**: `awaiting_approval` 초안이 없을 때만 쓴다. 승인 대기는 한 번에 하나다. `writing`이나 `ready`로 남은 초안이 있으면 새로 쓰지 말고 `get_draft`로 읽어 그것부터 마무리한다(`check_quality` → `request_approval`).
    - 일요일에는 주간 보고서를 쓴다(아래 "주간 보고서").
-   - 다른 날은 `get_strategy`를 읽고 `get_backlog`(status `idea`)에서 글감을 하나 고른다. 재료와 출처가 가장 확실한 것을 고른다.
+   - 다른 날은 `get_strategy`를 읽고 `get_backlog`(status `idea`)에서 글감을 하나 고른다. 재료와 출처가 가장 확실한 것을 고른다. `get_strategy`의 `rejections`는 운영자가 지금까지 다른 초안을 반려한 사유다. 새 초안의 제목과 본문이 같은 이유로 반려될 만하면 쓰기 전에 고친다.
    - 글감의 `sources`를 `read_record`로 읽는다. 필요하면 `get_git_log`로 그 무렵의 결정을 확인한다. `search_posts`로 이미 쓴 글과 겹치지 않는지 본다.
    - `create_draft`(`backlog_id` 포함) → `check_quality`. 실패하면 `problems`를 보고 `update_draft`로 고친 뒤 다시 검사한다. 고치는 것은 2번까지다. 통과하면 `request_approval`.
    - 재료를 읽다 새 글감이 보이면 `manage_backlog`(add)로 1~2개 더한다. 재료 문서 경로를 `sources`에 적는다.

@@ -32,7 +32,7 @@ blogops가 강제하는 한도:
 | 영역 | 툴 | 입력 | 하는 일 | 권한 |
 | --- | --- | --- | --- | --- |
 | 관측 | `get_system_health` | 없음 | 디스크 여유, CPU 온도, 업타임, 사이트 응답, 마지막 빌드 결과(`problems`: 사이클을 멈춘다). 디스코드 봇 상태, Pi 상태 파일 갱신(`notices`: 알리기만 하고 계속한다, 2026-10-27) | read |
-| 기획 | `get_strategy` | 없음 | `state/strategy.md` | read |
+| 기획 | `get_strategy` | 없음 | `state/strategy.md`와 지난 반려 사유(`rejections`: 모든 초안, 최근 20건, 반려한 판의 제목). 사이클마다 기억 없이 깨어나므로 다른 초안에서 받은 반려도 쓰기 전에 보게 한다 (2026-10-27) | read |
 | 기획 | `get_backlog` | 상태(선택) | `state/backlog.json`의 글감 | read |
 | 기획 | `manage_backlog` | 추가·수정, 항목 | 글감 추가, 상태·메모 변경 (삭제 대신 `dropped`와 이유) | write |
 | 기획 | `list_posts` | 시리즈(선택) | 발행된 글의 슬러그, 제목, 날짜, 시리즈 | read |

@@ -162,6 +162,7 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - 결과: 사이트 레포 `3d7ff5f`(작성자 Huninn, `content(ai)`), 커밋 본문에 "그림 2개: first-screens-map.svg, home-e.png", 글 폴더에 두 파일 복사, 공개 URL 글·그림 둘 다 200. 사이클 성공(툴 13회·오류 0, 추정 $0.24), state 커밋 `81117ed` push
 - [ ] IndexNow 실제 사용 (뒤로 미룸, 2026-10-07 결정): 키 파일 `site/static/<키>.txt`를 사이트 레포에 커밋·배포한 뒤 첫 소개글로 실제 색인 요청. 그 전까지 `request_indexing`은 키가 없다고 알리고 건너뛴다. 방법은 [indexnow.md](next/indexnow.md)
 - [x] `get_draft` 툴 (2026-10-27, `feat/blogops-improvements`): Huninn이 초안 본문을 읽을 툴이 없어, 반려된 초안을 고칠 때 반려 사유만 보고 `update_draft`로 제목만 바꿀 수 있었다. 매장 로그 2026-10-16: `first-auto-cycle`을 고친 두 사이클 모두 `get_approval_status` 바로 뒤에 제목만 바꾼 `update_draft`(body 빈 값)를 불렀고, 두 번째 반려 사유는 "이전 수정안과 거의 같음"이었다. 언어별 제목·요약·태그·본문, 출처, 그림, 상태, 마지막 품질 검사와 반려 사유를 돌려준다. `prompt.md` 3·4번(반려된 초안, 쓰다 만 초안)에서 먼저 읽게 했다. 툴 21개
+- [x] 지난 반려 사유를 새 초안에도 (2026-10-27, `feat/blogops-improvements`): `get_strategy`가 모든 초안의 반려 사유(최근 20건)를 함께 돌려주고, `prompt.md` 4번이 쓰기 전에 읽게 한다. 10-16에 같은 제목 문제로 두 번 반려된 것처럼, 매 사이클 백지로 깨어나 다른 초안에서 받은 교훈을 잊는다(컨설팅 보고서 5-1의 8). 전략 문서를 고치는 것은 운영자 몫이라 그대로 두었다
 - [x] `review diff` (2026-10-27, `feat/blogops-improvements`): `update_draft`가 고치기 전 판을 초안 폴더 `history/<해시>/`에 남기고, `review diff`가 지난 반려 판과 지금 판을 비교한다. `review show`에 고친 이력(note)도 보인다. 반려 뒤 제목만 바뀌었는지 바로 알 수 있다. #승인 메시지에도 "반려 뒤 바뀐 것: 제목, 본문은 그대로"처럼 한 줄로 붙는다
 - [x] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시 (Phase 2 실제 청구와 섞지 않는다) → 2026-10-07 `cycle.py`가 `logs/cycles.jsonl`에 남긴다(모델별 사용량 포함). `get_week_summary`가 주간 합계를 쓴다
 

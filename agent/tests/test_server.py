@@ -74,6 +74,23 @@ class ServerTest(unittest.TestCase):
         self.assertEqual((draft["status"], draft["last_rejection"]), ("writing", None))
         self.assertFalse(server.get_draft(draft_id="20261008-nope")["ok"])
 
+    def test_strategy_carries_past_rejections(self):
+        # 사이클마다 기억 없이 깨어나므로, 다른 초안에서 받은 반려 사유도 글을 쓰기 전에 보이게 한다
+        (self.config.state_dir / "strategy.md").write_text("# 전략\n", encoding="utf-8")
+        result = server.get_strategy()
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["rejections"], [])
+        draft_id = server.create_draft(slug="naming", series="ops-log", title="gitleaks 7.2초", description="요약",
+                                       tags=["meta"], body=good_body())["draft_id"]
+        self.store.record_quality(draft_id, True, [])
+        self.store.record_approval_request(draft_id)
+        self.store.record_decision(draft_id, "rejected", reason="제목에 전문용어만 있다")
+        server.update_draft(draft_id=draft_id, note="제목을 풀었다", title="비밀키 검사가 느렸던 이유")
+        (rejection,) = server.get_strategy()["rejections"]
+        # 반려한 판의 제목을 보여 준다 (지금 제목이 아니라)
+        self.assertEqual((rejection["draft_id"], rejection["title"], rejection["reason"]),
+                         (draft_id, "gitleaks 7.2초", "제목에 전문용어만 있다"))
+
     def test_publish_blocked_in_dry_run_and_indexing_skipped(self):
         with mock.patch.dict(os.environ, {"BLOGOPS_NO_PUBLISH": "1"}):
             result = server.publish_post(draft_id="20261008-naming")

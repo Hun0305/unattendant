@@ -86,6 +86,25 @@ class Store:
         self._dir(draft_id)
         return _read_json(self._approval_path(draft_id), {"decisions": []})["decisions"]
 
+    def rejections(self, limit: int = 20) -> list[dict]:
+        """모든 초안의 반려 기록(최근 것부터): 초안, 반려한 판의 제목, 사유, 시각.
+        반려한 판이 남아 있지 않으면(이전 판 보관은 2026-10-27부터) 제목은 None이다. 지금 제목을 대신 쓰면 틀린 짝이 된다."""
+        found = []
+        for d in self.list_drafts():
+            for dec in self.decisions(d["draft_id"]):
+                if dec["decision"] != "rejected":
+                    continue
+                title = None
+                text = self.version_text(d["draft_id"], dec["hash"], "ko")
+                if text:
+                    try:
+                        title = frontmatter.parse(text)[0].get("title")
+                    except ValueError:
+                        pass
+                found.append({"draft_id": d["draft_id"], "title": title, "reason": dec.get("reason") or "",
+                              "at": dec["at"]})
+        return sorted(found, key=lambda r: r["at"], reverse=True)[:limit]
+
     def content_hash(self, draft_id: str) -> str:
         # 글 파일(index.*.md)과 그림 파일을 이름 순으로, 파일 이름까지 포함해 이어 붙인 SHA-256
         h = hashlib.sha256()

@@ -23,6 +23,7 @@ from .publish import PublishError
 from .records import RecordError
 from .store import Store, StoreError
 
+REJECTIONS_LIMIT = 20  # get_strategy가 함께 돌려주는 지난 반려 사유 수
 INSTRUCTIONS = "unattendant.dev 운영 툴. 시스템은 이 툴로만 건드린다. 툴이 돌려준 결과만 사실로 믿는다."
 EXPECTED = (StoreError, RecordError, PublishError, NotifyError, BacklogError, IndexNowError, EnvError,
             ValueError, log.ToolLimitError)
@@ -87,9 +88,11 @@ def get_system_health() -> dict:
 
 @tool
 def get_strategy() -> dict:
-    """운영 전략 문서(state/strategy.md) 전문. 글감을 고르기 전에 읽고 그대로 따른다."""
-    config, _, _ = context()
-    return {"text": (config.state_dir / "strategy.md").read_text(encoding="utf-8")}
+    """운영 전략 문서(state/strategy.md) 전문과 운영자가 지금까지 반려한 사유(rejections, 최근 것부터).
+    글감을 고르고 쓰기 전에 읽고 그대로 따른다. 반려 사유는 다른 초안에도 같은 실수를 하지 않게 하는 기준이다."""
+    config, store, _ = context()
+    return {"text": (config.state_dir / "strategy.md").read_text(encoding="utf-8"),
+            "rejections": store.rejections(limit=REJECTIONS_LIMIT)}
 
 
 @tool
