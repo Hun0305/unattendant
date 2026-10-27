@@ -11,6 +11,7 @@ Pi에서 블로그를 띄우는 데 필요한 설정과 설치 기록. 다른 �
 | `systemd/unattendant-caddy.service` | Caddy 상시 실행 |
 | `cloudflared/config.yml` | Named Tunnel `unattendant` ingress (`unattendant.dev` → `127.0.0.1:8080`, `preview.unattendant.dev` → `127.0.0.1:8081`) |
 | `systemd/unattendant-tunnel.service` | 터널 상시 실행 |
+| `upgrade-cloudflared.sh` | cloudflared를 GitHub 릴리스 arm64 .deb로 올리고(버전·sha256 고정) 터널을 다시 시작한다. apt 저장소 없이 설치돼 있고 `--no-autoupdate`라 저절로 오르지 않는다 (sudo) |
 | `systemd/ssh.service.d/oom.conf`, `install-oom-guard.sh` | SSH·Caddy·터널의 OOM 우선순위를 낮춘다(`OOMScoreAdjust=-500`). 아래 "OOM 우선순위" (sudo) |
 | `install-log2ram.sh` | log2ram 설치 (Debian 패키지, 기본 설정, sudo, 재부팅 필요) |
 | `install-gitleaks.sh` | gitleaks 설치 + 두 레포의 `core.hooksPath`를 `ops/githooks`로 연결 |
