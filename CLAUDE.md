@@ -37,6 +37,7 @@
 - docs/claude-billing.md: Claude 사용 방식 비교(Pro 구독 vs API 크레딧), 비용 추정, 선택 근거
 - docs/engines.md: LLM 엔진 선택(Claude Code vs Antigravity CLI·Gemini 4 Argon), agy 가드레일 대응, 시험 목록, 비교 방법 (2026-10-22)
 - docs/gemini-consulting.md: 테크블로그 전수 진단 및 컨설팅 보고서: 라이브 장애 4건, 발행글·초안 6편 해부, 반전 레이아웃, 코드·SEO 결함 15건, 추천 글감 25선, 추가 기능 (2026-10-22)
+- docs/next/goal-sessions-2026-10.md: 자율 작업 세션 2회(2026-10-22, 2026-10-27) 보고: 한 일, 겹친 기능, 남은 일, 2026-10-28 커밋 정리
 - docs/next/comments.md: 댓글 기능 구상 비교(giscus vs Pi 자체 댓글 서버), 미결정
 - docs/todo.md: 로드맵(단계·게이트), 단계별 체크리스트, 열린 질문. 언제 무엇을 어디까지 했는지. 작업을 끝내면 여기에 체크할 것
 - docs/와 실제 상태가 다르면 임의로 고치지 말고 먼저 물어볼 것
