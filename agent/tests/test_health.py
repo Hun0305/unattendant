@@ -37,7 +37,7 @@ class HealthTest(unittest.TestCase):
     def test_all_good(self):
         result = self.check()
         self.assertEqual((result["ok"], result["problems"], result["notices"]), (True, [], []))
-        self.assertEqual(result["services"], {"bot": "active", "status_file_age_min": 3.0})
+        self.assertEqual(result["services"], {"bot": "active", "status_file_age_min": 3.0, "last_cycle": None})
 
     def test_bot_down_is_a_notice_not_a_problem(self):
         result = self.check(bot="failed")
@@ -62,6 +62,18 @@ class HealthTest(unittest.TestCase):
 
     def test_unit_state_real_systemctl(self):
         self.assertIsInstance(health.unit_state("huninn-bot.service"), str)
+
+
+    def test_failed_last_cycle_is_a_notice(self):
+        # 토큰이 풀려 며칠 실패하다 다시 돈 날: 멈추지 않고, 요약에 복구를 적게 알린다
+        self.config.logs_dir.mkdir(parents=True, exist_ok=True)
+        (self.config.logs_dir / "cycles.jsonl").write_text(
+            json.dumps({"ts": "2026-10-17T14:00:14+09:00", "is_error": True}) + "\n"
+            + json.dumps({"ts": "2026-10-18T14:00:14+09:00", "is_error": True}) + "\n", encoding="utf-8")
+        result = self.check()
+        self.assertTrue(result["ok"])
+        self.assertTrue(any("2026-10-17부터 2회 연속" in n for n in result["notices"]), result["notices"])
+        self.assertEqual(result["services"]["last_cycle"]["fail_streak"], 2)
 
 
 if __name__ == "__main__":

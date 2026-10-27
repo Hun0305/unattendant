@@ -30,7 +30,7 @@ def sources(tmp, temp="52123\n", meminfo=MEMINFO, uptime="352800.55 1200000.10\n
         out[name] = d / name
         if text is not None:
             out[name].write_text(text)
-    return {**out, "disk": d}
+    return {**out, "disk": d, "cycles": d / "cycles.jsonl"}  # 사이클 기록은 없는 것이 기본
 
 
 class CollectTest(unittest.TestCase):
@@ -93,6 +93,37 @@ class WriteTest(unittest.TestCase):
             self.assertEqual(os.listdir(tmp), ["status.json"])
 
 
+class LastCycleTest(unittest.TestCase):
+    def write(self, tmp, *records):
+        path = Path(tmp) / "cycles.jsonl"
+        path.write_text("".join(json.dumps(r) + "\n" for r in records) + "깨진 줄\n")
+        return path
+
+    def test_기록이_없으면_필드를_뺀다(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertIsNone(status.last_cycle(Path(tmp) / "cycles.jsonl"))
+            self.assertNotIn("cycle", status.collect(NOW, **sources(tmp)))
+
+    def test_성공이면_시각과_ok만(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.write(tmp, {"ts": "2026-10-16T14:20:00+09:00", "is_error": False, "result": "비공개"})
+            self.assertEqual(status.last_cycle(path), {"at": "2026-10-16T14:20:00+09:00", "ok": True})
+
+    def test_연속_실패는_횟수와_첫_실패_시각(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.write(tmp,
+                              {"ts": "2026-10-16T14:20:00+09:00", "is_error": False},
+                              {"ts": "2026-10-17T14:00:00+09:00", "is_error": True, "result": "OAuth token revoked"},
+                              {"ts": "2026-10-17T20:00:00+09:00", "is_error": False, "dry_run": True},  # 시험 실행은 세지 않는다
+                              {"ts": "2026-10-18T14:00:00+09:00", "is_error": True, "stderr": "내부 경로"})
+            cycle = status.last_cycle(path)
+            self.assertEqual(cycle, {"at": "2026-10-18T14:00:00+09:00", "ok": False, "fail_streak": 2,
+                                     "failing_since": "2026-10-17T14:00:00+09:00"})
+            s = status.collect(NOW, **{**sources(tmp), "cycles": path})
+            self.assertEqual(s["cycle"], cycle)
+            self.assertNotIn("revoked", json.dumps(s))  # 오류 문장은 공개하지 않는다
+
+
 class MainTest(unittest.TestCase):
     def run_main(self, *argv):
         out, err = io.StringIO(), io.StringIO()
@@ -105,7 +136,7 @@ class MainTest(unittest.TestCase):
             path = Path(tmp) / "status.json"
             code, out, err = self.run_main("--out", str(path))
             self.assertEqual((code, out, err), (0, "", ""))  # 성공하면 조용하다 (5분마다 돈다)
-            self.assertTrue(set(json.loads(path.read_text())) <= OURS)
+            self.assertTrue(set(json.loads(path.read_text())) <= OURS | {"cycle"})
 
     def test_환경변수_위치를_쓴다(self):
         with tempfile.TemporaryDirectory() as tmp:

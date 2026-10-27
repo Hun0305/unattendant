@@ -47,6 +47,21 @@ class ReviewTest(unittest.TestCase):
         self.store.record_quality(self.draft_id, True, [])
         self.store.record_approval_request(self.draft_id)
 
+    def test_status_shows_cycle_checks_and_drafts(self):
+        logs = Path(self.tmp.name) / "logs"
+        logs.mkdir(exist_ok=True)
+        (logs / "cycles.jsonl").write_text(json.dumps({"ts": "2026-10-27T14:00:17+09:00", "is_error": True}) + "\n")
+        self.request()
+        fake = {"problems": [], "notices": ["지난 사이클이 실패했다(…)", "디스코드 봇이 멈춰 있다"],
+                "cpu_temp_c": 48.1, "disk_free_pct": 51.7, "uptime_hours": 12.0}
+        with mock.patch("blogops.health.check", return_value=fake):
+            code, out, _ = run("status")
+        self.assertEqual(code, 0)
+        self.assertIn("실패 (2026-10-27T14:00:17+09:00부터 1회 연속)", out)
+        self.assertIn("디스코드 봇이 멈춰 있다", out)
+        self.assertNotIn("지난 사이클이 실패했다", out)  # 사이클 줄과 겹치는 알림은 뺀다
+        self.assertIn(self.draft_id, out)
+
     def test_list_and_show(self):
         code, out, _ = run("list")
         self.assertEqual(code, 0)

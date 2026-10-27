@@ -93,11 +93,17 @@ def check(config: Config, store: Store, *, bot_state=unit_state, status_age=stat
     elif age > STATUS_STALE_MIN:
         notices.append(f"Pi 상태 파일이 {age:.0f}분째 갱신되지 않았다. 상태 띠가 \"갱신 멈춤\"을 띄운다 (huninn-status.timer)")
 
+    # 이 점검은 사이클 안에서 돈다. 지금 사이클은 아직 기록 전이라 마지막 기록은 지난 사이클이다
+    last = status.last_cycle(config.logs_dir / status.CYCLES_LOG)
+    if last and not last["ok"]:
+        notices.append(f"지난 사이클이 실패했다({last['failing_since'][:10]}부터 {last['fail_streak']}회 연속). "
+                       "이번 사이클이 끝까지 돌면 하루 요약에 다시 돌기 시작했다고 적는다")
+
     return {"ok": not problems, "problems": problems, "notices": notices,
             "now": config.now().isoformat(timespec="seconds"),
             "disk_free_pct": disk_free_pct, "cpu_temp_c": cpu_temp_c,
             "uptime_hours": round(float(uptime.split()[0]) / 3600, 1) if uptime else None,
             "memory_gb": {"total": mem.get("MemTotal"), "available": mem.get("MemAvailable")},
             "site": {"url": base, "status": site_status, "last_build": last_build},
-            "services": {"bot": bot, "status_file_age_min": age},
+            "services": {"bot": bot, "status_file_age_min": age, "last_cycle": last},
             "drafts": by_status, "held": held}

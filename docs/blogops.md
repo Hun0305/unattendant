@@ -31,7 +31,7 @@ blogops가 강제하는 한도:
 
 | 영역 | 툴 | 입력 | 하는 일 | 권한 |
 | --- | --- | --- | --- | --- |
-| 관측 | `get_system_health` | 없음 | 디스크 여유, CPU 온도, 업타임, 사이트 응답, 마지막 빌드 결과(`problems`: 사이클을 멈춘다). 디스코드 봇 상태, Pi 상태 파일 갱신(`notices`: 알리기만 하고 계속한다, 2026-10-27) | read |
+| 관측 | `get_system_health` | 없음 | 디스크 여유, CPU 온도, 업타임, 사이트 응답, 마지막 빌드 결과(`problems`: 사이클을 멈춘다). 디스코드 봇 상태, Pi 상태 파일 갱신, 지난 사이클 실패(`notices`: 알리기만 하고 계속한다, 2026-10-27) | read |
 | 기획 | `get_strategy` | 없음 | `state/strategy.md`와 지난 반려 사유(`rejections`: 모든 초안, 최근 20건, 반려한 판의 제목). 사이클마다 기억 없이 깨어나므로 다른 초안에서 받은 반려도 쓰기 전에 보게 한다 (2026-10-27) | read |
 | 기획 | `get_backlog` | 상태(선택) | `state/backlog.json`의 글감 | read |
 | 기획 | `manage_backlog` | 추가·수정, 항목 | 글감 추가, 상태·메모 변경 (삭제 대신 `dropped`와 이유) | write |
@@ -97,6 +97,7 @@ logs/
 ```bash
 review list                    # 승인 대기·반려·보류 초안
 review show <초안ID>            # 본문 경로, 요약, 품질 검사 결과, 고친 이력, 미리보기 주소
+review status                   # 한눈에: 마지막 사이클(연속 실패), 상태 점검 problems·notices, Pi, 처리할 초안. 2026-10-27
 review diff <초안ID> [--en]     # 지난 반려 판과 지금 판의 차이 (반려가 없으면 첫 판과). 2026-10-27
 review receipts                 # 발행 기록(receipt)이 없는 발행 글의 기록을 남은 기록으로 만들어 보인다. 파일은 고치지 않는다. 2026-10-27
 review preview <초안ID>         # 승인 대기 초안의 미리보기를 (없으면) 만들고 주소를 보인다

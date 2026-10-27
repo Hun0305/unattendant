@@ -1,7 +1,7 @@
 """Pi 상태 파일 (docs/status.md). 상태 띠와 통계 탭이 브라우저에서 읽는 status.json을 쓴다.
 
 타이머(huninn-status.timer)가 5분마다 한 번 실행해 /run/huninn/status.json(tmpfs)에 쓴다.
-읽기만 하고, 공개해도 되는 값(CPU 온도, 메모리, 디스크 여유, 가동 시간)만 담는다.
+읽기만 하고, 공개해도 되는 값(CPU 온도, 메모리, 디스크 여유, 가동 시간, Huninn의 마지막 사이클 결과)만 담는다.
 읽지 못한 값은 필드를 빼서 화면에서 사라지게 한다. 연속 무인 운영일과 오늘 비용은 개입 기록과
 환율이 정해진 뒤에 더한다(site/README.md의 status.json 형식).
 """
@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from .config import KST
+from .config import KST, Config
 from .fileio import write_atomic
 
 DEFAULT_PATH = Path("/run/huninn/status.json")  # RAM이라 SD카드에 쓰지 않는다. Caddy가 /status.json으로 내준다
@@ -23,6 +23,7 @@ THERMAL = Path("/sys/class/thermal/thermal_zone0/temp")
 MEMINFO = Path("/proc/meminfo")
 UPTIME = Path("/proc/uptime")
 GIB = 1024 ** 3
+CYCLES_LOG = "cycles.jsonl"
 
 
 def _read(path: Path) -> str | None:
@@ -70,8 +71,39 @@ def disk_free_pct(path: Path = Path("/")) -> float | None:
     return round(usage.free / usage.total * 100, 1)
 
 
+def last_cycle(path: Path) -> dict | None:
+    """Huninn의 마지막 정규 사이클 결과. 시험 실행(dry_run)은 뺀다. 기록이 없으면 None.
+    공개 값은 시각과 성공 여부뿐이다. 실패면 연속 실패 횟수와 그 첫 실패 시각을 더한다.
+    오류 문장(result, stderr)은 내부 정보가 섞일 수 있어 넣지 않는다.
+    Pi가 살아 있어도 Huninn이 매일 실패하면 상태 띠가 그것을 보여야 한다(2026-10-17부터 11일 연속 실패를 띠가 보이지 못했다)."""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    runs = []
+    for line in lines:
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(rec, dict) and rec.get("ts") and not rec.get("dry_run"):
+            runs.append((rec["ts"], not rec.get("is_error")))
+    if not runs:
+        return None
+    at, ok = runs[-1]
+    result: dict = {"at": at, "ok": ok}
+    if not ok:
+        streak = 0
+        for ts, good in reversed(runs):
+            if good:
+                break
+            streak, since = streak + 1, ts
+        result.update(fail_streak=streak, failing_since=since)
+    return result
+
+
 def collect(now: datetime | None = None, *, thermal: Path = THERMAL, meminfo: Path = MEMINFO,
-            uptime: Path = UPTIME, disk: Path = Path("/")) -> dict:
+            uptime: Path = UPTIME, disk: Path = Path("/"), cycles: Path | None = None) -> dict:
     status: dict = {"updated": (now or datetime.now(KST)).isoformat(timespec="seconds")}
     temp = cpu_temp_c(thermal)
     if temp is not None:
@@ -85,6 +117,9 @@ def collect(now: datetime | None = None, *, thermal: Path = THERMAL, meminfo: Pa
     free = disk_free_pct(disk)
     if free is not None:
         status["disk_free_pct"] = free
+    cycle = last_cycle(cycles or Config.from_env().logs_dir / CYCLES_LOG)
+    if cycle:
+        status["cycle"] = cycle
     return status
 
 

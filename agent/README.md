@@ -37,6 +37,7 @@ Huninn이 시스템을 건드리는 통로인 blogops. 설계는 [docs/blogops.m
 ## 승인·반려 (사람)
 
 ```bash
+ops/huninn/review status                 # 마지막 사이클, 상태 점검, 처리할 초안을 한눈에
 ops/huninn/review list
 ops/huninn/review show <초안ID> --body
 ops/huninn/review diff <초안ID>          # 반려한 판과 고친 판의 차이

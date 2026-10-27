@@ -1,5 +1,6 @@
 """사람용 승인·반려 명령 (docs/blogops.md 4절). Huninn의 툴이 아니다.
 
+    review status                 Huninn 한눈에: 마지막 사이클, 상태 점검(problems·notices), 처리할 초안
     review list [--all]           승인 대기·반려·보류 초안 (--all이면 전부)
     review show <초안ID> [--body]  요약, 품질 검사 결과, 고친 이력, 파일 경로, 미리보기 주소
     review diff <초안ID> [--en]    지난 반려 판과 지금 판의 차이 (반려가 없으면 첫 판과). Huninn이 무엇을 고쳤는지 본다
@@ -17,7 +18,7 @@ import difflib
 import json
 import sys
 
-from . import decisions, frontmatter, preview, publish
+from . import decisions, frontmatter, health, preview, publish, status
 from .config import Config
 from .store import STATUS_LABELS, Store, StoreError
 
@@ -31,6 +32,30 @@ def _cmd_list(store: Store, args) -> None:
         return
     for d in drafts:
         print(f"{d['draft_id']:<36} {STATUS_LABELS[d['status']]:<8} {d['title'] or '(제목 없음)'}")
+
+
+def _cmd_status(store: Store, args) -> None:
+    # SSH로 Pi에 들어왔을 때 먼저 보는 화면. 고치는 것은 없다
+    config = store.config
+    last = status.last_cycle(config.logs_dir / status.CYCLES_LOG)
+    if not last:
+        print("사이클    기록 없음")
+    elif last["ok"]:
+        print(f"사이클    마지막 {last['at']} 성공")
+    else:
+        print(f"사이클    마지막 {last['at']} 실패 ({last['failing_since']}부터 {last['fail_streak']}회 연속)")
+        print("          원인: logs/cycles.jsonl의 마지막 줄 result·stderr")
+    check = health.check(config, store)
+    notices = [n for n in check["notices"] if not n.startswith("지난 사이클")]  # 위 사이클 줄과 같은 말
+    for label, items in (("문제", check["problems"]), ("알림", notices)):
+        for item in items:
+            print(f"{label}      {item}")
+    if not check["problems"] and not notices:
+        print("점검      이상 없음")
+    print(f"Pi        CPU {check['cpu_temp_c']}°C, 디스크 여유 {check['disk_free_pct']}%, 가동 {check['uptime_hours']}시간")
+    todo = [d for d in store.list_drafts() if d["status"] in ("awaiting_approval", "approved", "rejected", "held")]
+    print(f"초안      처리할 것 {len(todo)}개" + "".join(
+        f"\n          {STATUS_LABELS[d['status']]:<8} {d['draft_id']}" for d in todo))
 
 
 def _cmd_show(store: Store, args) -> None:
@@ -141,6 +166,7 @@ def _cmd_receipts(store: Store, args) -> None:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="review", description="Huninn 초안 승인·반려")
     sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("status", help="Huninn 한눈에 (마지막 사이클, 상태 점검, 처리할 초안)")
     p = sub.add_parser("list", help="처리할 초안 목록")
     p.add_argument("--all", action="store_true", help="발행된 초안까지")
     p = sub.add_parser("show", help="초안 요약")
@@ -161,7 +187,7 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     store = Store(Config.from_env())
-    handler = {"list": _cmd_list, "show": _cmd_show, "diff": _cmd_diff, "preview": _cmd_preview,
+    handler = {"status": _cmd_status, "list": _cmd_list, "show": _cmd_show, "diff": _cmd_diff, "preview": _cmd_preview,
                "approve": _cmd_approve, "reject": _cmd_reject, "receipts": _cmd_receipts}[args.command]
     try:
         handler(store, args)
