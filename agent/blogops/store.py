@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import shutil
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -26,6 +27,7 @@ SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 DRAFT_ID_RE = re.compile(r"^\d{8}-[a-z0-9]+(?:-[a-z0-9]+)*$")
 LANGS = ("ko", "en")
 ASSET_SUFFIXES = (".svg", ".png", ".jpg", ".jpeg", ".webp", ".gif")  # 초안에 둘 수 있는 그림
+HISTORY_DIR = "history"  # 고치기 전 판 (review diff)
 
 STATUS_LABELS = {
     "writing": "작성 중",
@@ -211,6 +213,7 @@ class Store:
                 raise StoreError("이미 발행된 초안은 고칠 수 없다")
             if meta.get("held"):
                 raise StoreError("보류된 초안은 고칠 수 없다. 운영자의 판단이 필요하다")
+            self._snapshot(d, self.content_hash(draft_id))
             merged = {}
             for lang, change in (("ko", ko), ("en", en)):
                 current = None
@@ -226,6 +229,25 @@ class Store:
             meta["updated_at"] = ts
             meta["revisions"].append({"at": ts, "note": note.strip(), "hash": self.content_hash(draft_id)})
             _write_json(d / "meta.json", meta)
+
+    def _snapshot(self, d: Path, content_hash: str) -> None:
+        # 고치기 전 판을 history/<해시12자>/에 남긴다. 운영자가 review diff로 반려한 판과 고친 판을 비교한다.
+        # 하위 폴더라 해시(index.*.md)·그림 목록·발행 복사에는 들어가지 않는다
+        dst = d / HISTORY_DIR / content_hash[:12]
+        if dst.exists():
+            return
+        dst.mkdir(parents=True)
+        for path in sorted(d.glob("index.*.md")):
+            shutil.copy2(path, dst / path.name)
+
+    def version_text(self, draft_id: str, content_hash: str, lang: str = "ko") -> Optional[str]:
+        """해시가 가리키는 판의 글 파일. 지금 판이면 초안 파일, 이전 판이면 history/에 남은 것. 없으면 None."""
+        d = self._dir(draft_id)
+        if content_hash == self.content_hash(draft_id):
+            path = d / f"index.{lang}.md"
+        else:
+            path = d / HISTORY_DIR / content_hash[:12] / f"index.{lang}.md"
+        return path.read_text(encoding="utf-8") if path.exists() else None
 
     def _write_langs(self, d: Path, *, series: str, ko: Optional[dict], en: Optional[dict],
                      sources: Optional[list]) -> None:

@@ -39,6 +39,7 @@ Huninn이 시스템을 건드리는 통로인 blogops. 설계는 [docs/blogops.m
 ```bash
 ops/huninn/review list
 ops/huninn/review show <초안ID> --body
+ops/huninn/review diff <초안ID>          # 반려한 판과 고친 판의 차이
 ops/huninn/review approve <초안ID>
 ops/huninn/review reject <초안ID> "사유"
 ops/huninn/review reject <초안ID> "사유" --drop   # 글감을 접는다: 반려 + 보류 + 글감 blocked (둘 다 사이클을 바로 한 번 더 돌린다)

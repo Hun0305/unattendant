@@ -8,11 +8,12 @@
 """
 from __future__ import annotations
 
+import difflib
 import subprocess
 import time
 from pathlib import Path
 
-from . import buttons, env, log, preview
+from . import buttons, env, frontmatter, log, preview
 from .config import Config
 from .httpjson import Transport, patch_json, post_json
 from .store import Store, StoreError
@@ -67,10 +68,37 @@ def notify_human(config: Config, level: str, message: str, transport: Transport 
     return send(config, channel, prefix + message.strip(), mention_owner=(level == "critical"), transport=transport)
 
 
+def changes_since(store: Store, draft_id: str, base_hash: str) -> str | None:
+    """base_hash 판(보통 지난 반려 판)에서 지금 판까지 한국어판이 무엇이 바뀌었는지 한 줄로.
+    제목만 고치고 본문은 그대로 다시 올리는 일(2026-10-16 로그)을 승인 요청에서 바로 보이게 한다.
+    이전 판이 남아 있지 않으면(보관은 2026-10-27부터) None."""
+    old_text = store.version_text(draft_id, base_hash, "ko")
+    new_text = store.version_text(draft_id, store.content_hash(draft_id), "ko")
+    if old_text is None or new_text is None:
+        return None
+    try:
+        (old_fields, old_body), (new_fields, new_body) = frontmatter.parse(old_text), frontmatter.parse(new_text)
+    except ValueError:
+        return None
+    fields = [name for key, name in (("title", "제목"), ("description", "설명"), ("tags", "태그"), ("sources", "출처"))
+              if old_fields.get(key) != new_fields.get(key)]
+    added = removed = 0
+    for line in difflib.ndiff(old_body.splitlines(), new_body.splitlines()):
+        added += line.startswith("+ ")
+        removed += line.startswith("- ")
+    body = f"본문 +{added} −{removed}줄" if added or removed else "본문은 그대로"
+    return ", ".join([*fields, body])
+
+
 def approval_message(config: Config, store: Store, draft_id: str, preview_ok: bool = True) -> str:
     s = store.summary(draft_id)
     review = str(config.root / "ops" / "huninn" / "review").replace(str(Path.home()), "~", 1)
-    rejected = f"\n지난 반려 사유: {s['last_rejection']['reason']}" if s["last_rejection"] else ""
+    rejected = ""
+    if s["last_rejection"]:
+        rejected = f"\n지난 반려 사유: {s['last_rejection']['reason']}"
+        changed = changes_since(store, draft_id, s["last_rejection"]["hash"])
+        if changed:
+            rejected += f"\n반려 뒤 바뀐 것: {changed}"
     guide = ("[미리보기]로 발행된 모습 그대로 읽고, 버튼으로 승인·반려한다. 접기는 이 글감을 접는다(반려 + 보류)."
              if preview_ok else
              f"미리보기를 만들지 못했다. Pi에서 `{review} preview {draft_id}`로 다시 만들거나 "

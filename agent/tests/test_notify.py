@@ -85,6 +85,21 @@ class NotifyTest(unittest.TestCase):
         return {"draft_id": draft_id, "token": "t" * 40, "hash": store.content_hash(draft_id), "reused": False,
                 "urls": {"ko": "https://preview.example/ttt/posts/naming/", "en": "https://preview.example/ttt/en/posts/naming/"}}
 
+    def test_approval_message_shows_changes_since_rejection(self):
+        draft_id = self.draft()
+        self.store.record_approval_request(draft_id)
+        self.store.record_decision(draft_id, "rejected", reason="본문이 얕다")
+        # 제목만 고친 판: 본문은 그대로라고 알린다
+        self.store.update_draft(draft_id, ko={"title": "이름 짓기 (고침)", "description": "요약", "tags": ["meta"],
+                                              "body": good_body()}, note="제목만")
+        msg = notify.approval_message(self.config, self.store, draft_id)
+        self.assertIn("지난 반려 사유: 본문이 얕다", msg)
+        self.assertIn("반려 뒤 바뀐 것: 제목, 본문은 그대로", msg)
+        self.store.update_draft(draft_id, ko={"title": "이름 짓기 (고침)", "description": "요약", "tags": ["meta"],
+                                              "body": good_body() + "\n\n덧붙인 문단이다.\n"}, note="본문 보강")
+        msg = notify.approval_message(self.config, self.store, draft_id)
+        self.assertRegex(msg, r"반려 뒤 바뀐 것: 제목, 본문 \+[1-9]\d* −\d+줄")
+
     def test_request_approval_sends_buttons_and_commands(self):
         draft_id = self.draft()
         t = FakeTransport()

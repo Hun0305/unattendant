@@ -57,6 +57,28 @@ class ReviewTest(unittest.TestCase):
         self.assertIn("index.ko.md", out)
         self.assertIn("본문.", out)
 
+    def test_diff_shows_what_changed_since_rejection(self):
+        code, out, _ = run("diff", self.draft_id)
+        self.assertIn("바뀐 것이 없다", out)  # 반려 전, 첫 판 그대로
+        self.request()
+        self.assertEqual(run("reject", self.draft_id, "제목이 단조롭다")[0], 0)
+        self.store.update_draft(self.draft_id, note="제목만 바꿨다", ko={"title": "이름은 이렇게 정했다"})
+        self.store.update_draft(self.draft_id, note="본문도 고쳤다", ko={"body": "고친 본문."})
+        code, out, _ = run("diff", self.draft_id)
+        self.assertEqual(code, 0)
+        self.assertIn("지난 반려 판", out)
+        self.assertIn('-title: "이름 짓기"', out)
+        self.assertIn('+title: "이름은 이렇게 정했다"', out)
+        self.assertIn("+고친 본문.", out)
+        # 이전 판은 하위 폴더에 남고 해시·그림 목록에는 들어가지 않는다
+        self.assertEqual(self.store.asset_paths(self.draft_id), [])
+        _, out, _ = run("show", self.draft_id)
+        self.assertIn("제목만 바꿨다", out)
+        self.assertIn("본문도 고쳤다", out)
+        code, _, err = run("diff", self.draft_id, "--en")
+        self.assertEqual(code, 1)  # 영어판이 없다
+        self.assertIn("남아 있지 않다", err)
+
     def test_approve_logs_decision(self):
         self.request()
         code, out, _ = run("approve", self.draft_id)

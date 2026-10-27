@@ -66,6 +66,7 @@ state/
 │   ├── index.ko.md               Hugo 글 형식 그대로 (front matter + 본문)
 │   ├── index.en.md               영어판이 있을 때 (주간 보고서는 필수, 운영기도 쓴다)
 │   ├── *.svg, *.png, *.jpg, *.webp  글에 넣는 그림 (운영자가 이 폴더에 넣는다. 2026-10-12)
+│   ├── history/<해시12자>/        고치기 전 판의 index.*.md (update_draft가 남긴다. review diff용, 2026-10-27)
 │   └── meta.json                 상태, 품질 검사 기록, 승인 요청 기록(디스코드 메시지 위치), 미리보기 토큰, 고친 이력
 ├── approvals/<초안ID>.json        비공개. 사람의 승인·반려 기록 (결정한 곳 via: cli·discord)
 └── previews/<토큰>/               비공개. 승인 대기 초안을 사이트 전체와 함께 빌드한 미리보기 (11절)
@@ -95,7 +96,8 @@ logs/
 
 ```bash
 review list                    # 승인 대기·반려·보류 초안
-review show <초안ID>            # 본문 경로, 요약, 품질 검사 결과, 미리보기 주소
+review show <초안ID>            # 본문 경로, 요약, 품질 검사 결과, 고친 이력, 미리보기 주소
+review diff <초안ID> [--en]     # 지난 반려 판과 지금 판의 차이 (반려가 없으면 첫 판과). 2026-10-27
 review preview <초안ID>         # 승인 대기 초안의 미리보기를 (없으면) 만들고 주소를 보인다
 review approve <초안ID>         # 지금 해시로 승인을 기록한다
 review reject <초안ID> "사유"   # 반려를 기록한다. 사유는 필수
@@ -257,6 +259,7 @@ request_approval ─▶ Hugo로 초안을 포함한 사이트 전체를 빌드 �
 - **사칭 방지**: 모든 클릭, 확인, 사유 제출에서 `DISCORD_OWNER_ID`와 클릭한 사람의 ID를 대조한다. 다르면 거부하고 `approval_denied`를 기록한다.
 - **해시 대조**: 버튼에 든 해시가 초안의 지금 해시와 다르면 거부한다. 확인 창을 오래 두거나 오래된 메시지의 버튼을 눌러도 새 내용을 승인하지 못한다. 기록 단계(`Store.record_decision(expect_hash=…)`)에서도 잠금 안에서 한 번 더 비교한다.
 - **같은 기록**: 승인·반려는 `review` 명령과 같은 `decisions.py`를 거친다. 어디서 했는지만 `via`(cli·discord)로 남는다.
+- **다시 올린 초안**: 반려된 적이 있는 초안이면 승인 요청에 지난 반려 사유와 "반려 뒤 바뀐 것"(바뀐 front matter 항목, 본문 +N −M줄 또는 "본문은 그대로")을 붙인다. 한국어판 기준이고, 자세한 차이는 `review diff`로 본다. 이전 판 보관(`history/`)이 시작된 2026-10-27 전에 반려된 판은 비교하지 못해 줄을 생략한다.
 - **메시지 정리**: 결정이 나면 #승인 메시지를 결과 한 덩이("승인함 — 제목 · 시각")로 고치고 버튼과 링크를 걷어낸다. `review` 명령으로 결정해도 같다(승인 요청을 보낸 메시지 위치를 `meta.json`에 적어 둔다). 정리가 실패해도 결정은 이미 기록된 것이라 경고만 한다.
 - **봇이 멈추면**: 버튼이 "상호작용 실패"가 될 뿐이다. 알림은 계속 가고 메시지의 `review` 명령으로 승인할 수 있다. systemd가 봇을 다시 띄운다.
 - **서비스** (`huninn-bot.service`): 매장의 `blogops.bot`, `MemoryMax=200M`, 쓰기는 `state/`와 `logs/`만. 봇은 글을 쓰거나 발행하지 않고 claude 토큰도 읽지 않는다. 설치는 [ops/README.md](../ops/README.md) "Huninn 봇".
