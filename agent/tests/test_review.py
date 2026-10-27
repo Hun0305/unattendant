@@ -27,7 +27,9 @@ def run(*argv):
 class ReviewTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.env = mock.patch.dict(os.environ, {"BLOGOPS_ROOT": self.tmp.name})
+        # 매장의 진짜 비밀값을 읽지 않게 없는 파일을 가리킨다 (디스코드로 보내는 길이 막힌다)
+        self.env = mock.patch.dict(os.environ, {"BLOGOPS_ROOT": self.tmp.name,
+                                                "BLOGOPS_ENV_FILE": str(Path(self.tmp.name) / "none.env")})
         self.env.start()
         # 기본은 즉시 실행 유닛이 없는 환경. 실제 systemctl을 부르지 않는다
         self.watch = mock.patch("blogops.ondemand.watcher_active", return_value=False)

@@ -247,8 +247,7 @@ class DecisionsTest(unittest.TestCase):
         self.assertNotIn("test-bot-token", warnings[0])
         self.assertEqual(self.store.status(draft_id), "approved")  # 결정은 이미 기록됐다
         with mock.patch.dict(os.environ, {"BLOGOPS_ENV_FILE": str(Path(self.tmp.name) / "none.env")}):
-            with mock.patch.object(Path, "home", return_value=Path(self.tmp.name)):
-                warnings = decisions.finish(self.config, self.store, decision)
+            warnings = decisions.finish(self.config, self.store, decision)  # 매장 파일로 넘어가지 않는다
         self.assertEqual(len(warnings), 1)
         self.assertIn("DISCORD_BOT_TOKEN", warnings[0])
 

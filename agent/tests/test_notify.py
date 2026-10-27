@@ -38,6 +38,11 @@ class NotifyTest(unittest.TestCase):
 
     def test_env(self):
         self.assertEqual(env.get(self.config, "DISCORD_CH_DAILY"), "103")  # export·따옴표 처리
+        # 지정한 파일이 없으면 매장의 진짜 파일로 넘어가지 않고 없다고 한다
+        with mock.patch.dict(os.environ, {"BLOGOPS_ENV_FILE": str(Path(self.tmp.name) / "none.env")}):
+            self.assertIsNone(env.env_file(self.config))
+            with self.assertRaises(env.EnvError):
+                env.get(self.config, "DISCORD_BOT_TOKEN")
         with self.assertRaises(env.EnvError) as cm:
             env.get(self.config, "NOT_SET_KEY")
         self.assertIn("NOT_SET_KEY", str(cm.exception))

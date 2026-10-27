@@ -1,6 +1,8 @@
 """비밀값 읽기. 값은 출력하거나 기록하지 않는다.
 
-찾는 순서: BLOGOPS_ENV_FILE → ~/.config/huninn/huninn.env (매장, docs/blogops.md 7절) → <루트>/.env
+찾는 순서: ~/.config/huninn/huninn.env (매장, docs/blogops.md 7절) → <루트>/.env
+BLOGOPS_ENV_FILE을 주면 그 파일만 본다. 없는 파일이어도 다음 후보로 넘어가지 않는다
+(시험·모래상자가 실수로 매장의 진짜 토큰을 읽지 않게).
 프로세스 환경변수(systemd EnvironmentFile 등)에 같은 이름이 있으면 그쪽이 먼저다.
 """
 from __future__ import annotations
@@ -17,11 +19,12 @@ class EnvError(Exception):
 
 
 def env_file(config: Config) -> Optional[Path]:
-    candidates = [os.environ.get("BLOGOPS_ENV_FILE"), Path.home() / ".config" / "huninn" / "huninn.env",
-                  config.root / ".env"]
+    explicit = os.environ.get("BLOGOPS_ENV_FILE")
+    candidates = [Path(explicit)] if explicit else [Path.home() / ".config" / "huninn" / "huninn.env",
+                                                    config.root / ".env"]
     for c in candidates:
-        if c and Path(c).is_file():
-            return Path(c)
+        if c.is_file():
+            return c
     return None
 
 
