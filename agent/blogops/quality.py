@@ -31,6 +31,8 @@ TAILSCALE_NET = ipaddress.ip_network("100.64.0.0/10")
 # 초안에 쓰지 않는 front matter. date·lastmod는 발행할 때 넣고, author·translation·sponsored는 사람만 쓴다
 FIG_RE = re.compile(r"\{\{<\s*fig\s+(.*?)>\}\}", re.S)
 FIG_ATTR_RE = re.compile(r'(\w+)\s*=\s*"([^"]*)"')
+# 누가 만든 그림인지 (site/layouts/_shortcodes/fig.html의 by와 같은 목록). 글 하단 "그림 출처"가 이 값으로 만들어진다
+FIG_BY = ("ai", "human", "capture", "pd", "licensed")
 UNSAFE_SVG_RE = re.compile(r"<script|<foreignObject|\son\w+\s*=|javascript:|(?:href|src)\s*=\s*[\"']\s*(?:https?:)?//", re.I)
 FORBIDDEN_FIELDS = ("date", "lastmod", "draft", "author", "translation", "sponsored")
 SIMILAR_TITLE = 0.85
@@ -149,6 +151,9 @@ def _figure_problems(config: Config, store: Store, draft_id: str, bodies: dict[s
             if src not in assets:
                 problems.append(f"{lang}판 그림 파일이 초안 폴더에 없다: {src!r}")
                 continue
+            if attrs.get("by") not in FIG_BY:
+                problems.append(f"그림에 by가 없거나 틀렸다: {src} by={attrs.get('by', '')!r} "
+                                f"(가능: {', '.join(FIG_BY)}. AI가 그렸으면 ai)")
             if not attrs.get("caption", "").strip():
                 problems.append(f"그림에 caption이 없다: {src} (누가 만들었는지, 남의 그림이면 출처와 라이선스를 쓴다)")
             if assets[src].suffix.lower() != ".svg" and not attrs.get("alt", "").strip():

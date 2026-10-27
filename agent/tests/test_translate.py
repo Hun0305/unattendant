@@ -83,6 +83,17 @@ class TranslateTest(unittest.TestCase):
         self.assertFalse((self.site / "content/posts/naming/index.en.md").exists())
         self.assertEqual(git(self.site, "status", "--porcelain").stdout.strip(), "")
 
+    def test_figure_by_must_match_korean(self):
+        post = self.site / "content/posts/naming"
+        (post / "a.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+        ko = post / "index.ko.md"
+        ko.write_text(ko.read_text(encoding="utf-8") + '\n{{< fig src="a.svg" by="ai" caption="그림" >}}\n', encoding="utf-8")
+        with self.assertRaisesRegex(PublishError, "by가 한국어판과 다르다"):
+            self.add(body=EN_BODY + '\n\n{{< fig src="a.svg" by="human" caption="Figure" >}}\n')
+        with self.assertRaisesRegex(PublishError, "by가 한국어판과 다르다"):
+            self.add(body=EN_BODY + '\n\n{{< fig src="a.svg" caption="Figure" >}}\n')
+        self.assertFalse((post / "index.en.md").exists())
+
     def test_bad_slug(self):
         with self.assertRaises(PublishError):
             translate.read_post(self.config, "../x")

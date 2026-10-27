@@ -127,7 +127,7 @@ class QualityTest(unittest.TestCase):
         self.assertProblem(result, "빌드 실패")
 
     # ── 그림 ─────────────────────────────────────────────
-    def figure_draft(self, fig='{{< fig src="a.svg" caption="Claude가 SVG로 그렸다" >}}', files=None):
+    def figure_draft(self, fig='{{< fig src="a.svg" by="ai" caption="Claude가 SVG로 그렸다" >}}', files=None):
         files = {"a.svg": GOOD_SVG} if files is None else files
         self.figures = getattr(self, "figures", 0) + 1  # 한 시험에서 여러 번 부를 수 있다
         draft_id = self.draft(slug=f"with-figure-{self.figures}", body=good_body() + "\n\n" + fig + "\n")
@@ -144,12 +144,17 @@ class QualityTest(unittest.TestCase):
         self.assertProblem(self.check(self.figure_draft(fig="", files={"a.svg": GOOD_SVG})), "쓰지 않는 그림 파일")
 
     def test_figure_needs_caption_and_alt(self):
-        self.assertProblem(self.check(self.figure_draft(fig='{{< fig src="a.svg" >}}')), "caption이 없다")
+        self.assertProblem(self.check(self.figure_draft(fig='{{< fig src="a.svg" by="ai" >}}')), "caption이 없다")
         png = {"a.png": b"\x89PNG"}
-        self.assertProblem(self.check(self.figure_draft(fig='{{< fig src="a.png" caption="출처: 위키미디어" >}}', files=png)),
+        self.assertProblem(self.check(self.figure_draft(fig='{{< fig src="a.png" by="pd" caption="출처: 위키미디어" >}}', files=png)),
                            "alt가 없다")
-        ok = self.check(self.figure_draft(fig='{{< fig src="a.png" alt="오딘" caption="출처: 위키미디어" >}}', files=png))
+        ok = self.check(self.figure_draft(fig='{{< fig src="a.png" by="pd" alt="오딘" caption="출처: 위키미디어" >}}', files=png))
         self.assertTrue(ok["passed"], ok["problems"])
+
+    def test_figure_needs_by(self):
+        # 글 하단 "그림 출처"가 by로 만들어진다. AI가 그린 그림을 밝히지 않고 넘어가지 못하게 한다
+        self.assertProblem(self.check(self.figure_draft(fig='{{< fig src="a.svg" caption="그림" >}}')), "by가 없거나 틀렸다")
+        self.assertProblem(self.check(self.figure_draft(fig='{{< fig src="a.svg" by="me" caption="그림" >}}')), "by가 없거나 틀렸다")
 
     def test_figure_size_limit(self):
         big = {"a.svg": GOOD_SVG + " " * (self.config.asset_max_bytes + 1)}

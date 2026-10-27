@@ -106,10 +106,16 @@ def _problems(config: Config, post, fields: dict, body: str, text: str, scan) ->
         problems.append(f"영어 본문이 짧다: {size}자 (최소 {config.en_body_min_chars}자)")
     if re.search(r"^# \S", re.sub(r"```.*?```", "", body, flags=re.S), re.M):
         problems.append("본문에 # 제목(h1)이 있다. 소제목은 ##부터 쓴다")
-    # 그림은 한국어판이 쓰는 파일만 가리킬 수 있고, 설명(caption, 그림 파일이 SVG가 아니면 alt)이 있어야 한다
+    # 그림은 한국어판이 쓰는 파일만 가리킬 수 있고, 설명(caption, 그림 파일이 SVG가 아니면 alt)이 있어야 한다.
+    # 누가 만든 그림인지(by)는 번역할 것이 아니라서 한국어판과 같아야 한다
+    ko_path = post / "index.ko.md"
+    ko_by = {a.get("src"): a.get("by") for a in (dict(quality.FIG_ATTR_RE.findall(m.group(1)))
+             for m in quality.FIG_RE.finditer(ko_path.read_text(encoding="utf-8") if ko_path.is_file() else ""))}
     for match in quality.FIG_RE.finditer(body):
         attrs = dict(quality.FIG_ATTR_RE.findall(match.group(1)))
         src = attrs.get("src", "")
+        if ko_by.get(src) and attrs.get("by") != ko_by[src]:
+            problems.append(f"그림의 by가 한국어판과 다르다: {src} (한국어판 by={ko_by[src]!r})")
         if not (post / src).is_file():
             problems.append(f"그림 파일이 글 폴더에 없다: {src!r}")
         elif not attrs.get("caption", "").strip():
