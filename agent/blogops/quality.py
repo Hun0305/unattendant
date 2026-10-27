@@ -31,6 +31,8 @@ TAILSCALE_NET = ipaddress.ip_network("100.64.0.0/10")
 # 초안에 쓰지 않는 front matter. date·lastmod는 발행할 때 넣고, author·translation·sponsored는 사람만 쓴다
 FIG_RE = re.compile(r"\{\{<\s*fig\s+(.*?)>\}\}", re.S)
 FIG_ATTR_RE = re.compile(r'(\w+)\s*=\s*"([^"]*)"')
+# 누가 만든 그림인지 (site/layouts/_shortcodes/fig.html의 by와 같은 목록). 글 하단 "그림 출처"가 이 값으로 만들어진다
+FIG_BY = ("ai", "human", "capture", "pd", "licensed")
 UNSAFE_SVG_RE = re.compile(r"<script|<foreignObject|\son\w+\s*=|javascript:|(?:href|src)\s*=\s*[\"']\s*(?:https?:)?//", re.I)
 FORBIDDEN_FIELDS = ("date", "lastmod", "draft", "author", "translation", "sponsored")
 SIMILAR_TITLE = 0.85
@@ -112,6 +114,7 @@ def run_checks(config: Config, store: Store, draft_id: str, scan: Check, build: 
         urls += LINK_RE.findall(body)
     for url in dict.fromkeys(urls):
         problems += _check_repo_link(config, url)
+    problems += _post_link_problems(config, bodies.values())
 
     # 쓰지 않는 것: 내부 IP·MAC 주소, 이메일
     texts = [f"{f.get('title', '')}\n{f.get('description', '')}\n{b}" for f, b in parsed.values()]
@@ -148,6 +151,9 @@ def _figure_problems(config: Config, store: Store, draft_id: str, bodies: dict[s
             if src not in assets:
                 problems.append(f"{lang}판 그림 파일이 초안 폴더에 없다: {src!r}")
                 continue
+            if attrs.get("by") not in FIG_BY:
+                problems.append(f"그림에 by가 없거나 틀렸다: {src} by={attrs.get('by', '')!r} "
+                                f"(가능: {', '.join(FIG_BY)}. AI가 그렸으면 ai)")
             if not attrs.get("caption", "").strip():
                 problems.append(f"그림에 caption이 없다: {src} (누가 만들었는지, 남의 그림이면 출처와 라이선스를 쓴다)")
             if assets[src].suffix.lower() != ".svg" and not attrs.get("alt", "").strip():
@@ -181,6 +187,20 @@ def _check_repo_link(config: Config, url: str) -> list[str]:
     if not target.is_relative_to(base.resolve()) or not target.exists():
         return [f"링크한 파일이 레포에 없다: {url}"]
     return []
+
+
+def _post_link_problems(config: Config, bodies) -> list[str]:
+    """이 블로그 글로 가는 링크(/posts/<슬러그>/, /en/posts/…, 전체 주소 포함)가 발행된 글을 가리키는지."""
+    base = re.escape(records.site_base_url(config))
+    link = re.compile(rf"\]\((?:{base})?/(en/)?posts/([^/)#?\s]+)/?(?:#[^)]*)?\)")
+    published = {(p["lang"], p["slug"]) for p in records.site_posts(config)}
+    problems = []
+    for body in bodies:
+        for en, slug in dict.fromkeys(link.findall(body)):
+            lang = "en" if en else "ko"
+            if (lang, slug) not in published:
+                problems.append(f"링크한 글이 없다: /{en}posts/{slug}/ ({lang}판으로 발행된 글만 링크한다. list_posts로 슬러그를 확인한다)")
+    return problems
 
 
 def _privacy_problems(text: str) -> list[str]:

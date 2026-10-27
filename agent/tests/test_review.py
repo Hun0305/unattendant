@@ -27,7 +27,9 @@ def run(*argv):
 class ReviewTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.env = mock.patch.dict(os.environ, {"BLOGOPS_ROOT": self.tmp.name})
+        # 매장의 진짜 비밀값을 읽지 않게 없는 파일을 가리킨다 (디스코드로 보내는 길이 막힌다)
+        self.env = mock.patch.dict(os.environ, {"BLOGOPS_ROOT": self.tmp.name,
+                                                "BLOGOPS_ENV_FILE": str(Path(self.tmp.name) / "none.env")})
         self.env.start()
         # 기본은 즉시 실행 유닛이 없는 환경. 실제 systemctl을 부르지 않는다
         self.watch = mock.patch("blogops.ondemand.watcher_active", return_value=False)
@@ -45,6 +47,21 @@ class ReviewTest(unittest.TestCase):
         self.store.record_quality(self.draft_id, True, [])
         self.store.record_approval_request(self.draft_id)
 
+    def test_status_shows_cycle_checks_and_drafts(self):
+        logs = Path(self.tmp.name) / "logs"
+        logs.mkdir(exist_ok=True)
+        (logs / "cycles.jsonl").write_text(json.dumps({"ts": "2026-10-27T14:00:17+09:00", "is_error": True}) + "\n")
+        self.request()
+        fake = {"problems": [], "notices": ["지난 사이클이 실패했다(…)", "디스코드 봇이 멈춰 있다"],
+                "cpu_temp_c": 48.1, "disk_free_pct": 51.7, "uptime_hours": 12.0}
+        with mock.patch("blogops.health.check", return_value=fake):
+            code, out, _ = run("status")
+        self.assertEqual(code, 0)
+        self.assertIn("실패 (2026-10-27T14:00:17+09:00부터 1회 연속)", out)
+        self.assertIn("디스코드 봇이 멈춰 있다", out)
+        self.assertNotIn("지난 사이클이 실패했다", out)  # 사이클 줄과 겹치는 알림은 뺀다
+        self.assertIn(self.draft_id, out)
+
     def test_list_and_show(self):
         code, out, _ = run("list")
         self.assertEqual(code, 0)
@@ -54,6 +71,28 @@ class ReviewTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("index.ko.md", out)
         self.assertIn("본문.", out)
+
+    def test_diff_shows_what_changed_since_rejection(self):
+        code, out, _ = run("diff", self.draft_id)
+        self.assertIn("바뀐 것이 없다", out)  # 반려 전, 첫 판 그대로
+        self.request()
+        self.assertEqual(run("reject", self.draft_id, "제목이 단조롭다")[0], 0)
+        self.store.update_draft(self.draft_id, note="제목만 바꿨다", ko={"title": "이름은 이렇게 정했다"})
+        self.store.update_draft(self.draft_id, note="본문도 고쳤다", ko={"body": "고친 본문."})
+        code, out, _ = run("diff", self.draft_id)
+        self.assertEqual(code, 0)
+        self.assertIn("지난 반려 판", out)
+        self.assertIn('-title: "이름 짓기"', out)
+        self.assertIn('+title: "이름은 이렇게 정했다"', out)
+        self.assertIn("+고친 본문.", out)
+        # 이전 판은 하위 폴더에 남고 해시·그림 목록에는 들어가지 않는다
+        self.assertEqual(self.store.asset_paths(self.draft_id), [])
+        _, out, _ = run("show", self.draft_id)
+        self.assertIn("제목만 바꿨다", out)
+        self.assertIn("본문도 고쳤다", out)
+        code, _, err = run("diff", self.draft_id, "--en")
+        self.assertEqual(code, 1)  # 영어판이 없다
+        self.assertIn("남아 있지 않다", err)
 
     def test_approve_logs_decision(self):
         self.request()

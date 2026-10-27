@@ -1,5 +1,6 @@
 """테스트용 가짜 운영 레포와 사이트."""
 import json
+import os
 import random
 import shutil
 import string
@@ -11,6 +12,10 @@ from blogops.config import KST, Config
 from blogops.store import Store
 
 REAL_ROOT = Path(__file__).resolve().parents[2]  # 이 테스트가 들어 있는 체크아웃
+
+# 시험은 매장의 진짜 비밀값(~/.config/huninn/huninn.env)을 읽지 않는다. 실패 메시지에 토큰이 찍히지 않게
+# 없는 파일을 가리켜 둔다. 가짜 값이 필요한 시험은 자기 파일로 바꿔 끼운다 (blogops/env.py)
+os.environ["BLOGOPS_ENV_FILE"] = str(Path(__file__).resolve().parent / "no-such.env")
 
 HUGO_TOML = """baseURL = "https://example.org/"
 defaultContentLanguage = "ko"

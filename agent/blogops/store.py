@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import shutil
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -26,6 +27,7 @@ SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 DRAFT_ID_RE = re.compile(r"^\d{8}-[a-z0-9]+(?:-[a-z0-9]+)*$")
 LANGS = ("ko", "en")
 ASSET_SUFFIXES = (".svg", ".png", ".jpg", ".jpeg", ".webp", ".gif")  # 초안에 둘 수 있는 그림
+HISTORY_DIR = "history"  # 고치기 전 판 (review diff)
 
 STATUS_LABELS = {
     "writing": "작성 중",
@@ -83,6 +85,25 @@ class Store:
     def decisions(self, draft_id: str) -> list[dict]:
         self._dir(draft_id)
         return _read_json(self._approval_path(draft_id), {"decisions": []})["decisions"]
+
+    def rejections(self, limit: int = 20) -> list[dict]:
+        """모든 초안의 반려 기록(최근 것부터): 초안, 반려한 판의 제목, 사유, 시각.
+        반려한 판이 남아 있지 않으면(이전 판 보관은 2026-10-27부터) 제목은 None이다. 지금 제목을 대신 쓰면 틀린 짝이 된다."""
+        found = []
+        for d in self.list_drafts():
+            for dec in self.decisions(d["draft_id"]):
+                if dec["decision"] != "rejected":
+                    continue
+                title = None
+                text = self.version_text(d["draft_id"], dec["hash"], "ko")
+                if text:
+                    try:
+                        title = frontmatter.parse(text)[0].get("title")
+                    except ValueError:
+                        pass
+                found.append({"draft_id": d["draft_id"], "title": title, "reason": dec.get("reason") or "",
+                              "at": dec["at"]})
+        return sorted(found, key=lambda r: r["at"], reverse=True)[:limit]
 
     def content_hash(self, draft_id: str) -> str:
         # 글 파일(index.*.md)과 그림 파일을 이름 순으로, 파일 이름까지 포함해 이어 붙인 SHA-256
@@ -147,6 +168,21 @@ class Store:
             "published": meta.get("published"),
         }
 
+    def read(self, draft_id: str) -> dict:
+        """초안 하나의 언어별 제목·요약·태그·본문과 출처, 상태, 마지막 품질 검사와 반려 기록.
+        반려된 초안을 고치려면 본문부터 읽어야 한다 (update_draft는 바꿀 항목만 받는다)."""
+        s = self.summary(draft_id)
+        langs, sources = {}, []
+        for lang in s["langs"]:
+            fields, body = self.fields(draft_id, lang)
+            langs[lang] = {"title": fields.get("title"), "description": fields.get("description"),
+                           "tags": fields.get("tags") or [], "body": body}
+            sources = sources or fields.get("sources") or []
+        return {"draft_id": draft_id, "status": s["status"], "series": s["series"], "backlog_id": s["backlog_id"],
+                "langs": langs, "sources": sources, "figures": [p.name for p in self.asset_paths(draft_id)],
+                "last_quality": s["last_quality"], "last_rejection": s["last_rejection"],
+                "updated_at": s["updated_at"]}
+
     def list_drafts(self) -> list[dict]:
         if not self.config.drafts_dir.is_dir():
             return []
@@ -157,7 +193,7 @@ class Store:
 
     def create_draft(self, *, slug: str, series: str, ko: dict, en: Optional[dict] = None,
                      sources: Optional[list] = None, backlog_id: Optional[str] = None,
-                     note: str = "초안 작성") -> str:
+                     note: str = "초안 작성", model: Optional[str] = None) -> str:
         if not SLUG_RE.match(slug or "") or len(slug) > 60:
             raise StoreError(f"슬러그는 소문자·숫자·하이픈으로 60자 이내여야 한다: {slug!r}")
         if series not in SERIES:
@@ -175,6 +211,7 @@ class Store:
                 "slug": slug,
                 "series": series,
                 "backlog_id": backlog_id,
+                "model": model,  # 초안을 쓴 모델 (cycle.py가 BLOGOPS_MODEL로 넘긴다. 손으로 만든 초안은 없음)
                 "created_at": ts,
                 "updated_at": ts,
                 "revisions": [{"at": ts, "note": note, "hash": self.content_hash(draft_id)}],
@@ -196,6 +233,7 @@ class Store:
                 raise StoreError("이미 발행된 초안은 고칠 수 없다")
             if meta.get("held"):
                 raise StoreError("보류된 초안은 고칠 수 없다. 운영자의 판단이 필요하다")
+            self._snapshot(d, self.content_hash(draft_id))
             merged = {}
             for lang, change in (("ko", ko), ("en", en)):
                 current = None
@@ -211,6 +249,25 @@ class Store:
             meta["updated_at"] = ts
             meta["revisions"].append({"at": ts, "note": note.strip(), "hash": self.content_hash(draft_id)})
             _write_json(d / "meta.json", meta)
+
+    def _snapshot(self, d: Path, content_hash: str) -> None:
+        # 고치기 전 판을 history/<해시12자>/에 남긴다. 운영자가 review diff로 반려한 판과 고친 판을 비교한다.
+        # 하위 폴더라 해시(index.*.md)·그림 목록·발행 복사에는 들어가지 않는다
+        dst = d / HISTORY_DIR / content_hash[:12]
+        if dst.exists():
+            return
+        dst.mkdir(parents=True)
+        for path in sorted(d.glob("index.*.md")):
+            shutil.copy2(path, dst / path.name)
+
+    def version_text(self, draft_id: str, content_hash: str, lang: str = "ko") -> Optional[str]:
+        """해시가 가리키는 판의 글 파일. 지금 판이면 초안 파일, 이전 판이면 history/에 남은 것. 없으면 None."""
+        d = self._dir(draft_id)
+        if content_hash == self.content_hash(draft_id):
+            path = d / f"index.{lang}.md"
+        else:
+            path = d / HISTORY_DIR / content_hash[:12] / f"index.{lang}.md"
+        return path.read_text(encoding="utf-8") if path.exists() else None
 
     def _write_langs(self, d: Path, *, series: str, ko: Optional[dict], en: Optional[dict],
                      sources: Optional[list]) -> None:

@@ -1,19 +1,24 @@
 """사람용 승인·반려 명령 (docs/blogops.md 4절). Huninn의 툴이 아니다.
 
+    review status                 Huninn 한눈에: 마지막 사이클, 상태 점검(problems·notices), 처리할 초안
     review list [--all]           승인 대기·반려·보류 초안 (--all이면 전부)
-    review show <초안ID> [--body]  요약, 품질 검사 결과, 파일 경로, 미리보기 주소
+    review show <초안ID> [--body]  요약, 품질 검사 결과, 고친 이력, 파일 경로, 미리보기 주소
+    review diff <초안ID> [--en]    지난 반려 판과 지금 판의 차이 (반려가 없으면 첫 판과). Huninn이 무엇을 고쳤는지 본다
     review preview <초안ID>        승인 대기 초안의 미리보기를 (없으면) 만들고 주소를 보인다
     review approve <초안ID>        지금 내용의 해시로 승인을 기록한다
     review reject <초안ID> "사유"  반려를 기록한다. 사유는 필수. --drop이면 글감을 접는다(반려 + 보류 + 글감 blocked)
+    review receipts               발행 기록(receipt)이 없는 발행 글의 기록을 남은 기록으로 만들어 보인다. 파일은 고치지 않는다
 
 디스코드 #승인의 버튼은 같은 기록을 남긴다 (blogops/decisions.py, bot.py).
 """
 from __future__ import annotations
 
 import argparse
+import difflib
+import json
 import sys
 
-from . import decisions, preview
+from . import decisions, frontmatter, health, preview, publish, status
 from .config import Config
 from .store import STATUS_LABELS, Store, StoreError
 
@@ -27,6 +32,30 @@ def _cmd_list(store: Store, args) -> None:
         return
     for d in drafts:
         print(f"{d['draft_id']:<36} {STATUS_LABELS[d['status']]:<8} {d['title'] or '(제목 없음)'}")
+
+
+def _cmd_status(store: Store, args) -> None:
+    # SSH로 Pi에 들어왔을 때 먼저 보는 화면. 고치는 것은 없다
+    config = store.config
+    last = status.last_cycle(config.logs_dir / status.CYCLES_LOG)
+    if not last:
+        print("사이클    기록 없음")
+    elif last["ok"]:
+        print(f"사이클    마지막 {last['at']} 성공")
+    else:
+        print(f"사이클    마지막 {last['at']} 실패 ({last['failing_since']}부터 {last['fail_streak']}회 연속)")
+        print("          원인: logs/cycles.jsonl의 마지막 줄 result·stderr")
+    check = health.check(config, store)
+    notices = [n for n in check["notices"] if not n.startswith("지난 사이클")]  # 위 사이클 줄과 같은 말
+    for label, items in (("문제", check["problems"]), ("알림", notices)):
+        for item in items:
+            print(f"{label}      {item}")
+    if not check["problems"] and not notices:
+        print("점검      이상 없음")
+    print(f"Pi        CPU {check['cpu_temp_c']}°C, 디스크 여유 {check['disk_free_pct']}%, 가동 {check['uptime_hours']}시간")
+    todo = [d for d in store.list_drafts() if d["status"] in ("awaiting_approval", "approved", "rejected", "held")]
+    print(f"초안      처리할 것 {len(todo)}개" + "".join(
+        f"\n          {STATUS_LABELS[d['status']]:<8} {d['draft_id']}" for d in todo))
 
 
 def _cmd_show(store: Store, args) -> None:
@@ -46,6 +75,9 @@ def _cmd_show(store: Store, args) -> None:
         print(f"지난 반려 {r['at']}: {r['reason']}")
     if s["held"]:
         print(f"보류    {s['held']['reason']}")
+    revisions = store.meta(args.draft_id).get("revisions", [])
+    if len(revisions) > 1:
+        print("고친 이력" + "".join(f"\n        {r['at']} {r['hash'][:12]} {r['note']}" for r in revisions[1:]))
     if s["status"] == "awaiting_approval":
         found = preview.current(store.config, store, args.draft_id)
         if found:
@@ -58,6 +90,24 @@ def _cmd_show(store: Store, args) -> None:
     if args.body:
         _, body = store.fields(args.draft_id, "ko")
         print("\n" + body)
+
+
+def _cmd_diff(store: Store, args) -> None:
+    lang = "en" if args.en else "ko"
+    rejected = [d for d in store.decisions(args.draft_id) if d["decision"] == "rejected"]
+    revisions = store.meta(args.draft_id).get("revisions", [])
+    base, label = (rejected[-1]["hash"], f"지난 반려 판 ({rejected[-1]['at']})") if rejected \
+        else (revisions[0]["hash"], f"첫 판 ({revisions[0]['at']})")
+    now = store.content_hash(args.draft_id)
+    if base == now:
+        print(f"{label}에서 바뀐 것이 없다.")
+        return
+    old_text, new_text = store.version_text(args.draft_id, base, lang), store.version_text(args.draft_id, now, lang)
+    if old_text is None:
+        raise StoreError(f"{label}의 {lang}판이 남아 있지 않다 (이전 판 보관은 2026-10-27부터)")
+    diff = difflib.unified_diff(old_text.splitlines(), (new_text or "").splitlines(), lineterm="",
+                                fromfile=f"{label} {base[:12]}", tofile=f"지금 판 {now[:12]}")
+    print("\n".join(diff))
 
 
 def _cmd_preview(store: Store, args) -> None:
@@ -87,14 +137,44 @@ def _cmd_reject(store: Store, args) -> None:
     _finish(store, decision)
 
 
+def _cmd_receipts(store: Store, args) -> None:
+    # 사이트 글을 고치는 것은 운영자가 한다(공개된 글이 바뀌므로). 여기서는 front matter에 넣을 줄만 보인다
+    found = 0
+    for d in store.list_drafts():
+        meta = store.meta(d["draft_id"])
+        if not meta.get("published"):
+            continue
+        slug = meta["published"]["url"].rstrip("/").rsplit("/", 1)[-1]
+        path = store.config.site_dir / "content" / "posts" / slug / "index.ko.md"
+        try:
+            fields, _ = frontmatter.parse(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            print(f"{slug}: 글을 읽지 못했다 ({e})", file=sys.stderr)
+            continue
+        if "receipt" in fields:
+            continue
+        found += 1
+        record = publish.backfill_receipt(store.config, store, d["draft_id"])
+        print(f"{path}\nreceipt: {json.dumps(record, ensure_ascii=False)}\n")
+    if not found:
+        print("발행 기록이 빠진 글이 없다.")
+    else:
+        print(f"{found}편. 위 줄을 각 한국어판 front matter에 넣는다(영어판은 한국어판 기록을 쓴다). "
+              "Pi 상태는 남아 있지 않아 빠진다.")
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="review", description="Huninn 초안 승인·반려")
     sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("status", help="Huninn 한눈에 (마지막 사이클, 상태 점검, 처리할 초안)")
     p = sub.add_parser("list", help="처리할 초안 목록")
     p.add_argument("--all", action="store_true", help="발행된 초안까지")
     p = sub.add_parser("show", help="초안 요약")
     p.add_argument("draft_id")
     p.add_argument("--body", action="store_true", help="한국어 본문까지 출력")
+    p = sub.add_parser("diff", help="지난 반려 판과 지금 판의 차이")
+    p.add_argument("draft_id")
+    p.add_argument("--en", action="store_true", help="영어판을 비교")
     p = sub.add_parser("preview", help="승인 대기 초안의 미리보기 주소")
     p.add_argument("draft_id")
     p = sub.add_parser("approve", help="승인")
@@ -103,11 +183,12 @@ def main(argv=None) -> int:
     p.add_argument("draft_id")
     p.add_argument("reason")
     p.add_argument("--drop", action="store_true", help="이 글감을 접는다: 반려 + 보류 + 글감 blocked")
+    sub.add_parser("receipts", help="발행 기록이 빠진 발행 글의 기록 (보이기만 한다)")
     args = parser.parse_args(argv)
 
     store = Store(Config.from_env())
-    handler = {"list": _cmd_list, "show": _cmd_show, "preview": _cmd_preview,
-               "approve": _cmd_approve, "reject": _cmd_reject}[args.command]
+    handler = {"status": _cmd_status, "list": _cmd_list, "show": _cmd_show, "diff": _cmd_diff, "preview": _cmd_preview,
+               "approve": _cmd_approve, "reject": _cmd_reject, "receipts": _cmd_receipts}[args.command]
     try:
         handler(store, args)
     except (StoreError, preview.PreviewError) as e:

@@ -1,6 +1,8 @@
 import subprocess
+import sys
 import tempfile
 import unittest
+from unittest import mock
 
 from blogops import frontmatter, translate
 from blogops.config import find_tool
@@ -76,11 +78,39 @@ class TranslateTest(unittest.TestCase):
         for kw, text in ((dict(body="Too short."), "짧다"),
                          (dict(body="## ok\n\n# Title\n\n" + EN_BODY), "h1"),
                          (dict(body=EN_BODY + " Mail me at someone@example.com."), "이메일"),
+                         (dict(body=EN_BODY + " See [this](/en/posts/no-such-post/)."), "링크한 글이 없다"),
                          (dict(tags=[]), "tags")):
             with self.assertRaisesRegex(PublishError, text):
                 self.add(**kw)
         self.assertFalse((self.site / "content/posts/naming/index.en.md").exists())
         self.assertEqual(git(self.site, "status", "--porcelain").stdout.strip(), "")
+
+    def test_figure_by_must_match_korean(self):
+        post = self.site / "content/posts/naming"
+        (post / "a.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+        ko = post / "index.ko.md"
+        ko.write_text(ko.read_text(encoding="utf-8") + '\n{{< fig src="a.svg" by="ai" caption="그림" >}}\n', encoding="utf-8")
+        with self.assertRaisesRegex(PublishError, "by가 한국어판과 다르다"):
+            self.add(body=EN_BODY + '\n\n{{< fig src="a.svg" by="human" caption="Figure" >}}\n')
+        with self.assertRaisesRegex(PublishError, "by가 한국어판과 다르다"):
+            self.add(body=EN_BODY + '\n\n{{< fig src="a.svg" caption="Figure" >}}\n')
+        self.assertFalse((post / "index.en.md").exists())
+
+    def test_english_cover_card_when_korean_has_one(self):
+        post = self.site / "content/posts/naming"
+        script = self.site / "scripts" / "og-card.py"
+        script.parent.mkdir(exist_ok=True)
+        script.write_text("import sys, pathlib\npost = pathlib.Path(__file__).parent.parent / 'content/posts' / sys.argv[2]\n"
+                          "for md in post.glob('index.*.md'):\n"
+                          "    (post / ('cover.' + md.name.split('.')[1] + '.png')).write_bytes(b'png')\n")
+        (post / "cover.ko.png").write_bytes(b"png")  # 발행 때 만든 한국어판 카드
+        git(self.site, "add", "-A"); git(self.site, "commit", "-q", "-m", "카드")
+        from blogops import publish
+        with mock.patch.object(publish, "SYSTEM_PYTHON", sys.executable):
+            result = self.add()
+        self.assertEqual(result["warnings"], [])
+        self.assertIn("content/posts/naming/cover.en.png", git(self.site, "ls-files", "content/posts/naming").stdout.split())
+        self.assertNotIn("cover.ko.png", translate.read_post(self.config, "naming")["figures"])
 
     def test_bad_slug(self):
         with self.assertRaises(PublishError):

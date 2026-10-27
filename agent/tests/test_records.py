@@ -69,6 +69,15 @@ class RecordsTest(unittest.TestCase):
         self.assertEqual(posts[0]["date"], "2026-10-06T20:34:00+09:00")
         self.assertEqual(posts[0]["series"], ["ops-log"])
 
+    def test_loose_front_matter_block_lists(self):
+        text = ('---\ntitle: 손으로 쓴 글\ntags:\n  - meta\n  - "pi"\nseries:\n- ops-log\n'
+                'sources:\n  - title: 문서\n    url: https://example.org\ndraft: false\n---\n\n본문\n')
+        fields = records._loose_front_matter(text)
+        self.assertEqual(fields["tags"], ["meta", "pi"])
+        self.assertEqual(fields["series"], ["ops-log"])
+        self.assertEqual(fields["sources"], [])  # 사전 목록은 읽지 않는다
+        self.assertEqual((fields["title"], fields["draft"]), ("손으로 쓴 글", False))
+
 
 if __name__ == "__main__":
     unittest.main()

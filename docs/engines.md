@@ -18,7 +18,7 @@ architecture.md의 핵심 원칙("툴 로직은 `blogops` 하나에 두고 런�
 
 | 그대로 | 바뀜 |
 | --- | --- |
-| blogops 툴 20개와 서버 쪽 검사(품질, 승인, 발행 한도, 사이클당 툴 호출 60회) | `cycle.py`: 실행 명령, 환경변수, 결과 파싱을 엔진별로 나눈다 |
+| blogops 툴 21개와 서버 쪽 검사(품질, 승인, 발행 한도, 사이클당 툴 호출 60회) | `cycle.py`: 실행 명령, 환경변수, 결과 파싱을 엔진별로 나눈다 |
 | MCP 서버(stdio), 시스템 프롬프트 내용(`ops/huninn/prompt.md`) | 엔진별 설정 원본: `ops/huninn/settings.json`(Claude), `ops/huninn/agy-settings.json`(새로 만든다) |
 | 매장·작업실 구조, 14:00 타이머, 반려 직후 실행, 동기화 | `logs/cycles.jsonl`에 `engine` 필드, 비용 계산 방식 |
 | 모든 글은 사람이 승인한다 (Phase 1) | 프롬프트를 넣는 방식: agy는 시스템 프롬프트를 바꿀 수 없다 (4절) |
@@ -126,6 +126,7 @@ Claude Code에서 두 겹(settings.json + 실행 옵션)으로 막던 것을 agy
 시험 실행(`BLOGOPS_NO_PUBLISH`)도 지금은 진짜 `state/`에 초안을 쓰고 디스코드 #승인에 메시지를 보낸다. 두 엔진이 같은 상태에서 출발하려면 격리가 필요하다.
 
 - **상태**: 작업실 레포의 git worktree를 `/tmp`(RAM)에 만들고 `BLOGOPS_ROOT`로 넘긴다. 사이트는 사본을 `BLOGOPS_SITE_DIR`로 넘긴다. 엔진마다 같은 커밋에서 새로 만든다.
+- **비밀값**: `BLOGOPS_ENV_FILE`을 주면 그 파일만 읽는다. 없는 파일을 가리켜도 매장의 `~/.config/huninn/huninn.env`로 넘어가지 않는다(2026-10-27). 시험 코드도 같은 방법으로 진짜 토큰을 읽지 않는다.
 - **알림**: `BLOGOPS_NO_NOTIFY`(새로 만든다)가 있으면 디스코드로 보내지 않고 모래상자의 `logs/notify.jsonl`에 쓴다.
 - **글감 고정**: 사용자 메시지에 "이번 시험은 백로그 `<ID>`로 새 초안 하나만 쓴다"를 넣는다(`--item <ID>`, 새로 만든다). 프롬프트의 하루 순서 중 1(상태 점검)과 4(새 초안)만 하게 된다.
 - **프롬프트**: 두 엔진 모두 같은 `prompt.md`를 쓴다. Gemini에 맞춰 고치면 그건 다른 변수라서, 고친 판은 따로 표시해 비교한다.

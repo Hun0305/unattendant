@@ -3,7 +3,7 @@
 1. 승인된 그 버전인지 (상태 approved = 마지막 승인의 해시가 지금 해시)
 2. 품질 검사를 통과한 버전인지
 3. 오늘(KST) Huninn이 발행한 글이 없는지
-4. site/content/posts/<슬러그>/로 복사하고 date를 넣는다
+4. site/content/posts/<슬러그>/로 복사하고 date와 발행 기록(receipt)을 넣는다
 5. 임시 폴더에 먼저 빌드하고, 성공하면 실제 public/을 빌드한다. 실패하면 되돌린다
 6. 사이트 레포에 작성자 Huninn으로 커밋하고 push한다 (겹치면 rebase 후 한 번 더)
 7. 공개 URL에서 200과 제목을 확인한다
@@ -12,15 +12,18 @@
 from __future__ import annotations
 
 import html
+import json
+import os
 import shutil
 import subprocess
 import tempfile
 import time
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from . import backlog, log, records
+from . import backlog, frontmatter, log, records, status
 from .config import Config, find_tool
 from .store import STATUS_LABELS, Store
 
@@ -61,13 +64,15 @@ def publish_post(config: Config, store: Store, draft_id: str, verify: Verify | N
     langs = sorted(store.draft_paths(draft_id))
     assets = [p.name for p in store.asset_paths(draft_id)]
 
+    stamped = {"date": stamp, "receipt": receipt(store, draft_id, meta)}
     dst.mkdir(parents=True)
     try:
         for path in store.draft_paths(draft_id).values():
-            text = path.read_text(encoding="utf-8").replace("---\n", f'---\ndate: "{stamp}"\n', 1)
-            (dst / path.name).write_text(text, encoding="utf-8")
+            fields, body = frontmatter.parse(path.read_text(encoding="utf-8"))
+            (dst / path.name).write_text(frontmatter.render({**fields, **stamped}, body), encoding="utf-8")
         for path in store.asset_paths(draft_id):
             shutil.copy2(path, dst / path.name)
+        card_warning = cover_cards(site, slug)
         _build(site, slug, langs)
         commit = _commit(site, slug, _commit_message(store, draft_id, meta, title, langs, assets))
     except Exception:
@@ -76,7 +81,7 @@ def publish_post(config: Config, store: Store, draft_id: str, verify: Verify | N
         _real_build(site)  # 앞 상태로 다시 빌드 (실패해도 원래 오류를 알린다)
         raise
 
-    warnings = []
+    warnings = [card_warning] if card_warning else []
     pushed = _push(site)
     if not pushed:
         warnings.append("push하지 못했다. 글은 사이트에 올라갔지만 GitHub에는 아직 없다")
@@ -95,6 +100,92 @@ def publish_post(config: Config, store: Store, draft_id: str, verify: Verify | N
             warnings.append(f"백로그를 바꾸지 못했다: {e}")
     log.append(config, "publish_post", "huninn", draft_id=draft_id, warnings=warnings, **record)
     return {**record, "draft_id": draft_id, "warnings": warnings}
+
+
+def receipt(store: Store, draft_id: str, meta: dict) -> dict:
+    """글 하단 "발행 기록"(사이트 layouts/_partials/post-receipt.html)에 공개하는 값.
+    비공개 초안 기록(meta.json, 승인 기록)에서 날짜와 횟수만 꺼내고, 반려 사유 같은 글은 넣지 않는다.
+    Pi 상태는 발행하는 순간에 직접 읽는다(status.json과 같은 함수). 읽지 못한 값은 뺀다."""
+    decisions = store.decisions(draft_id)
+    mem = status.memory_gb()
+    record = {
+        "cycle": os.environ.get("BLOGOPS_CYCLE_ID") or None,
+        "model": meta.get("model"),
+        "drafted": meta["created_at"],
+        "quality_checks": len(meta.get("quality", [])),
+        "rejections": sum(d["decision"] == "rejected" for d in decisions),
+        "approved": decisions[-1]["at"],
+        "cpu_temp_c": status.cpu_temp_c(),
+        "mem_used_gb": mem[0] if mem else None,
+        "mem_total_gb": mem[1] if mem else None,
+    }
+    return {k: v for k, v in record.items() if v is not None}
+
+
+def _cycle_at(cycles: list[dict], ts: str) -> dict | None:
+    """ts(ISO 시각)가 들어 있는 정규 사이클(started ≤ ts ≤ ts 기록 시각). 없으면 None."""
+    when = datetime.fromisoformat(ts)
+    for c in cycles:
+        if c.get("dry_run") or not c.get("started"):
+            continue
+        if datetime.fromisoformat(c["started"]) <= when <= datetime.fromisoformat(c["ts"]):
+            return c
+    return None
+
+
+def backfill_receipt(config: Config, store: Store, draft_id: str) -> dict:
+    """receipt가 생기기 전(2026-10-27)에 발행된 글의 발행 기록을 남은 기록으로 다시 만든다.
+    사이클과 모델은 logs/cycles.jsonl에서 발행·작성 시각이 들어 있는 사이클로 찾는다(손으로 돌린 때는 빠진다).
+    발행하던 순간의 Pi 상태는 남아 있지 않아 넣지 않고, 나중에 채웠다는 표시(backfilled)를 단다."""
+    meta = store.meta(draft_id)
+    if not meta.get("published"):
+        raise PublishError(f"발행되지 않은 초안이다: {draft_id}")
+    cycles_file = config.logs_dir / "cycles.jsonl"
+    cycles = []
+    if cycles_file.exists():
+        for line in cycles_file.read_text(encoding="utf-8").splitlines():
+            try:
+                cycles.append(json.loads(line))
+            except ValueError:
+                continue
+    published = _cycle_at(cycles, meta["published"]["at"])
+    drafted = _cycle_at(cycles, meta["created_at"])
+    decisions = [d for d in store.decisions(draft_id) if d["at"] <= meta["published"]["at"]]
+    record = {
+        "cycle": published["cycle"] if published else None,
+        "model": meta.get("model") or (drafted or {}).get("model"),
+        "drafted": meta["created_at"],
+        "quality_checks": len([q for q in meta.get("quality", []) if q["at"] <= meta["published"]["at"]]),
+        "rejections": sum(d["decision"] == "rejected" for d in decisions),
+        "approved": next((d["at"] for d in reversed(decisions) if d["decision"] == "approved"), None),
+        "backfilled": config.now().date().isoformat(),
+    }
+    return {k: v for k, v in record.items() if v is not None}
+
+
+OG_CARD = "scripts/og-card.py"   # 사이트 레포의 카드 스크립트 (Pillow가 필요하다)
+SYSTEM_PYTHON = "/usr/bin/python3"  # 운영 venv에는 Pillow가 없고, 시스템 파이썬에는 Debian python3-pil이 있다
+
+
+def cover_cards(site: Path, slug: str) -> str | None:
+    """글 링크 미리보기 카드(cover.ko.png, cover.en.png)를 사이트 스크립트로 만든다. 제목이 든 카드라
+    카카오톡·디스코드에 글마다 다른 그림이 붙는다. 운영자가 초안에 cover 그림을 넣었으면 만들지 않는다.
+    못 만들면 경고 문장을 돌려준다(발행은 그대로 가고 기본 카드가 붙는다)."""
+    post = site / "content" / "posts" / slug
+    if any(p.stem == "cover" for p in post.iterdir()):
+        return None
+    script = site / OG_CARD
+    if not script.exists():
+        return None
+    try:
+        result = subprocess.run([SYSTEM_PYTHON, str(script), "post", slug], capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as e:
+        return f"링크 미리보기 카드를 만들지 못했다: {e}"
+    if result.returncode != 0:
+        for card in post.glob("cover.*.png"):
+            card.unlink()
+        return f"링크 미리보기 카드를 만들지 못했다: {(result.stderr or result.stdout).strip()[-300:]}"
+    return None
 
 
 def _hugo() -> str:

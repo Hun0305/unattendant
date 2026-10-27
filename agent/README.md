@@ -29,7 +29,7 @@ Huninn이 시스템을 건드리는 통로인 blogops. 설계는 [docs/blogops.m
 | `blogops/translate.py` | 발행된 글에 영어판 붙이기: 한국어판 읽기, 영어판 검사, 빌드·커밋·push, 공개 URL 확인 |
 | `blogops/status.py` | Pi 상태 파일 (docs/status.md): CPU 온도·메모리·디스크 여유·가동 시간을 읽어 `/run/huninn/status.json`(RAM)에 쓴다. 타이머(`huninn-status`)가 5분마다 한 번 돌리고, 사이트의 상태 띠와 통계 탭이 읽는다. 읽지 못한 값은 필드를 뺀다 |
 | `blogops/summary.py` | 주간 보고서 재료: 발행, 승인·반려와 사유, 품질 검사 첫 통과율, 보류, 사이클 수와 추정 비용 |
-| `blogops/server.py` | MCP 서버(stdio). 툴 20개는 위 모듈을 부르기만 한다. 툴 오류는 `ok: false` 결과로 돌려주고, 호출마다 로그를 남긴다 |
+| `blogops/server.py` | MCP 서버(stdio). 툴 21개는 위 모듈을 부르기만 한다. 툴 오류는 `ok: false` 결과로 돌려주고, 호출마다 로그를 남긴다 |
 | `blogops/cycle.py` | 하루 사이클 실행: `claude -p`를 blogops 툴만 쥐여 돌리고 `logs/cycles.jsonl`에 기록, 실패하면 #긴급 |
 
 초안 상태는 저장하지 않고 지금 내용의 해시와 기록을 대조해 계산한다. 승인 뒤 내용이 바뀌면 승인이 자동으로 풀린다.
@@ -37,8 +37,11 @@ Huninn이 시스템을 건드리는 통로인 blogops. 설계는 [docs/blogops.m
 ## 승인·반려 (사람)
 
 ```bash
+ops/huninn/review status                 # 마지막 사이클, 상태 점검, 처리할 초안을 한눈에
 ops/huninn/review list
 ops/huninn/review show <초안ID> --body
+ops/huninn/review diff <초안ID>          # 반려한 판과 고친 판의 차이
+ops/huninn/review receipts               # 발행 기록이 빠진 옛 글에 넣을 receipt 줄 (보이기만 한다)
 ops/huninn/review approve <초안ID>
 ops/huninn/review reject <초안ID> "사유"
 ops/huninn/review reject <초안ID> "사유" --drop   # 글감을 접는다: 반려 + 보류 + 글감 blocked (둘 다 사이클을 바로 한 번 더 돌린다)

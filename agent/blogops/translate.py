@@ -28,7 +28,8 @@ def read_post(config: Config, slug: str, lang: str = "ko") -> dict:
     return {"slug": slug, "lang": lang, "title": fields.get("title"), "description": fields.get("description"),
             "tags": fields.get("tags"), "series": fields.get("series"), "date": fields.get("date"),
             "sources": fields.get("sources") or [], "body": body,
-            "figures": sorted(p.name for p in path.parent.iterdir() if p.suffix.lower() in FIGURE_SUFFIXES),
+            "figures": sorted(p.name for p in path.parent.iterdir()
+                              if p.suffix.lower() in FIGURE_SUFFIXES and not p.name.startswith("cover.")),
             "has_en": (path.parent / "index.en.md").exists()}
 
 
@@ -72,15 +73,19 @@ def add_english(config: Config, slug: str, *, title: str, description: str, tags
 
     en_path.write_text(text, encoding="utf-8")
     try:
+        # 한국어판 카드가 있으면(발행 때 만든 것) 영어판 카드도 만든다. 한국어판 카드는 같은 내용으로 다시 그려진다
+        card_warning = publish.cover_cards(config.site_dir, slug) if (post / "cover.ko.png").exists() else None
         publish._build(config.site_dir, slug, ["ko", "en"])
         commit = publish._commit(config.site_dir, slug, _commit_message(slug, fields["title"], ko))
     except Exception:
         en_path.unlink(missing_ok=True)
+        (post / "cover.en.png").unlink(missing_ok=True)
         publish._git(config.site_dir, "reset", "-q", "--", f"content/posts/{slug}")
+        publish._git(config.site_dir, "checkout", "-q", "--", f"content/posts/{slug}")  # 다시 그린 한국어판 카드를 되돌린다
         publish._real_build(config.site_dir)
         raise
 
-    warnings = []
+    warnings = [card_warning] if card_warning else []
     pushed = publish._push(config.site_dir)
     if not pushed:
         warnings.append("push하지 못했다. 영어판은 사이트에 올라갔지만 GitHub에는 아직 없다")
@@ -106,10 +111,16 @@ def _problems(config: Config, post, fields: dict, body: str, text: str, scan) ->
         problems.append(f"영어 본문이 짧다: {size}자 (최소 {config.en_body_min_chars}자)")
     if re.search(r"^# \S", re.sub(r"```.*?```", "", body, flags=re.S), re.M):
         problems.append("본문에 # 제목(h1)이 있다. 소제목은 ##부터 쓴다")
-    # 그림은 한국어판이 쓰는 파일만 가리킬 수 있고, 설명(caption, 그림 파일이 SVG가 아니면 alt)이 있어야 한다
+    # 그림은 한국어판이 쓰는 파일만 가리킬 수 있고, 설명(caption, 그림 파일이 SVG가 아니면 alt)이 있어야 한다.
+    # 누가 만든 그림인지(by)는 번역할 것이 아니라서 한국어판과 같아야 한다
+    ko_path = post / "index.ko.md"
+    ko_by = {a.get("src"): a.get("by") for a in (dict(quality.FIG_ATTR_RE.findall(m.group(1)))
+             for m in quality.FIG_RE.finditer(ko_path.read_text(encoding="utf-8") if ko_path.is_file() else ""))}
     for match in quality.FIG_RE.finditer(body):
         attrs = dict(quality.FIG_ATTR_RE.findall(match.group(1)))
         src = attrs.get("src", "")
+        if ko_by.get(src) and attrs.get("by") != ko_by[src]:
+            problems.append(f"그림의 by가 한국어판과 다르다: {src} (한국어판 by={ko_by[src]!r})")
         if not (post / src).is_file():
             problems.append(f"그림 파일이 글 폴더에 없다: {src!r}")
         elif not attrs.get("caption", "").strip():
@@ -123,6 +134,7 @@ def _problems(config: Config, post, fields: dict, body: str, text: str, scan) ->
         urls.append(str(source.get("url", "")))
     for url in dict.fromkeys(urls):
         problems += quality._check_repo_link(config, url)
+    problems += quality._post_link_problems(config, [body])
     problems += quality._privacy_problems(f"{fields['title']}\n{fields['description']}\n{body}")
     # 비밀값 검사는 임시 파일로 한다 (글 폴더를 건드리지 않는다)
     with tempfile.TemporaryDirectory(prefix="blogops-en-") as tmp:

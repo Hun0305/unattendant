@@ -106,6 +106,7 @@ class CycleTest(CycleBase):
         self.assertEqual(server["command"], f"{self.config.root}/agent/.venv/bin/python")
         self.assertEqual(server["env"]["BLOGOPS_ROOT"], str(self.config.root))
         self.assertEqual(server["env"]["BLOGOPS_CYCLE_ID"], record["cycle"])
+        self.assertEqual(server["env"]["BLOGOPS_MODEL"], cycle.DEFAULT_MODEL)  # 초안 meta.json에 남는다
         self.assertEqual(server["env"]["BLOGOPS_NO_PUBLISH"], "1")
         self.assertEqual(server["env"]["BLOGOPS_SITE_DIR"], str(self.config.site_dir))
 

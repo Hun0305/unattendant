@@ -107,6 +107,8 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - [ ] 구조와 Claude 경로: `HUNINN_ENGINE`, `--engine`, 엔진별 명령·환경변수·결과 파싱, `engine`·`engine_error` 필드, 테스트
   - [ ] agy 경로 (T1~T9 뒤): 명령·환경변수·결과 파싱, Argon 단가표로 추정 비용, `ops/huninn/agy-settings.json`과 설치 스크립트
 - [ ] `BLOGOPS_ENGINE`·`BLOGOPS_MODEL`을 초안 `meta.json`에 기록
+  - [x] `BLOGOPS_MODEL` (2026-10-27, `feat/blogops-improvements`): `cycle.py`가 MCP 서버에 넘기고 `create_draft`가 `meta.json`의 `model`에 적는다. 발행 기록(`receipt.model`)으로 글 하단에도 보인다
+  - [ ] `BLOGOPS_ENGINE`: 엔진 선택 구조를 만들 때
 - [ ] 모래상자: `BLOGOPS_NO_NOTIFY`, `--item <백로그 ID>`, worktree + 사이트 사본
 - [ ] T10~T11 시험 사이클과 실패 신호 확인
 - [ ] 블라인드 비교: 글감 3개 × 엔진 2개, 결과 `experiments/engine-compare/` (engines.md 5절)
@@ -161,6 +163,14 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 - [x] 그림 포함 글의 첫 자동 발행 확인 (2026-10-13 14:00 사이클): `ai-site-first-screens`가 승인된 상태. 그림 2개 복사, 커밋 메시지의 "그림 2개", 공개 URL의 그림 접근, 새 초안의 그림 제안(전략 v3)을 확인한다
   - 결과: 사이트 레포 `3d7ff5f`(작성자 Huninn, `content(ai)`), 커밋 본문에 "그림 2개: first-screens-map.svg, home-e.png", 글 폴더에 두 파일 복사, 공개 URL 글·그림 둘 다 200. 사이클 성공(툴 13회·오류 0, 추정 $0.24), state 커밋 `81117ed` push
 - [ ] IndexNow 실제 사용 (뒤로 미룸, 2026-10-07 결정): 키 파일 `site/static/<키>.txt`를 사이트 레포에 커밋·배포한 뒤 첫 소개글로 실제 색인 요청. 그 전까지 `request_indexing`은 키가 없다고 알리고 건너뛴다. 방법은 [indexnow.md](next/indexnow.md)
+- [x] `get_draft` 툴 (2026-10-27, `feat/blogops-improvements`): Huninn이 초안 본문을 읽을 툴이 없어, 반려된 초안을 고칠 때 반려 사유만 보고 `update_draft`로 제목만 바꿀 수 있었다. 매장 로그 2026-10-16: `first-auto-cycle`을 고친 두 사이클 모두 `get_approval_status` 바로 뒤에 제목만 바꾼 `update_draft`(body 빈 값)를 불렀고, 두 번째 반려 사유는 "이전 수정안과 거의 같음"이었다. 언어별 제목·요약·태그·본문, 출처, 그림, 상태, 마지막 품질 검사와 반려 사유를 돌려준다. `prompt.md` 3·4번(반려된 초안, 쓰다 만 초안)에서 먼저 읽게 했다. 툴 21개
+- [x] 사이클 실패를 운영자·Huninn이 보게 (2026-10-27, `feat/blogops-improvements`): `review status`가 마지막 사이클(연속 실패 횟수와 시작), 상태 점검, 처리할 초안을 한눈에 보인다. `get_system_health`는 지난 사이클이 실패했으면 `notices`로 알려 복구된 날 하루 요약에 적게 한다
+- [x] 글마다 링크 미리보기 카드 (2026-10-27, 운영 `feat/blogops-improvements` + 사이트 `feat/site-share`): `publish_post`·`add_english`가 사이트 `scripts/og-card.py post <슬러그>`로 제목이 든 `cover.{ko,en}.png`를 만들어 글과 같은 커밋에 넣는다. 파일 이름의 언어 코드로 Hugo가 언어판마다 자기 카드를 붙인다(빌드로 확인). 실제 사이트 사본에서 발행까지 끝에서 끝까지 확인. 이미 발행된 5편은 운영자가 `python3 scripts/og-card.py post <슬러그>`로 만들어 커밋하면 된다
+- [ ] 발행 기록 채우기 (2026-10-27, 운영 `feat/blogops-improvements` + 사이트 `feat/site-share`): `review receipts`가 receipt 전에 발행된 AI 글 4편의 기록을 남은 기록(초안·승인 기록, `cycles.jsonl`)으로 만들어 보인다. 사이트는 `backfilled`가 있으면 "나중에 채웠고 Pi 상태는 없다"고 밝힌다. 공개된 글을 고치는 일이라 front matter에 넣는 것은 운영자가 정한다
+- [x] 지난 반려 사유를 새 초안에도 (2026-10-27, `feat/blogops-improvements`): `get_strategy`가 모든 초안의 반려 사유(최근 20건)를 함께 돌려주고, `prompt.md` 4번이 쓰기 전에 읽게 한다. 10-16에 같은 제목 문제로 두 번 반려된 것처럼, 매 사이클 백지로 깨어나 다른 초안에서 받은 교훈을 잊는다(컨설팅 보고서 5-1의 8). 전략 문서를 고치는 것은 운영자 몫이라 그대로 두었다
+- [x] `review diff` (2026-10-27, `feat/blogops-improvements`): `update_draft`가 고치기 전 판을 초안 폴더 `history/<해시>/`에 남기고, `review diff`가 지난 반려 판과 지금 판을 비교한다. `review show`에 고친 이력(note)도 보인다. 반려 뒤 제목만 바뀌었는지 바로 알 수 있다. #승인 메시지에도 "반려 뒤 바뀐 것: 제목, 본문은 그대로"처럼 한 줄로 붙는다
+- [x] 내부 링크 검사 (2026-10-27, 같은 브랜치): 품질 검사와 영어판 검사가 이 블로그 글로 가는 링크(`/posts/<슬러그>/`)가 발행된 글인지 확인한다. 프롬프트에 이전 글 링크 규칙 한 줄
+- [x] 발행 기록 (2026-10-27, `feat/blogops-improvements` + 사이트 레포 `feat/site-share`): `publish_post`가 front matter `receipt`에 사이클 ID, 초안을 쓴 모델, 초안 작성 시각, 품질 검사 횟수, 운영자 반려 횟수, 승인 시각, 발행 순간의 CPU 온도·메모리를 넣고, 사이트가 글 하단 "발행 기록"으로 보인다. 반려 사유 같은 비공개 기록의 내용은 넣지 않는다. 영어판은 한국어판 것을 쓴다. 그 전에 발행한 4편에는 없다(채워 넣을지는 운영자가 정한다)
 - [x] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시 (Phase 2 실제 청구와 섞지 않는다) → 2026-10-07 `cycle.py`가 `logs/cycles.jsonl`에 남긴다(모델별 사용량 포함). `get_week_summary`가 주간 합계를 쓴다
 
 ### 사이트
@@ -171,13 +181,15 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - [x] 사이트(사이트 레포): 상태 띠에 메모리 칸, 연속 무인 운영일이 없는 동안 "운영 준비 중"을 값과 함께 둠. 헤드리스 Chromium으로 네 경우 확인
   - [x] PR 병합, 매장 pull, 설치(sudo: 유닛 설치, 타이머 켜기, Caddy 재시작), 공개 URL과 브라우저에서 확인. 순서는 [ops/README.md](../ops/README.md) "Pi 상태 파일"
     - 확인 (2026-10-22): PR #6으로 main에 합쳤다(`c7f787b`). `huninn-status.timer` enabled·active(마지막 실행 05:00:08), `https://unattendant.dev/status.json` 200·`cache-control: no-store`·`cf-cache-status: DYNAMIC`. 헤드리스 Chromium(폭 420px)으로 홈을 열어 띠에 "운영 준비 중 · CPU 61.8°C · 메모리 1.4 / 3.7GB · 05:00 갱신"이 보이는 것을 확인했다
+  - [x] Huninn 사이클 상태 (2026-10-27, 운영 `feat/blogops-improvements` + 사이트 `feat/site-share`): `status.json`에 `cycle`(마지막 사이클 시각·성공 여부, 실패면 연속 횟수와 시작 시각)을 더하고, 띠가 실패·26시간 지연을 "Huninn 멈춤 · …"으로 띄운다. 10-17부터 11일 연속 실패를 띠가 켜진 점과 "운영 준비 중"으로 가리고 있었다(컨설팅 보고서 0-1). 매장의 `huninn-status.timer`가 새 코드를 쓰면 바로 반영된다(유닛 변경 없음, `ProtectHome=read-only`로 `logs/` 읽기 가능)
   - [ ] 나중에: `unattended_days`·`cost_today_krw` 필드(아래 Phase 2), 경고 색(`state`)
 - [x] 글에 그림 넣기 (2026-10-12, 사이트 레포 `3479e2e`·`f2bf6ec`): `fig` 단축 코드(SVG는 본문에 넣어 다크 모드를 따름), 이미지 규칙을 "측정 그래프만"에서 "누가 만들었는지 밝히고, 남의 그림은 퍼블릭 도메인·허락된 것만, 그림당 200KB 이내"로 바꿈(site/README.md). 첫 글 `name-given-to-me`에 신화 삽화(SÁM 66, 퍼블릭 도메인)와 SVG 두 장을 직접 넣었다
 - [x] 전략 v3 "시각자료" 절: 글마다 1~3개, 그래프 → 다이어그램 → 사진·도판(출처 표기) → AI 그림(밝히기) 순. 지금 Huninn은 그림을 받거나 만들 수 없어 #일일요약 "그 밖에"에 그림 제안만 적는다
 - [ ] Huninn이 쓰는 글에 그림 넣기 (blogops 지원, 2026-10-12 운영자가 만들고 싶다고 함)
   - [x] 최소 지원 (2026-10-12, PR #3 `a351857`): 초안 폴더의 그림(svg·png·jpg·webp·gif)을 승인 해시에 포함, 발행 때 글 폴더로 복사, 품질 검사(`fig`와 파일 일치, `caption` 필수, 래스터는 `alt` 필수, 파일당 200KB, SVG의 `<script>`·외부 참조 금지), `review show`에 그림 표시. 사이트 README의 "이미지는 측정 그래프만" 규칙은 "누가 만들었는지 밝히면 가능"으로 바꿈. 지금은 운영자가 파일을 넣고 본문에 `fig`를 쓴다 (`ai-site-first-screens`가 첫 사례)
   - [ ] Huninn이 직접 그림 자리를 제안하고 SVG를 만들기: 지금 Huninn은 그림을 받거나 만들 수 없다. 초안에 SVG를 함께 올리는 툴(예: `add_figure`)을 만들어 다이어그램은 Huninn이 직접 그리게 한다. 사진·AI 그림은 계속 제안만(운영자가 준비) 또는 이미지 생성 도구를 붙일지 따로 정한다
-  - [ ] AI가 만든 그림 표시를 구조화: 지금은 캡션 문장으로만 밝힌다. front matter나 `fig`의 `by`(human·ai·pd) 속성으로 받아 글 하단에 "그림 출처" 목록을 자동으로 만들고, 품질 검사에서 `by` 누락을 잡는다
+  - [x] AI가 만든 그림 표시를 구조화: 지금은 캡션 문장으로만 밝힌다. front matter나 `fig`의 `by`(human·ai·pd) 속성으로 받아 글 하단에 "그림 출처" 목록을 자동으로 만들고, 품질 검사에서 `by` 누락을 잡는다
+    - 2026-10-27 (사이트 `feat/site-share`, 운영 `feat/blogops-improvements`): `fig`에 `by`(`ai`·`human`·`capture`·`pd`·`licensed`, 다른 값이면 빌드 실패)를 받아 글 하단 "그림 출처"에 그림마다 한 줄씩 낸다. 화면 캡처(`capture`)와 허락받은 그림(`licensed`)은 계획에 없던 값이라 더했다. 품질 검사는 초안의 `by` 누락·오타를, `add_english`는 한국어판과 다른 `by`를 막는다. 발행된 글 2편의 그림 5장에 `by`를 달았다(캡션 내용 기준: SVG 3장 `ai`, 오딘 그림 `pd`, 첫 화면 캡처 `capture`)
   - [x] 그림 제안 방식 점검 (2026-10-13 사이클): 일일요약 "그 밖에"에 "요청 흐름 다이어그램과 3안 비교표"를 제안했고 초안에도 적었다. 전략 v3대로 동작
 
 - [x] 상태 띠 링크 문구 "라즈베리파이 한 대에서 돌아갑니다 →" 고치기 (`site/i18n/ko.toml`의 `bandLink`, 영어판 `en.toml` "Running on a single Raspberry Pi"도 함께) → 2026-10-12 고치지 않고 링크째 삭제(통계 탭 메뉴와 겹침). 같은 날 메뉴 "숫자" 탭 이름을 "통계"로 바꿈(주소 `/numbers/`는 유지)
@@ -187,7 +199,7 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - 파이프라인: systemd 타이머 → `claude -p` → blogops MCP 툴(초안 → 품질 검사 → 승인 요청 → 발행) → Hugo 빌드 → 공개 URL 확인 → 색인 요청. 그림 하나로 보여준다
   - 어디에: 첫 글 "두뇌" 부분 보강(수정일 표시), 소개 페이지, 글마다 쓴 모델을 글 하단에 표시할지 검토
   - 완료 (2026-10-12, 사이트 레포 `317fe80`·`7e93899`·`0783aeb`): 첫 글 "두뇌"를 "Huninn은 어떻게 돌아가나" 소절로 교체(모델 `claude-sonnet-5-5` 고정, effort 미설정, `claude -p`, Pro 구독과 추정 비용, blogops 툴 18개, 하루 사이클 그림, 한도 표, 개발에 쓴 Claude Code). 소개 페이지에도 모델 설명 추가. 영어판도 같은 내용, 글 끝에 수정 기록
-  - 남음: 글마다 쓴 모델을 글 하단에 표시할지는 검토하지 않았다(레이아웃에 모델 표시 없음)
+  - 남음: 글마다 쓴 모델을 글 하단에 표시할지는 검토하지 않았다(레이아웃에 모델 표시 없음) → 2026-10-27 발행 기록에 "초안을 쓴 모델"로 넣었다(아래 "발행 기록"). 그 전에 발행한 글에는 없다
 - [x] (친구 피드백, 2026-10-07) 첫 글 성공 기준 1 "사람 개입 없이 4주 이상 연속 운영"에서 무인 운영의 기준을 정확히 정의
   - 무엇이 "개입"인지: 승인·반려, 초안 수정, 서비스 재시작, 설정·코드 수정, 보안 업데이트(`apt upgrade`), 토큰 갱신 같은 경우를 하나씩 정한다. 설계 문서는 지금 "수동 승인을 제외한 수동 조작·수정"뿐이다
   - 4주를 언제부터 세는지: 승인 모드 해제(게이트 3) 뒤부터인지, 개입이 한 번 생기면 0일부터 다시 세는지
@@ -386,7 +398,7 @@ architecture.md "관측성과 포트폴리오 지표"의 지표를 실제로 계
 
 - 지키는 것: 운영자 디스코드 계정 ID만 누를 수 있고, 버튼의 해시가 초안의 지금 해시와 다르면 거부하고(기록 단계에서도 다시 대조), 반려는 사유 입력창을 거치고, 승인·반려 기록에 경로(`discord`, `cli`)를 남긴다
 - 초안과 달라진 것: 초안 파일(ko·en) 첨부 대신 실제 사이트 모양의 미리보기 페이지(토큰 주소)를 링크하고, [접기](반려 + 보류 + 글감 `blocked`) 버튼을 더했다
-- [ ] `get_system_health`에 봇 상태를 넣는다 (blogops.md 11절 "남은 것")
+- [x] `get_system_health`에 봇 상태를 넣는다 (blogops.md 11절 "남은 것") → 2026-10-27 `feat/blogops-improvements`: 봇 유닛 상태와 Pi 상태 파일(`status.json`)이 30분 넘게 멈췄는지를 `notices`로 알린다. 봇이 멈춰도 발행은 되므로 사이클을 멈추는 `problems`와 나눴다(`prompt.md` 1번). 테스트 5개
 - [ ] 봇과 대시보드를 합친 메모리를 잰다 (architecture.md 예산은 둘 합쳐 150~200MB, 봇 `MemoryMax`는 200M)
 
 #### 실험 러너와 공통 로거

@@ -1,4 +1,4 @@
-"""blogops MCP 서버 (stdio). Huninn이 쓸 수 있는 툴은 여기 있는 20개뿐이다 (docs/blogops.md 2절).
+"""blogops MCP 서버 (stdio). Huninn이 쓸 수 있는 툴은 여기 있는 21개뿐이다 (docs/blogops.md 2절).
 
 실행: python -m blogops.server   (ops/huninn/run-cycle.sh가 mcp.json으로 띄운다)
 툴은 다른 모듈을 부르기만 한다. 조건 검사는 각 모듈이 한다.
@@ -23,6 +23,7 @@ from .publish import PublishError
 from .records import RecordError
 from .store import Store, StoreError
 
+REJECTIONS_LIMIT = 20  # get_strategy가 함께 돌려주는 지난 반려 사유 수
 INSTRUCTIONS = "unattendant.dev 운영 툴. 시스템은 이 툴로만 건드린다. 툴이 돌려준 결과만 사실로 믿는다."
 EXPECTED = (StoreError, RecordError, PublishError, NotifyError, BacklogError, IndexNowError, EnvError,
             ValueError, log.ToolLimitError)
@@ -87,9 +88,11 @@ def get_system_health() -> dict:
 
 @tool
 def get_strategy() -> dict:
-    """운영 전략 문서(state/strategy.md) 전문. 글감을 고르기 전에 읽고 그대로 따른다."""
-    config, _, _ = context()
-    return {"text": (config.state_dir / "strategy.md").read_text(encoding="utf-8")}
+    """운영 전략 문서(state/strategy.md) 전문과 운영자가 지금까지 반려한 사유(rejections, 최근 것부터).
+    글감을 고르고 쓰기 전에 읽고 그대로 따른다. 반려 사유는 다른 초안에도 같은 실수를 하지 않게 하는 기준이다."""
+    config, store, _ = context()
+    return {"text": (config.state_dir / "strategy.md").read_text(encoding="utf-8"),
+            "rejections": store.rejections(limit=REJECTIONS_LIMIT)}
 
 
 @tool
@@ -166,7 +169,8 @@ def create_draft(slug: str, series: str, title: str, description: str, tags: lis
     config, store, _ = context()
     draft_id = store.create_draft(slug=slug, series=series, ko=_lang(title, description, tags, body),
                                   en=_lang(en_title, en_description, en_tags, en_body),
-                                  sources=list(sources) if sources else None, backlog_id=backlog_id)
+                                  sources=list(sources) if sources else None, backlog_id=backlog_id,
+                                  model=os.environ.get("BLOGOPS_MODEL") or None)
     warnings = []
     if backlog_id:
         try:
@@ -203,6 +207,14 @@ def list_drafts() -> dict:
     _, store, _ = context()
     return {"drafts": [{k: d[k] for k in ("draft_id", "status", "title", "series", "backlog_id", "updated_at")}
                        for d in store.list_drafts()]}
+
+
+@tool
+def get_draft(draft_id: str) -> dict:
+    """초안 하나를 읽는다: 언어별(langs.ko, langs.en) 제목·요약·태그·본문, 출처, 그림 파일, 상태,
+    마지막 품질 검사와 마지막 반려(사유). 반려된 초안이나 이전 사이클에 쓰다 만 초안을 고치기 전에 읽는다."""
+    _, store, _ = context()
+    return store.read(draft_id)
 
 
 @tool
