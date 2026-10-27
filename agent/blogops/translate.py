@@ -28,7 +28,8 @@ def read_post(config: Config, slug: str, lang: str = "ko") -> dict:
     return {"slug": slug, "lang": lang, "title": fields.get("title"), "description": fields.get("description"),
             "tags": fields.get("tags"), "series": fields.get("series"), "date": fields.get("date"),
             "sources": fields.get("sources") or [], "body": body,
-            "figures": sorted(p.name for p in path.parent.iterdir() if p.suffix.lower() in FIGURE_SUFFIXES),
+            "figures": sorted(p.name for p in path.parent.iterdir()
+                              if p.suffix.lower() in FIGURE_SUFFIXES and not p.name.startswith("cover.")),
             "has_en": (path.parent / "index.en.md").exists()}
 
 
@@ -72,15 +73,19 @@ def add_english(config: Config, slug: str, *, title: str, description: str, tags
 
     en_path.write_text(text, encoding="utf-8")
     try:
+        # 한국어판 카드가 있으면(발행 때 만든 것) 영어판 카드도 만든다. 한국어판 카드는 같은 내용으로 다시 그려진다
+        card_warning = publish.cover_cards(config.site_dir, slug) if (post / "cover.ko.png").exists() else None
         publish._build(config.site_dir, slug, ["ko", "en"])
         commit = publish._commit(config.site_dir, slug, _commit_message(slug, fields["title"], ko))
     except Exception:
         en_path.unlink(missing_ok=True)
+        (post / "cover.en.png").unlink(missing_ok=True)
         publish._git(config.site_dir, "reset", "-q", "--", f"content/posts/{slug}")
+        publish._git(config.site_dir, "checkout", "-q", "--", f"content/posts/{slug}")  # 다시 그린 한국어판 카드를 되돌린다
         publish._real_build(config.site_dir)
         raise
 
-    warnings = []
+    warnings = [card_warning] if card_warning else []
     pushed = publish._push(config.site_dir)
     if not pushed:
         warnings.append("push하지 못했다. 영어판은 사이트에 올라갔지만 GitHub에는 아직 없다")

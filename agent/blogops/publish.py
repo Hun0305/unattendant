@@ -72,6 +72,7 @@ def publish_post(config: Config, store: Store, draft_id: str, verify: Verify | N
             (dst / path.name).write_text(frontmatter.render({**fields, **stamped}, body), encoding="utf-8")
         for path in store.asset_paths(draft_id):
             shutil.copy2(path, dst / path.name)
+        card_warning = cover_cards(site, slug)
         _build(site, slug, langs)
         commit = _commit(site, slug, _commit_message(store, draft_id, meta, title, langs, assets))
     except Exception:
@@ -80,7 +81,7 @@ def publish_post(config: Config, store: Store, draft_id: str, verify: Verify | N
         _real_build(site)  # 앞 상태로 다시 빌드 (실패해도 원래 오류를 알린다)
         raise
 
-    warnings = []
+    warnings = [card_warning] if card_warning else []
     pushed = _push(site)
     if not pushed:
         warnings.append("push하지 못했다. 글은 사이트에 올라갔지만 GitHub에는 아직 없다")
@@ -160,6 +161,31 @@ def backfill_receipt(config: Config, store: Store, draft_id: str) -> dict:
         "backfilled": config.now().date().isoformat(),
     }
     return {k: v for k, v in record.items() if v is not None}
+
+
+OG_CARD = "scripts/og-card.py"   # 사이트 레포의 카드 스크립트 (Pillow가 필요하다)
+SYSTEM_PYTHON = "/usr/bin/python3"  # 운영 venv에는 Pillow가 없고, 시스템 파이썬에는 Debian python3-pil이 있다
+
+
+def cover_cards(site: Path, slug: str) -> str | None:
+    """글 링크 미리보기 카드(cover.ko.png, cover.en.png)를 사이트 스크립트로 만든다. 제목이 든 카드라
+    카카오톡·디스코드에 글마다 다른 그림이 붙는다. 운영자가 초안에 cover 그림을 넣었으면 만들지 않는다.
+    못 만들면 경고 문장을 돌려준다(발행은 그대로 가고 기본 카드가 붙는다)."""
+    post = site / "content" / "posts" / slug
+    if any(p.stem == "cover" for p in post.iterdir()):
+        return None
+    script = site / OG_CARD
+    if not script.exists():
+        return None
+    try:
+        result = subprocess.run([SYSTEM_PYTHON, str(script), "post", slug], capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as e:
+        return f"링크 미리보기 카드를 만들지 못했다: {e}"
+    if result.returncode != 0:
+        for card in post.glob("cover.*.png"):
+            card.unlink()
+        return f"링크 미리보기 카드를 만들지 못했다: {(result.stderr or result.stdout).strip()[-300:]}"
+    return None
 
 
 def _hugo() -> str:

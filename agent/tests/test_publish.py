@@ -1,6 +1,7 @@
 import io
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -137,6 +138,38 @@ class PublishTest(unittest.TestCase):
         self.assertIn("1편", out.getvalue())
         self.assertNotIn("receipt", post.read_text(encoding="utf-8"))  # 파일은 고치지 않는다
 
+    def card_script(self, fail=False):
+        # 사이트의 scripts/og-card.py 대신: 언어판마다 cover.<lang>.png를 쓰거나 실패한다
+        script = self.site / "scripts" / "og-card.py"
+        script.parent.mkdir(exist_ok=True)
+        script.write_text("import sys, pathlib\n" + ("sys.exit('글꼴이 없다')\n" if fail else
+                          "post = pathlib.Path(__file__).parent.parent / 'content/posts' / sys.argv[2]\n"
+                          "for md in post.glob('index.*.md'):\n"
+                          "    (post / ('cover.' + md.name.split('.')[1] + '.png')).write_bytes(b'png')\n"))
+        return mock.patch.object(publish, "SYSTEM_PYTHON", sys.executable)
+
+    def approved_draft(self, slug="naming"):
+        draft_id = self.store.create_draft(slug=slug, series="ops-log", ko=KO)
+        self.store.record_quality(draft_id, True, [])
+        self.store.record_approval_request(draft_id)
+        self.store.record_decision(draft_id, "approved")
+        return draft_id
+
+    def test_publish_makes_cover_cards(self):
+        with self.card_script():
+            result = publish.publish_post(self.config, self.store, self.approved_draft(), verify=ok)
+        self.assertEqual(result["warnings"], [])
+        self.assertTrue((self.site / "content/posts/naming/cover.ko.png").exists())
+        tracked = git(self.site, "ls-files", "content/posts/naming").stdout.split()
+        self.assertIn("content/posts/naming/cover.ko.png", tracked)  # 글과 같은 커밋에 들어간다
+
+    def test_cover_card_failure_is_only_a_warning(self):
+        with self.card_script(fail=True):
+            result = publish.publish_post(self.config, self.store, self.approved_draft(), verify=ok)
+        self.assertTrue(result["pushed"])
+        self.assertTrue(any("카드" in w for w in result["warnings"]), result["warnings"])
+        self.assertFalse(list((self.site / "content/posts/naming").glob("cover.*")))
+
     def test_publish_copies_figures(self):
         shortcode = self.site / "layouts" / "_shortcodes"
         shortcode.mkdir()
@@ -202,7 +235,7 @@ class PublishTest(unittest.TestCase):
         git(other, "add", "README.md")
         git(other, "commit", "-q", "-m", "사람 커밋")
         git(other, "push", "-q", "origin", "main")
-        result = publish.publish_post(self.config, self.store, self.approved(), verify=ok)
+        result = publish.publish_post(self.config, self.store, self.approved_draft(), verify=ok)
         self.assertTrue(result["pushed"])
         subjects = git(self.origin, "log", "--format=%s", "-3").stdout.splitlines()
         self.assertEqual(subjects[:2], [f'content(ai): {KO["title"]}', "사람 커밋"])

@@ -31,3 +31,9 @@ install -m 755 caddy "$BIN_DIR/caddy"
 
 "$BIN_DIR/hugo" version
 "$BIN_DIR/caddy" version
+
+# 글 링크 미리보기 카드(site/scripts/og-card.py)는 운영 venv가 아니라 시스템 파이썬의 Pillow로 그린다
+# (blogops publish.cover_cards). 2026-10-27 이 Pi에는 Debian python3-pil 11.1이 있다. 없으면 글마다 기본 카드가 붙는다
+if ! /usr/bin/python3 -c "import PIL" 2>/dev/null; then
+  echo "주의: 시스템 파이썬에 Pillow가 없다. 설치: sudo apt install python3-pil" >&2
+fi
