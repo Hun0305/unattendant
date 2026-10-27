@@ -387,7 +387,7 @@ architecture.md "관측성과 포트폴리오 지표"의 지표를 실제로 계
 
 - 지키는 것: 운영자 디스코드 계정 ID만 누를 수 있고, 버튼의 해시가 초안의 지금 해시와 다르면 거부하고(기록 단계에서도 다시 대조), 반려는 사유 입력창을 거치고, 승인·반려 기록에 경로(`discord`, `cli`)를 남긴다
 - 초안과 달라진 것: 초안 파일(ko·en) 첨부 대신 실제 사이트 모양의 미리보기 페이지(토큰 주소)를 링크하고, [접기](반려 + 보류 + 글감 `blocked`) 버튼을 더했다
-- [ ] `get_system_health`에 봇 상태를 넣는다 (blogops.md 11절 "남은 것")
+- [x] `get_system_health`에 봇 상태를 넣는다 (blogops.md 11절 "남은 것") → 2026-10-27 `feat/blogops-improvements`: 봇 유닛 상태와 Pi 상태 파일(`status.json`)이 30분 넘게 멈췄는지를 `notices`로 알린다. 봇이 멈춰도 발행은 되므로 사이클을 멈추는 `problems`와 나눴다(`prompt.md` 1번). 테스트 5개
 - [ ] 봇과 대시보드를 합친 메모리를 잰다 (architecture.md 예산은 둘 합쳐 150~200MB, 봇 `MemoryMax`는 200M)
 
 #### 실험 러너와 공통 로거

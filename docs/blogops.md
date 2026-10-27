@@ -31,7 +31,7 @@ blogops가 강제하는 한도:
 
 | 영역 | 툴 | 입력 | 하는 일 | 권한 |
 | --- | --- | --- | --- | --- |
-| 관측 | `get_system_health` | 없음 | 디스크 여유, CPU 온도, 업타임, 사이트 응답, 마지막 빌드 결과 | read |
+| 관측 | `get_system_health` | 없음 | 디스크 여유, CPU 온도, 업타임, 사이트 응답, 마지막 빌드 결과(`problems`: 사이클을 멈춘다). 디스코드 봇 상태, Pi 상태 파일 갱신(`notices`: 알리기만 하고 계속한다, 2026-10-27) | read |
 | 기획 | `get_strategy` | 없음 | `state/strategy.md` | read |
 | 기획 | `get_backlog` | 상태(선택) | `state/backlog.json`의 글감 | read |
 | 기획 | `manage_backlog` | 추가·수정, 항목 | 글감 추가, 상태·메모 변경 (삭제 대신 `dropped`와 이유) | write |
@@ -264,7 +264,7 @@ request_approval ─▶ Hugo로 초안을 포함한 사이트 전체를 빌드 �
 ### 남은 것
 
 - 반려·접기 직후 바로 다시 쓰기는 12절에서 한다.
-- 봇이 죽었는지를 `get_system_health`가 알리지는 않는다.
+- ~~봇이 죽었는지를 `get_system_health`가 알리지는 않는다.~~ 2026-10-27: `notices`로 알린다. 봇이 멈춰도 발행은 할 수 있어서 사이클을 멈추는 `problems`에는 넣지 않는다.
 - 미리보기 주소가 새는 것이 걱정되면 Cloudflare Access를 겹친다. 초안은 승인되면 어차피 공개될 글이라 지금은 토큰 주소로 충분하다고 판단했다(2026-10-13 운영자 결정).
 
 ## 12. 반려·접기 직후 바로 쓰기 (2026-10-13)
