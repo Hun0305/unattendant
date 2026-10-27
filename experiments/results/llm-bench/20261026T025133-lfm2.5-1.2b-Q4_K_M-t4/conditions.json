@@ -1,0 +1,80 @@
+{
+  "run_id": "20261026T025133-lfm2.5-1.2b-Q4_K_M-t4",
+  "template": {
+    "id": "llm-bench",
+    "version": 1,
+    "sha256": "97a93ad88520"
+  },
+  "started": "2026-10-26T02:51:33+09:00",
+  "model": {
+    "id": "lfm2.5-1.2b",
+    "name": "LFM2.5 1.2B Instruct",
+    "maker": "Liquid AI",
+    "released": "2026-01",
+    "structure": "하이브리드(합성곱 10층 + 어텐션 6층)",
+    "license": "LFM Open License v1.0",
+    "thinking": "없음 (생각 모드는 별도 Thinking 모델)"
+  },
+  "file": {
+    "quant": "Q4_K_M",
+    "repo": "LiquidAI/LFM2.5-1.2B-Instruct-GGUF",
+    "revision": "8ed288026e23958ad9dfa92d53ed773a8eee7125",
+    "file": "LFM2.5-1.2B-Instruct-Q4_K_M.gguf",
+    "size": 730895168,
+    "sha256": "b1b3de114215d9507409a662a501a631095a479a419584e8a2ded6304b19b4f5",
+    "arch": "lfm2"
+  },
+  "params": {
+    "quant": "Q4_K_M",
+    "tests": [
+      "pp512",
+      "tg128",
+      "tg128@d2048"
+    ],
+    "threads": [
+      4
+    ],
+    "reps": {
+      "pp512": 5,
+      "tg128": 5,
+      "tg128@d2048": 3
+    },
+    "load_mode": "none"
+  },
+  "system": {
+    "board": "Raspberry Pi 4 Model B Rev 1.5",
+    "cpu_features": "fp asimd evtstrm crc32 cpuid",
+    "cpu_count": 4,
+    "governor": "ondemand",
+    "mem_total_mb": 3795,
+    "swap": [
+      "/dev/zram0"
+    ],
+    "kernel": "6.18.50+rpt-rpi-v8",
+    "os": "Debian GNU/Linux 13 (trixie)",
+    "python": "3.13.5"
+  },
+  "llama_cpp": {
+    "dir": "/home/hun/opt/llama.cpp/v0.6.0",
+    "tag": "v0.6.0",
+    "commit": "d81235049384534c167caea52b85a694f6103d14",
+    "cpu_backend_flags": "-U__ARM_FEATURE_DOTPROD;-U__ARM_FEATURE_MATMUL_INT8;-U__ARM_FEATURE_SVE;-U__ARM_FEATURE_SME;-mcpu=cortex-a72+crc+nodotprod+noi8mm+nosve+nosme"
+  },
+  "code": {
+    "commit": "990c08fb2f56d6281b6d8d67be822c94b219ac40",
+    "dirty": false
+  },
+  "model_file_cold_read": {
+    "seconds": 15.9,
+    "mb_per_s": 46.0
+  },
+  "start": {
+    "temp_c": 36.5,
+    "mem_available_mb": 3167,
+    "load1": 0.6,
+    "throttled": 0,
+    "vscode_processes": 0,
+    "memory_max_mb": 2500,
+    "swap_max_mb": 0
+  }
+}
