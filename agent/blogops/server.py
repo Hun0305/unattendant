@@ -169,7 +169,8 @@ def create_draft(slug: str, series: str, title: str, description: str, tags: lis
     config, store, _ = context()
     draft_id = store.create_draft(slug=slug, series=series, ko=_lang(title, description, tags, body),
                                   en=_lang(en_title, en_description, en_tags, en_body),
-                                  sources=list(sources) if sources else None, backlog_id=backlog_id)
+                                  sources=list(sources) if sources else None, backlog_id=backlog_id,
+                                  model=os.environ.get("BLOGOPS_MODEL") or None)
     warnings = []
     if backlog_id:
         try:

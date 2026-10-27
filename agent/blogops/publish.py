@@ -3,7 +3,7 @@
 1. 승인된 그 버전인지 (상태 approved = 마지막 승인의 해시가 지금 해시)
 2. 품질 검사를 통과한 버전인지
 3. 오늘(KST) Huninn이 발행한 글이 없는지
-4. site/content/posts/<슬러그>/로 복사하고 date를 넣는다
+4. site/content/posts/<슬러그>/로 복사하고 date와 발행 기록(receipt)을 넣는다
 5. 임시 폴더에 먼저 빌드하고, 성공하면 실제 public/을 빌드한다. 실패하면 되돌린다
 6. 사이트 레포에 작성자 Huninn으로 커밋하고 push한다 (겹치면 rebase 후 한 번 더)
 7. 공개 URL에서 200과 제목을 확인한다
@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import html
+import os
 import shutil
 import subprocess
 import tempfile
@@ -20,7 +21,7 @@ import urllib.request
 from pathlib import Path
 from typing import Callable
 
-from . import backlog, log, records
+from . import backlog, frontmatter, log, records, status
 from .config import Config, find_tool
 from .store import STATUS_LABELS, Store
 
@@ -61,11 +62,12 @@ def publish_post(config: Config, store: Store, draft_id: str, verify: Verify | N
     langs = sorted(store.draft_paths(draft_id))
     assets = [p.name for p in store.asset_paths(draft_id)]
 
+    stamped = {"date": stamp, "receipt": receipt(store, draft_id, meta)}
     dst.mkdir(parents=True)
     try:
         for path in store.draft_paths(draft_id).values():
-            text = path.read_text(encoding="utf-8").replace("---\n", f'---\ndate: "{stamp}"\n', 1)
-            (dst / path.name).write_text(text, encoding="utf-8")
+            fields, body = frontmatter.parse(path.read_text(encoding="utf-8"))
+            (dst / path.name).write_text(frontmatter.render({**fields, **stamped}, body), encoding="utf-8")
         for path in store.asset_paths(draft_id):
             shutil.copy2(path, dst / path.name)
         _build(site, slug, langs)
@@ -95,6 +97,26 @@ def publish_post(config: Config, store: Store, draft_id: str, verify: Verify | N
             warnings.append(f"백로그를 바꾸지 못했다: {e}")
     log.append(config, "publish_post", "huninn", draft_id=draft_id, warnings=warnings, **record)
     return {**record, "draft_id": draft_id, "warnings": warnings}
+
+
+def receipt(store: Store, draft_id: str, meta: dict) -> dict:
+    """글 하단 "발행 기록"(사이트 layouts/_partials/post-receipt.html)에 공개하는 값.
+    비공개 초안 기록(meta.json, 승인 기록)에서 날짜와 횟수만 꺼내고, 반려 사유 같은 글은 넣지 않는다.
+    Pi 상태는 발행하는 순간에 직접 읽는다(status.json과 같은 함수). 읽지 못한 값은 뺀다."""
+    decisions = store.decisions(draft_id)
+    mem = status.memory_gb()
+    record = {
+        "cycle": os.environ.get("BLOGOPS_CYCLE_ID") or None,
+        "model": meta.get("model"),
+        "drafted": meta["created_at"],
+        "quality_checks": len(meta.get("quality", [])),
+        "rejections": sum(d["decision"] == "rejected" for d in decisions),
+        "approved": decisions[-1]["at"],
+        "cpu_temp_c": status.cpu_temp_c(),
+        "mem_used_gb": mem[0] if mem else None,
+        "mem_total_gb": mem[1] if mem else None,
+    }
+    return {k: v for k, v in record.items() if v is not None}
 
 
 def _hugo() -> str:

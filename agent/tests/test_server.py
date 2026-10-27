@@ -55,6 +55,7 @@ class ServerTest(unittest.TestCase):
         self.assertFalse(server.get_approval_status(draft_id="20261008-nope")["ok"])
 
     def test_draft_flow(self):
+        os.environ["BLOGOPS_MODEL"] = "claude-sonnet-5-5"  # cycle.py가 넘긴다. setUp의 patch.dict가 되돌린다
         result = server.create_draft(slug="naming", series="ops-log", title="이름 짓기", description="요약",
                                      tags=["meta"], body=good_body(), sources=[SOURCE], backlog_id="naming")
         self.assertTrue(result["ok"], result)
@@ -72,6 +73,7 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(draft["langs"]["ko"]["body"].strip(), good_body().strip())
         self.assertEqual(draft["sources"], [SOURCE])
         self.assertEqual((draft["status"], draft["last_rejection"]), ("writing", None))
+        self.assertEqual(self.store.meta(draft_id)["model"], "claude-sonnet-5-5")
         self.assertFalse(server.get_draft(draft_id="20261008-nope")["ok"])
 
     def test_strategy_carries_past_rejections(self):

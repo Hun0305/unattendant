@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from blogops import backlog, frontmatter, publish
 from blogops.config import find_tool
@@ -46,6 +47,7 @@ class PublishTest(unittest.TestCase):
         # 사이트 원본에 date가 들어간 글, 실제 public/ 빌드
         fields, _ = frontmatter.parse((self.site / "content/posts/naming/index.ko.md").read_text(encoding="utf-8"))
         self.assertEqual(fields["date"], result["at"])
+        self.assertEqual(fields["title"], KO["title"])
         self.assertTrue((self.site / "public/posts/naming/index.html").exists())
         # 커밋은 작성자 Huninn, origin에도 올라갔다
         self.assertEqual(self.head(self.site), f'Huninn|huninn@unattendant.dev|content(ai): {KO["title"]}')
@@ -56,6 +58,30 @@ class PublishTest(unittest.TestCase):
         # 상태와 백로그
         self.assertEqual(self.store.status(draft_id), "published")
         self.assertEqual(backlog.items(self.config, "published")[0]["id"], "naming")
+
+    def test_receipt(self):
+        draft_id = self.store.create_draft(slug="naming", series="ops-log", ko=KO, backlog_id="naming",
+                                           model="claude-sonnet-5-5")
+        self.store.record_quality(draft_id, False, ["짧다"])
+        self.store.record_quality(draft_id, True, [])
+        self.store.record_approval_request(draft_id)
+        self.store.record_decision(draft_id, "rejected", reason="제목이 전문용어뿐이다")
+        self.store.update_draft(draft_id, note="제목을 고쳤다", ko={"title": "이름은 이렇게 정했다"})
+        self.store.record_quality(draft_id, True, [])
+        self.store.record_approval_request(draft_id)
+        self.store.record_decision(draft_id, "approved")
+        with mock.patch.dict("os.environ", {"BLOGOPS_CYCLE_ID": "cycle-20261027T140000"}), \
+                mock.patch.object(publish.status, "cpu_temp_c", return_value=48.3), \
+                mock.patch.object(publish.status, "memory_gb", return_value=None):
+            publish.publish_post(self.config, self.store, draft_id, verify=ok)
+        fields, _ = frontmatter.parse((self.site / "content/posts/naming/index.ko.md").read_text(encoding="utf-8"))
+        r = fields["receipt"]
+        self.assertEqual((r["cycle"], r["quality_checks"], r["rejections"], r["cpu_temp_c"]),
+                         ("cycle-20261027T140000", 3, 1, 48.3))
+        self.assertEqual(r["model"], "claude-sonnet-5-5")
+        self.assertEqual(r["approved"], self.store.decisions(draft_id)[-1]["at"])
+        self.assertNotIn("mem_used_gb", r)  # 읽지 못한 값은 뺀다
+        self.assertNotIn("제목이 전문용어뿐이다", (self.site / "content/posts/naming/index.ko.md").read_text())
 
     def test_publish_copies_figures(self):
         shortcode = self.site / "layouts" / "_shortcodes"

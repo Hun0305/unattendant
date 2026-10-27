@@ -193,7 +193,7 @@ class Store:
 
     def create_draft(self, *, slug: str, series: str, ko: dict, en: Optional[dict] = None,
                      sources: Optional[list] = None, backlog_id: Optional[str] = None,
-                     note: str = "초안 작성") -> str:
+                     note: str = "초안 작성", model: Optional[str] = None) -> str:
         if not SLUG_RE.match(slug or "") or len(slug) > 60:
             raise StoreError(f"슬러그는 소문자·숫자·하이픈으로 60자 이내여야 한다: {slug!r}")
         if series not in SERIES:
@@ -211,6 +211,7 @@ class Store:
                 "slug": slug,
                 "series": series,
                 "backlog_id": backlog_id,
+                "model": model,  # 초안을 쓴 모델 (cycle.py가 BLOGOPS_MODEL로 넘긴다. 손으로 만든 초안은 없음)
                 "created_at": ts,
                 "updated_at": ts,
                 "revisions": [{"at": ts, "note": note, "hash": self.content_hash(draft_id)}],

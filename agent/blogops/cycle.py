@@ -51,13 +51,15 @@ def _fill(value, mapping: dict):
     return value
 
 
-def mcp_config(config: Config, cycle_id: str) -> dict:
+def mcp_config(config: Config, cycle_id: str, model: str | None = None) -> dict:
     template = json.loads((config.root / "ops" / "huninn" / "mcp.json").read_text(encoding="utf-8"))
     data = _fill(template, {"BLOGOPS_ROOT": str(config.root)})
     server_env = data["mcpServers"]["blogops"].setdefault("env", {})
     # 시험 실행 옵션(BLOGOPS_NO_PUBLISH, BLOGOPS_SITE_DIR 등)이 서버까지 가야 한다
     server_env.update({k: v for k, v in os.environ.items() if k.startswith("BLOGOPS_")})
     server_env["BLOGOPS_CYCLE_ID"] = cycle_id
+    if model:
+        server_env["BLOGOPS_MODEL"] = model  # 초안 meta.json과 글 하단 발행 기록에 남는다 (docs/engines.md 3절)
     return data
 
 
@@ -216,7 +218,7 @@ def _run_cycle(config: Config, model: str, timeout: float, transport) -> dict:
         workdir.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="huninn-cycle-") as tmp:
             mcp_path = Path(tmp) / "mcp.json"
-            mcp_path.write_text(json.dumps(mcp_config(config, cycle_id), ensure_ascii=False), encoding="utf-8")
+            mcp_path.write_text(json.dumps(mcp_config(config, cycle_id, model), ensure_ascii=False), encoding="utf-8")
             code, out, err, timed_out = _run(command(config, mcp_path, model), user_message(cycle_id, started),
                                              workdir, claude_env(config), timeout)
         record.update(exit_code=code, timed_out=timed_out, **summarize(out))
@@ -254,7 +256,7 @@ def main(argv: list[str] | None = None) -> int:
         cmd[cmd.index("--system-prompt") + 1] = f"<ops/huninn/prompt.md {len(cmd[cmd.index('--system-prompt') + 1])}자>"
         print("작업 폴더:", huninn_home() / "work")
         print("명령:", " ".join(json.dumps(c, ensure_ascii=False) if not c or " " in c else c for c in cmd))
-        print("MCP 설정:", json.dumps(mcp_config(config, "cycle-<시각>"), ensure_ascii=False, indent=2))
+        print("MCP 설정:", json.dumps(mcp_config(config, "cycle-<시각>", model), ensure_ascii=False, indent=2))
         return 0
 
     try:

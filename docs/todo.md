@@ -107,6 +107,8 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - [ ] 구조와 Claude 경로: `HUNINN_ENGINE`, `--engine`, 엔진별 명령·환경변수·결과 파싱, `engine`·`engine_error` 필드, 테스트
   - [ ] agy 경로 (T1~T9 뒤): 명령·환경변수·결과 파싱, Argon 단가표로 추정 비용, `ops/huninn/agy-settings.json`과 설치 스크립트
 - [ ] `BLOGOPS_ENGINE`·`BLOGOPS_MODEL`을 초안 `meta.json`에 기록
+  - [x] `BLOGOPS_MODEL` (2026-10-27, `feat/blogops-improvements`): `cycle.py`가 MCP 서버에 넘기고 `create_draft`가 `meta.json`의 `model`에 적는다. 발행 기록(`receipt.model`)으로 글 하단에도 보인다
+  - [ ] `BLOGOPS_ENGINE`: 엔진 선택 구조를 만들 때
 - [ ] 모래상자: `BLOGOPS_NO_NOTIFY`, `--item <백로그 ID>`, worktree + 사이트 사본
 - [ ] T10~T11 시험 사이클과 실패 신호 확인
 - [ ] 블라인드 비교: 글감 3개 × 엔진 2개, 결과 `experiments/engine-compare/` (engines.md 5절)
@@ -164,6 +166,7 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 - [x] `get_draft` 툴 (2026-10-27, `feat/blogops-improvements`): Huninn이 초안 본문을 읽을 툴이 없어, 반려된 초안을 고칠 때 반려 사유만 보고 `update_draft`로 제목만 바꿀 수 있었다. 매장 로그 2026-10-16: `first-auto-cycle`을 고친 두 사이클 모두 `get_approval_status` 바로 뒤에 제목만 바꾼 `update_draft`(body 빈 값)를 불렀고, 두 번째 반려 사유는 "이전 수정안과 거의 같음"이었다. 언어별 제목·요약·태그·본문, 출처, 그림, 상태, 마지막 품질 검사와 반려 사유를 돌려준다. `prompt.md` 3·4번(반려된 초안, 쓰다 만 초안)에서 먼저 읽게 했다. 툴 21개
 - [x] 지난 반려 사유를 새 초안에도 (2026-10-27, `feat/blogops-improvements`): `get_strategy`가 모든 초안의 반려 사유(최근 20건)를 함께 돌려주고, `prompt.md` 4번이 쓰기 전에 읽게 한다. 10-16에 같은 제목 문제로 두 번 반려된 것처럼, 매 사이클 백지로 깨어나 다른 초안에서 받은 교훈을 잊는다(컨설팅 보고서 5-1의 8). 전략 문서를 고치는 것은 운영자 몫이라 그대로 두었다
 - [x] `review diff` (2026-10-27, `feat/blogops-improvements`): `update_draft`가 고치기 전 판을 초안 폴더 `history/<해시>/`에 남기고, `review diff`가 지난 반려 판과 지금 판을 비교한다. `review show`에 고친 이력(note)도 보인다. 반려 뒤 제목만 바뀌었는지 바로 알 수 있다. #승인 메시지에도 "반려 뒤 바뀐 것: 제목, 본문은 그대로"처럼 한 줄로 붙는다
+- [x] 발행 기록 (2026-10-27, `feat/blogops-improvements` + 사이트 레포 `feat/site-share`): `publish_post`가 front matter `receipt`에 사이클 ID, 초안을 쓴 모델, 초안 작성 시각, 품질 검사 횟수, 운영자 반려 횟수, 승인 시각, 발행 순간의 CPU 온도·메모리를 넣고, 사이트가 글 하단 "발행 기록"으로 보인다. 반려 사유 같은 비공개 기록의 내용은 넣지 않는다. 영어판은 한국어판 것을 쓴다. 그 전에 발행한 4편에는 없다(채워 넣을지는 운영자가 정한다)
 - [x] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시 (Phase 2 실제 청구와 섞지 않는다) → 2026-10-07 `cycle.py`가 `logs/cycles.jsonl`에 남긴다(모델별 사용량 포함). `get_week_summary`가 주간 합계를 쓴다
 
 ### 사이트
@@ -190,7 +193,7 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - 파이프라인: systemd 타이머 → `claude -p` → blogops MCP 툴(초안 → 품질 검사 → 승인 요청 → 발행) → Hugo 빌드 → 공개 URL 확인 → 색인 요청. 그림 하나로 보여준다
   - 어디에: 첫 글 "두뇌" 부분 보강(수정일 표시), 소개 페이지, 글마다 쓴 모델을 글 하단에 표시할지 검토
   - 완료 (2026-10-12, 사이트 레포 `317fe80`·`7e93899`·`0783aeb`): 첫 글 "두뇌"를 "Huninn은 어떻게 돌아가나" 소절로 교체(모델 `claude-sonnet-5-5` 고정, effort 미설정, `claude -p`, Pro 구독과 추정 비용, blogops 툴 18개, 하루 사이클 그림, 한도 표, 개발에 쓴 Claude Code). 소개 페이지에도 모델 설명 추가. 영어판도 같은 내용, 글 끝에 수정 기록
-  - 남음: 글마다 쓴 모델을 글 하단에 표시할지는 검토하지 않았다(레이아웃에 모델 표시 없음)
+  - 남음: 글마다 쓴 모델을 글 하단에 표시할지는 검토하지 않았다(레이아웃에 모델 표시 없음) → 2026-10-27 발행 기록에 "초안을 쓴 모델"로 넣었다(아래 "발행 기록"). 그 전에 발행한 글에는 없다
 - [x] (친구 피드백, 2026-10-07) 첫 글 성공 기준 1 "사람 개입 없이 4주 이상 연속 운영"에서 무인 운영의 기준을 정확히 정의
   - 무엇이 "개입"인지: 승인·반려, 초안 수정, 서비스 재시작, 설정·코드 수정, 보안 업데이트(`apt upgrade`), 토큰 갱신 같은 경우를 하나씩 정한다. 설계 문서는 지금 "수동 승인을 제외한 수동 조작·수정"뿐이다
   - 4주를 언제부터 세는지: 승인 모드 해제(게이트 3) 뒤부터인지, 개입이 한 번 생기면 0일부터 다시 세는지
