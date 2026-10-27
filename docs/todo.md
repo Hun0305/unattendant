@@ -399,6 +399,8 @@ architecture.md "관측성과 포트폴리오 지표"의 지표를 실제로 계
 
 - [x] 메모리 cgroup 켜기 (2026-10-12 완료)
 - [ ] SSH, Caddy, 터널의 OOM 우선순위를 낮춘다(`OOMScoreAdjust` 드롭인). 메모리가 모자라면 실험이 먼저 죽게 한다. 2026-10-07 확인: 셋 다 기본값 0
+  - [x] 파일 준비 (2026-10-27, `feat/ops-hardening`): Caddy·터널 유닛에 `OOMScoreAdjust=-500`, SSH 드롭인 `ops/systemd/ssh.service.d/oom.conf`, 설치 스크립트 `ops/install-oom-guard.sh`. 실험은 이미 +500
+  - [ ] 매장 pull 뒤 `sudo bash ops/install-oom-guard.sh` 실행, `oom_score_adj` 확인
 - [ ] Cloudflare HTML 캐시 규칙: Pi가 실험으로 바빠도 블로그가 열리게 한다. 짧은 엣지 TTL(예: 10분)로 시작한다. 발행 때 캐시를 비우는 방식은 API 토큰이 하나 더 필요하다
 
 **러너**

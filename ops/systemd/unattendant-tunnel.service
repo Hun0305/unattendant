@@ -15,6 +15,8 @@ ExecStart=/usr/bin/cloudflared --no-autoupdate --config /home/hun/unattendant-li
 Restart=on-failure
 RestartSec=5
 MemoryMax=200M
+# 메모리가 모자라면 실험(exp-night, +500)이 먼저 죽고 블로그는 남는다 (ops/README.md "OOM 우선순위")
+OOMScoreAdjust=-500
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
