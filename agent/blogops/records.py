@@ -125,16 +125,26 @@ def _loose_front_matter(text: str) -> dict:
     if not text.startswith("---\n"):
         return {}
     end = text.find("\n---\n", 3)
-    fields = {}
+    fields, last = {}, None
     for line in text[4:end if end != -1 else len(text)].splitlines():
+        item = line.strip()
+        # 여러 줄 목록(tags:\n  - meta)은 바로 위 키의 값이 비어 있을 때만 그 목록으로 모은다
+        # 사전 원소(- title: …)는 읽지 않는다
+        if line.startswith((" ", "-")) and item.startswith("- ") and last and isinstance(fields[last], list):
+            if ": " not in item:
+                fields[last].append(item[2:].strip().strip("'\""))
+            continue
         key, sep, value = line.partition(":")
         if not sep or line.startswith((" ", "#")):
             continue
-        value = value.strip()
+        value, last = value.strip(), key.strip()
+        if not value:
+            fields[last] = []
+            continue
         try:
-            fields[key.strip()] = json.loads(value)
+            fields[last] = json.loads(value)
         except ValueError:
-            fields[key.strip()] = value.strip("'\"")
+            fields[last] = value.strip("'\"")
     return fields
 
 
