@@ -61,6 +61,15 @@ class QualityTest(unittest.TestCase):
         escape = [{"title": "밖", "url": "https://github.com/Hun0305/unattendant/blob/main/../../etc/passwd"}]
         self.assertProblem(self.check(self.draft(slug="escape", sources=escape)), "레포에 없다")
 
+    def test_post_links_must_exist(self):
+        ok = good_body("[첫 글](/posts/starting-unattendant/)과 [전체 주소](https://example.org/posts/starting-unattendant/#두뇌)")
+        self.assertTrue(self.check(self.draft(slug="link-ok", body=ok))["passed"])
+        for text, expect in (("[없는 글](/posts/no-such-post/)", "/posts/no-such-post/"),
+                             ("[영어판 없음](https://example.org/en/posts/starting-unattendant/)", "/en/posts/starting-unattendant/")):
+            with self.subTest(text=text):
+                slug = f"l{abs(hash(text)) % 100000}"
+                self.assertProblem(self.check(self.draft(slug=slug, body=good_body(text))), expect)
+
     def test_privacy(self):
         for text, expect in (("공유기 192.168.0.50", "내부 IP"), ("tailnet 100.101.102.103", "내부 IP"),
                              ("MAC aa:bb:cc:dd:ee:ff", "MAC"), ("연락 someone@example.com", "이메일")):

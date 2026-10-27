@@ -112,6 +112,7 @@ def run_checks(config: Config, store: Store, draft_id: str, scan: Check, build: 
         urls += LINK_RE.findall(body)
     for url in dict.fromkeys(urls):
         problems += _check_repo_link(config, url)
+    problems += _post_link_problems(config, bodies.values())
 
     # 쓰지 않는 것: 내부 IP·MAC 주소, 이메일
     texts = [f"{f.get('title', '')}\n{f.get('description', '')}\n{b}" for f, b in parsed.values()]
@@ -181,6 +182,20 @@ def _check_repo_link(config: Config, url: str) -> list[str]:
     if not target.is_relative_to(base.resolve()) or not target.exists():
         return [f"링크한 파일이 레포에 없다: {url}"]
     return []
+
+
+def _post_link_problems(config: Config, bodies) -> list[str]:
+    """이 블로그 글로 가는 링크(/posts/<슬러그>/, /en/posts/…, 전체 주소 포함)가 발행된 글을 가리키는지."""
+    base = re.escape(records.site_base_url(config))
+    link = re.compile(rf"\]\((?:{base})?/(en/)?posts/([^/)#?\s]+)/?(?:#[^)]*)?\)")
+    published = {(p["lang"], p["slug"]) for p in records.site_posts(config)}
+    problems = []
+    for body in bodies:
+        for en, slug in dict.fromkeys(link.findall(body)):
+            lang = "en" if en else "ko"
+            if (lang, slug) not in published:
+                problems.append(f"링크한 글이 없다: /{en}posts/{slug}/ ({lang}판으로 발행된 글만 링크한다. list_posts로 슬러그를 확인한다)")
+    return problems
 
 
 def _privacy_problems(text: str) -> list[str]:

@@ -76,6 +76,7 @@ class TranslateTest(unittest.TestCase):
         for kw, text in ((dict(body="Too short."), "짧다"),
                          (dict(body="## ok\n\n# Title\n\n" + EN_BODY), "h1"),
                          (dict(body=EN_BODY + " Mail me at someone@example.com."), "이메일"),
+                         (dict(body=EN_BODY + " See [this](/en/posts/no-such-post/)."), "링크한 글이 없다"),
                          (dict(tags=[]), "tags")):
             with self.assertRaisesRegex(PublishError, text):
                 self.add(**kw)

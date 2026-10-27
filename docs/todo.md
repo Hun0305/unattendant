@@ -167,6 +167,7 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
 - [ ] 발행 기록 채우기 (2026-10-27, 운영 `feat/blogops-improvements` + 사이트 `feat/site-share`): `review receipts`가 receipt 전에 발행된 AI 글 4편의 기록을 남은 기록(초안·승인 기록, `cycles.jsonl`)으로 만들어 보인다. 사이트는 `backfilled`가 있으면 "나중에 채웠고 Pi 상태는 없다"고 밝힌다. 공개된 글을 고치는 일이라 front matter에 넣는 것은 운영자가 정한다
 - [x] 지난 반려 사유를 새 초안에도 (2026-10-27, `feat/blogops-improvements`): `get_strategy`가 모든 초안의 반려 사유(최근 20건)를 함께 돌려주고, `prompt.md` 4번이 쓰기 전에 읽게 한다. 10-16에 같은 제목 문제로 두 번 반려된 것처럼, 매 사이클 백지로 깨어나 다른 초안에서 받은 교훈을 잊는다(컨설팅 보고서 5-1의 8). 전략 문서를 고치는 것은 운영자 몫이라 그대로 두었다
 - [x] `review diff` (2026-10-27, `feat/blogops-improvements`): `update_draft`가 고치기 전 판을 초안 폴더 `history/<해시>/`에 남기고, `review diff`가 지난 반려 판과 지금 판을 비교한다. `review show`에 고친 이력(note)도 보인다. 반려 뒤 제목만 바뀌었는지 바로 알 수 있다. #승인 메시지에도 "반려 뒤 바뀐 것: 제목, 본문은 그대로"처럼 한 줄로 붙는다
+- [x] 내부 링크 검사 (2026-10-27, 같은 브랜치): 품질 검사와 영어판 검사가 이 블로그 글로 가는 링크(`/posts/<슬러그>/`)가 발행된 글인지 확인한다. 프롬프트에 이전 글 링크 규칙 한 줄
 - [x] 발행 기록 (2026-10-27, `feat/blogops-improvements` + 사이트 레포 `feat/site-share`): `publish_post`가 front matter `receipt`에 사이클 ID, 초안을 쓴 모델, 초안 작성 시각, 품질 검사 횟수, 운영자 반려 횟수, 승인 시각, 발행 순간의 CPU 온도·메모리를 넣고, 사이트가 글 하단 "발행 기록"으로 보인다. 반려 사유 같은 비공개 기록의 내용은 넣지 않는다. 영어판은 한국어판 것을 쓴다. 그 전에 발행한 4편에는 없다(채워 넣을지는 운영자가 정한다)
 - [x] 비용 로그: `claude -p --output-format json`의 `total_cost_usd`를 사이클마다 기록하고 `estimate: true`로 표시 (Phase 2 실제 청구와 섞지 않는다) → 2026-10-07 `cycle.py`가 `logs/cycles.jsonl`에 남긴다(모델별 사용량 포함). `get_week_summary`가 주간 합계를 쓴다
 

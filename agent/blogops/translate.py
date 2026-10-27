@@ -123,6 +123,7 @@ def _problems(config: Config, post, fields: dict, body: str, text: str, scan) ->
         urls.append(str(source.get("url", "")))
     for url in dict.fromkeys(urls):
         problems += quality._check_repo_link(config, url)
+    problems += quality._post_link_problems(config, [body])
     problems += quality._privacy_problems(f"{fields['title']}\n{fields['description']}\n{body}")
     # 비밀값 검사는 임시 파일로 한다 (글 폴더를 건드리지 않는다)
     with tempfile.TemporaryDirectory(prefix="blogops-en-") as tmp:
