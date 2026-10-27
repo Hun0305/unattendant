@@ -11,6 +11,8 @@ Pi에서 블로그를 띄우는 데 필요한 설정과 설치 기록. 다른 �
 | `systemd/unattendant-caddy.service` | Caddy 상시 실행 |
 | `cloudflared/config.yml` | Named Tunnel `unattendant` ingress (`unattendant.dev` → `127.0.0.1:8080`, `preview.unattendant.dev` → `127.0.0.1:8081`) |
 | `systemd/unattendant-tunnel.service` | 터널 상시 실행 |
+| `upgrade-cloudflared.sh` | cloudflared를 GitHub 릴리스 arm64 .deb로 올리고(버전·sha256 고정) 터널을 다시 시작한다. apt 저장소 없이 설치돼 있고 `--no-autoupdate`라 저절로 오르지 않는다 (sudo) |
+| `systemd/ssh.service.d/oom.conf`, `install-oom-guard.sh` | SSH·Caddy·터널의 OOM 우선순위를 낮춘다(`OOMScoreAdjust=-500`). 아래 "OOM 우선순위" (sudo) |
 | `install-log2ram.sh` | log2ram 설치 (Debian 패키지, 기본 설정, sudo, 재부팅 필요) |
 | `install-gitleaks.sh` | gitleaks 설치 + 두 레포의 `core.hooksPath`를 `ops/githooks`로 연결 |
 | `githooks/pre-commit` | 커밋 직전 검사: 금지 파일(`.env`, `*.pem`, `*.key`, `logs/`, `state/drafts/`, `state/approvals/`, `state/previews/`, SSH 키) + gitleaks 비밀값 패턴 |
@@ -417,6 +419,20 @@ grep memory /sys/fs/cgroup/cgroup.controllers                                   
 
 - `cmdline.txt`는 한 줄이어야 한다. 줄이 나뉘면 부팅하지 못할 수 있다. Tailscale로만 접속하는 중이면 백업과 확인을 먼저 한다.
 - 켜면 커널이 메모리 사용을 추적하느라 메모리를 조금 더 쓴다. Raspberry Pi가 기본으로 꺼 둔 이유다.
+
+## OOM 우선순위 (sudo)
+
+메모리가 모자라 커널 OOM killer가 돌 때 무엇이 먼저 죽을지 정한다. 밤 실험(`exp-night.service`)은 `OOMScoreAdjust=500`으로 먼저 죽고, 블로그(Caddy·터널)와 원격 접속(SSH)은 `-500`으로 남는다. 2026-10-07 확인으로는 셋 다 기본값 0이었다(2026-10-27 다시 확인해도 0, `huninn-bot`도 0).
+
+```bash
+cd ~/unattendant-live && git pull --ff-only
+sudo bash ops/install-oom-guard.sh   # 유닛·드롭인 설치, daemon-reload, sshd -t, 세 서비스 재시작, 값 확인
+```
+
+- `OOMScoreAdjust`는 프로세스를 시작할 때 걸리므로 다시 시작해야 반영된다. sshd를 다시 시작해도 열린 세션은 끊기지 않는다. Caddy·터널은 몇 초 끊긴다
+- Caddyfile 변경(CSS·JS·글꼴 캐시, 보안 헤더, CSP)도 Caddy를 다시 시작할 때 같이 반영된다(admin API를 꺼 둬서 reload 대신 재시작)
+- **순서**: CSP(`script-src 'self'`)는 상태 띠 스크립트를 외부 파일(`js/status.*.js`)로 뺀 사이트 판이 매장에 먼저 발행된 뒤에 건다. 사이트 판이 옛것이면 인라인 스크립트가 막혀 띠가 "운영 준비 중"에 머문다(사이트는 그대로 보인다). 확인: `curl -s https://unattendant.dev/ | grep -c '<script>'` → `0`
+- 확인: `cat /proc/$(systemctl show -p MainPID --value unattendant-caddy)/oom_score_adj` → `-500`
 
 ## 버전 기록
 
