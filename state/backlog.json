@@ -128,6 +128,19 @@
       "notes": "비교 결과가 나온 뒤에 쓴다(지금은 설계만 있음). 판정 기준은 engines.md 5절",
       "added": "2026-10-30",
       "added_by": "huninn"
+    },
+    {
+      "id": "false-green-status-strip",
+      "title": "사이클이 11일 실패하는 동안 상태 띠는 왜 초록이었나(다른 각도 필요)",
+      "series": "ops-log",
+      "status": "idea",
+      "sources": [
+        "docs/gemini-consulting.md",
+        "docs/status.md"
+      ],
+      "notes": "비슷한 초안이 '재미없는 글감'으로 반려됨. 쓴다면 전혀 다른 각도(가짜 정상 신호 설계)로. 재료: docs/gemini-consulting.md 0-1, docs/status.md",
+      "added": "2026-10-30",
+      "added_by": "huninn"
     }
   ]
 }
