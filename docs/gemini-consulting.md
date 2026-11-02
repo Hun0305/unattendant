@@ -3,7 +3,7 @@
 > **작성일**: 2026-10-22 (Cycle 1~6 전수 감사 완료)
 > **작성 관점**: 12년차 테크 블로그 디렉터 & 에이전트 시스템 아키텍트
 > **핵심 목표**: 수익화(광고) 없이도 **"사람들이 먼저 찾아 읽고 싶어 하는 재밌고 유용한 하드코어 테크 블로그"**로 만들고, 독자가 글을 끝까지 읽고 나서야 **"잠깐, 이 필력 좋은 엔지니어가 라즈베리파이 4B 안에 사는 AI였다고?!"**라며 소름 돋게 만드는 것(The Prestige 연출).
-> **감사 범위**: 작업실(`/home/hun/unattendant`) 전체 코드·문서·실험 러너 + 매장(`/home/hun/unattendant-live`) 실제 발행글 5편·초안 2편·승인 기록·런타임 로그(`cycles.jsonl`, `2026-10-12~21.jsonl`, `experiments.jsonl`) + systemd 타이머·워크트리 전수 조사.
+> **감사 범위**: 작업실(`/home/hun/unattendant`) 전체 코드·문서·실험 러너 + 매장(`/home/hun/unattendant/live`) 실제 발행글 5편·초안 2편·승인 기록·런타임 로그(`cycles.jsonl`, `2026-10-12~21.jsonl`, `experiments.jsonl`) + systemd 타이머·워크트리 전수 조사.
 
 ---
 
@@ -22,11 +22,11 @@
 
 ## 🚨 Part 0. 당장 고쳐야 할 라이브 장애 & 인프라 데드락 4건 (Live Incident Audit)
 
-문서만 봐서는 절대 알 수 없었던, 실제 운영 폴더(`/home/hun/unattendant-live`)와 실험 로그(`/home/hun/unattendant/logs/experiments.jsonl`) 전수 조사에서 발견한 **현재 진행형 장애 4건**입니다.
+문서만 봐서는 절대 알 수 없었던, 실제 운영 폴더(`/home/hun/unattendant/live`)와 실험 로그(`/home/hun/unattendant/logs/experiments.jsonl`) 전수 조사에서 발견한 **현재 진행형 장애 4건**입니다.
 
 ### 0-1. [장애 1] 라이브 Huninn 5일 연속 인증 실패 (2026-10-17 ~ 10-21)
 
-- **증거 로그**: `/home/hun/unattendant-live/logs/cycles.jsonl` 11~15행
+- **증거 로그**: `/home/hun/unattendant/live/logs/cycles.jsonl` 11~15행
   - `2026-10-17 14:00:03` ~ `2026-10-21 14:00:08` (5일 연속)
   - `exit_code: 1`, `claude_error: true`, `seconds: 12~16`
   - 오류 메시지: `"Failed to authenticate: OAuth token revoked. Please log in again or contact your administrator."`
@@ -38,7 +38,7 @@
 
 ### 0-2. [장애 2] `get_draft` MCP 툴 누락으로 인한 "장님 퇴고" 버그 (10월 16일 2연속 반려 사태의 진실)
 
-- **증거 로그**: `/home/hun/unattendant-live/logs/2026-10-16.jsonl` 6~39행 및 `cycles.jsonl` 9~10행
+- **증거 로그**: `/home/hun/unattendant/live/logs/2026-10-16.jsonl` 6~39행 및 `cycles.jsonl` 9~10행
   - 10월 16일 14:18, 운영자가 디스코드에서 초안 `20261015-first-auto-cycle`을 반려했습니다:
     - **1차 반려 사유**: *"제목을 좀 다시 고쳐볼래? 지금까지 쓴 글들이 ~~였다: ~~(명사형)이라서 좀 단조로운 느낌이라."*
   - `huninn-cycle-now.path`가 1초 만에 재실행 사이클을 띄웠지만, 새 프로세스(`--no-session-persistence`)로 깨어난 Huninn에게는 **자기 초안의 본문(`index.ko.md`)을 읽는 MCP 툴이 없었습니다!**
@@ -66,16 +66,16 @@
   2. [`experiments/runner/common.py`](../experiments/runner/common.py#L152-L164)의 `vscode_pids()`가 단순히 `/.vscode-server/` 경로만 보지 않고, **VS Code 프로세스들의 전체 RSS 합계가 150MB를 넘거나 실제 활성 창(`extensionHost`)이 떠 있을 때만** 문제 삼도록 완화합니다.
   3. **꿀팁**: 이 "8일간의 Catch-22 데드락" 사건 자체가 **개발자들이 읽으면 무릎을 탁 칠 최고의 테크 블로그 글감**입니다!
 
-### 0-4. [장애 4] 작업실(`~/unattendant`)과 매장(`~/unattendant-live`)의 브랜치 분기(Drift) 및 구버전 문서 환각
+### 0-4. [장애 4] 작업실(`~/unattendant`)과 매장(`~/unattendant/live`)의 브랜치 분기(Drift) 및 구버전 문서 환각
 
 - **현재 Git 상태**:
   - 작업실(`~/unattendant`)은 `feat/auto-english` 브랜치에 있으며, `origin/main`에 없는 **7개의 미병합 커밋**(`cb0c17e` 인바운드 방화벽, `50be236` 엣지 AI 실험 러너, `d859d51` 세션 보고서, `03c82b0` `engines.md`, `099f5f3` 야간 타이머, `990c08f` `ops/README.md` 현행화)을 갖고 있습니다.
-  - 반면 `origin/main`(및 매장 `~/unattendant-live`)에는 Huninn이 10월 14·15일에 푸시한 `state/` 커밋 2개(`206675f`, `4bacc1c`)가 올라가 있습니다.
+  - 반면 `origin/main`(및 매장 `~/unattendant/live`)에는 Huninn이 10월 14·15일에 푸시한 `state/` 커밋 2개(`206675f`, `4bacc1c`)가 올라가 있습니다.
 - **실제 발생한 참사 (구버전 문서로 인한 거짓 정보 발행)**:
   - 운영자는 2026-10-12에 이미 Pi의 메모리 cgroup(`cgroup_enable=memory`)을 켰습니다.
   - 하지만 매장의 `ops/README.md` 359행에는 `"지금은 메모리 cgroup이 꺼져 있어 MemoryMax가 걸리지 않는다"`는 옛날 문장이 그대로 남아 있었고(작업실 `990c08f` 커밋에서만 고쳐짐),
   - 그 결과 Huninn은 10월 14일에 발행한 [`pi-blog-no-open-ports`](https://unattendant.dev/posts/pi-blog-no-open-ports/) 본문 43행에 **"이 Pi는 메모리 cgroup이 꺼져 있어, 서비스 유닛에 적어 둔 MemoryMax가 지금은 효과가 없다"**라고 실제 서버 상태와 정반대인 틀린 내용을 발행했습니다!
-- **즉시 조치**: 작업실의 `feat/auto-english`를 `origin/main`과 리베이스/병합해 푸시하고, 매장(`~/unattendant-live`)을 최신 `origin/main`으로 맞추며, 이미 발행된 `pi-blog-no-open-ports`(한/영)의 43행 오류를 바로잡아야 합니다.
+- **즉시 조치**: 작업실의 `feat/auto-english`를 `origin/main`과 리베이스/병합해 푸시하고, 매장(`~/unattendant/live`)을 최신 `origin/main`으로 맞추며, 이미 발행된 `pi-blog-no-open-ports`(한/영)의 43행 오류를 바로잡아야 합니다.
 
 ---
 
@@ -180,7 +180,7 @@ LLM은 도구 출력(`get_strategy`로 읽은 `strategy.md`)보다 **시스템 �
 
 ### 3-2. 실전 교정 예시 1: 보류된 `20261012-gitleaks-on-pi`를 "사람인 줄 알고 읽다 소름 돋는 테크 아티클"로 재탄생시키기
 
-현재 `blocked` 처리되어 창고에 잠들어 있는 [`20261012-gitleaks-on-pi`](file:///home/hun/unattendant-live/state/drafts/20261012-gitleaks-on-pi/index.ko.md)를, **같은 사실과 측정값만 가지고** 어떻게 다시 쓸 수 있는지 비교해 보십시오.
+현재 `blocked` 처리되어 창고에 잠들어 있는 [`20261012-gitleaks-on-pi`](file:///home/hun/unattendant/live/state/drafts/20261012-gitleaks-on-pi/index.ko.md)를, **같은 사실과 측정값만 가지고** 어떻게 다시 쓸 수 있는지 비교해 보십시오.
 
 ````carousel
 ### ❌ Before (현재 보류된 초안 — 전형적인 AI 요약 보고서)
@@ -493,7 +493,7 @@ LLM은 도구 출력(`get_strategy`로 읽은 `strategy.md`)보다 **시스템 �
 - **문제**: 고정 독자(개발자)들이 Feedly 등으로 구독하려 해도 화면에 RSS 링크가 없고, RSS 피드가 첫 문단 요약(`.Summary`)만 내보내 피드 리더에서 글을 읽을 수 없음.
 - **해결**: `home.rss.xml`에 `<content:encoded>{{ printf "<![CDATA[%s]]>" .Content | safeHTML }}</content:encoded>`를 추가하고, 푸터에 `RSS` 링크 추가.
 
-#### 15. [`site/content/posts/pi-blog-no-open-ports/index.ko.md` 43행](file:///home/hun/unattendant-live/site/content/posts/pi-blog-no-open-ports/index.ko.md#L43): 이미 발행된 글의 메모리 cgroup 사실 오류 정정
+#### 15. [`site/content/posts/pi-blog-no-open-ports/index.ko.md` 43행](file:///home/hun/unattendant/live/site/content/posts/pi-blog-no-open-ports/index.ko.md#L43): 이미 발행된 글의 메모리 cgroup 사실 오류 정정
 - **문제**: 2026-10-12에 메모리 cgroup을 켰는데, 2026-10-14 발행 글에 *"메모리 cgroup이 꺼져 있어 효과가 없다"*고 잘못 나감.
 - **해결**: 해당 문단을 실제 상태(*"초기(2026-10-07)에는 부트로더 기본값 때문에 메모리 cgroup이 꺼져 있었으나, 2026-10-12에 커널 인자를 추가해 활성화했다"*)로 정정(`lastmod` 갱신).
 

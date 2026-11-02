@@ -48,7 +48,7 @@ ops/huninn/review reject <초안ID> "사유" --drop   # 글감을 접는다: 반
 ops/huninn/review preview <초안ID>                # 승인 대기 초안의 미리보기 주소 (폰에서 읽기)
 ```
 
-래퍼가 들어 있는 체크아웃의 `state/`를 다룬다. 운영에서는 매장(`~/unattendant-live`)의 래퍼를 쓴다.
+래퍼가 들어 있는 체크아웃의 `state/`를 다룬다. 운영에서는 매장(`~/unattendant/live`)의 래퍼를 쓴다.
 
 폰에서는 디스코드 #승인 메시지의 [미리보기]로 읽고 [승인] [반려] [접기] 버튼으로 같은 결정을 한다 ([docs/blogops.md](../docs/blogops.md) 11절, 설치는 [ops/README.md](../ops/README.md) "Huninn 봇").
 

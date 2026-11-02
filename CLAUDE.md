@@ -11,7 +11,7 @@
 - Tailscale은 원격 접속 경로라 설정을 바꾸지 말 것
 
 ## 구조
-- 폴더가 둘이다. ~/unattendant는 사람이 쓰는 작업실, ~/unattendant-live는 Huninn이 쓰는 매장(같은 레포 두 개를 GitHub에서 따로 clone). 매장은 직접 고치지 말고 작업실에서 고쳐 push할 것. Caddy는 매장의 site/public을 서빙한다 (docs/blogops.md 7절)
+- 체크아웃이 둘이다. ~/unattendant는 사람이 쓰는 작업실, ~/unattendant/live는 Huninn이 쓰는 매장(같은 레포 두 개를 GitHub에서 따로 clone, 매장은 작업실 안에 중첩되어 있고 git은 둘 다 live/를 무시한다). 매장은 직접 고치지 말고 작업실에서 고쳐 push할 것. 작업용 worktree는 ~/unattendant/.worktrees/ 아래에 둔다. Caddy는 매장의 site/public을 서빙한다 (docs/blogops.md 7절)
 - site/        Hugo 사이트 (ko는 /, en은 /en/). 별도 공개 레포
 - agent/       Huninn 루프, blogops, MCP 서버, 디스코드 봇, 대시보드
 - experiments/ 실험 템플릿과 결과 CSV
