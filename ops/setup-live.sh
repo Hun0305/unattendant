@@ -36,9 +36,10 @@ if [ -x "$WORK_VENV/bin/pip" ]; then
   constraints=(-c "$pins")
   echo "   작업실 가상환경과 같은 버전으로 맞춘다 ($(wc -l < "$pins")개)"
 fi
-"$LIVE/agent/.venv/bin/pip" install -q -e "$LIVE/agent" "${constraints[@]}"
+# [bot]: 디스코드 승인 봇(blogops.bot)용 discord.py. 매장은 봇도 돌리니 함께 설치한다
+"$LIVE/agent/.venv/bin/python" -m pip install -q -e "$LIVE/agent[bot]" "${constraints[@]}"
 "$LIVE/agent/.venv/bin/python" -c \
-  'import blogops, importlib.metadata as m; print("   blogops", blogops.__file__); print("   mcp", m.version("mcp"))'
+  'import blogops, discord, importlib.metadata as m; print("   blogops", blogops.__file__); print("   mcp", m.version("mcp"), " discord.py", discord.__version__)'
 
 echo "4) 비밀값: $HUNINN_HOME/huninn.env (600)"
 install -d -m 700 "$HUNINN_HOME"
