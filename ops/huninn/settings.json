@@ -22,9 +22,7 @@
   },
   "claudeMdExcludes": [
     "/home/hun/unattendant/CLAUDE.md",
-    "/home/hun/unattendant/**/CLAUDE.md",
-    "/home/hun/unattendant-live/CLAUDE.md",
-    "/home/hun/unattendant-live/**/CLAUDE.md"
+    "/home/hun/unattendant/**/CLAUDE.md"
   ],
   "autoMemoryEnabled": false,
   "cleanupPeriodDays": 7,

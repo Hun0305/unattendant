@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 메모리가 모자랄 때 실험이 먼저 죽고 블로그·원격 접속은 남게 OOM 우선순위를 건다 (ops/README.md "OOM 우선순위").
 #   SSH, Caddy, 터널: OOMScoreAdjust=-500   /   밤 실험(exp-night, 사용자 유닛): +500 (이미 유닛에 있다)
-# 실행: sudo bash ops/install-oom-guard.sh   (매장 ~/unattendant-live에서. 유닛 파일을 그 레포에서 설치한다)
+# 실행: sudo bash ops/install-oom-guard.sh   (매장 ~/unattendant/live에서. 유닛 파일을 그 레포에서 설치한다)
 # OOMScoreAdjust는 프로세스를 시작할 때 걸리므로 세 서비스를 다시 시작한다.
 #   - sshd를 다시 시작해도 이미 열린 SSH 세션은 끊기지 않는다
 #   - Caddy·터널은 다시 시작하는 몇 초 동안 사이트가 끊긴다

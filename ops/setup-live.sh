@@ -6,7 +6,7 @@
 #   Huninn용 Claude Code 설정 설치(ops/install-huninn-config.sh, 작업실·매장이 같은 ~/.config/huninn/claude를 쓴다)
 set -euo pipefail
 
-LIVE="${LIVE:-$HOME/unattendant-live}"
+LIVE="${LIVE:-$HOME/unattendant/live}"
 OPS_REMOTE="git@github-unattendant-ops:Hun0305/unattendant.git"
 SITE_REMOTE="git@github-unattendant-site:Hun0305/unattendant.dev.git"
 HUNINN_HOME="${HUNINN_HOME:-$HOME/.config/huninn}"

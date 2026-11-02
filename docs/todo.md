@@ -145,7 +145,7 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - [x] 인증, `CLAUDE.md` 제외, 기본 도구 제외, 동기화 스킬·대화 기록 없음 확인 (2026-10-07, ops/README.md). 모델을 안 정하면 Pro 기본 모델(Sonnet 5.5)이 쓰이니 실행 스크립트에 `--model`을 넣는다
   - [x] blogops 툴만 보이는지 (2026-10-07 5단계 실행 시험): blogops 툴만 불렀고 허용되지 않은 도구 시도 0회
 - [x] 6단계: 운영 위치 분리와 타이머 (blogops.md 7절). 매장이 생기고 동기화 두 가지가 있어야 타이머를 켠다 → 2026-10-12 완료. 타이머를 켰고 첫 자동 사이클은 2026-10-13 14:00 KST
-  - [x] 운영 폴더 분리 (2026-10-12): 두 레포를 `~/unattendant-live`에 clone, 훅 연결, 비밀값을 `~/.config/huninn/huninn.env`로, Caddy 경로 변경과 재시작(sudo, 운영자), CLAUDE.md·architecture.md에 반영
+  - [x] 운영 폴더 분리 (2026-10-12): 두 레포를 `~/unattendant/live`에 clone, 훅 연결, 비밀값을 `~/.config/huninn/huninn.env`로, Caddy 경로 변경과 재시작(sudo, 운영자), CLAUDE.md·architecture.md에 반영
     - [x] 2026-10-12 완료: clone·훅·비밀값(`ops/setup-live.sh`), Caddy가 매장 `site/public`을 서빙(경로 전환·재시작, 응답 200), `claudeMdExcludes`에 매장 경로, `~/.local/bin/review` 연결
     - [x] CLAUDE.md 구조와 architecture.md 디렉터리 구조에 작업실·매장 구분 반영 (2026-10-12)
   - [x] 사이클 시작 동기화 (2026-10-12, PR #2, `agent/blogops/sync.py`·`cycle.py`, 테스트 11개 추가로 80개 통과. 매장 첫 실행에서 `pulled` 기록 확인): 두 레포를 `git pull --ff-only`로 받고, 사이트가 바뀌었으면 다시 빌드한다. 받지 못하면 #긴급으로 알린다
@@ -159,7 +159,7 @@ Huninn이 Claude Code(`claude -p`)로 하루 한 번 돌며 글감 선정부터 
   - [x] 첫 발행 커밋이 작성자 `Huninn`, 메시지 `content(ai)`인지 확인 (2026-10-12): 사이트 레포 `9fd2a90`, 작성자 `Huninn <huninn@unattendant.dev>`. 공개 URL 200, 사이클 79초·툴 14회(오류 0)·추정 $0.15
 - [x] 매장 정리 (6단계 뒤 남은 잔일, 2026-10-12 완료)
   - [x] 작업실 `.env` 지우기 (2026-10-12): 키 7개와 값이 `~/.config/huninn/huninn.env`와 모두 같은 것을 확인한 뒤 삭제. 작업실에서도 `huninn.env`를 읽는다. 새 비밀값은 `huninn.env`에만 넣는다
-  - [x] 터널 설정 경로를 매장으로 (2026-10-12, `12d06b0`): `unattendant-tunnel.service`의 `--config`를 `~/unattendant-live/ops/cloudflared/config.yml`로 바꿨다(`tunnel ingress validate` OK). 운영자가 유닛을 설치하고 재시작했고, 서비스가 매장 설정으로 active, https://unattendant.dev 200 확인
+  - [x] 터널 설정 경로를 매장으로 (2026-10-12, `12d06b0`): `unattendant-tunnel.service`의 `--config`를 `~/unattendant/live/ops/cloudflared/config.yml`로 바꿨다(`tunnel ingress validate` OK). 운영자가 유닛을 설치하고 재시작했고, 서비스가 매장 설정으로 active, https://unattendant.dev 200 확인
 - [x] 그림 포함 글의 첫 자동 발행 확인 (2026-10-13 14:00 사이클): `ai-site-first-screens`가 승인된 상태. 그림 2개 복사, 커밋 메시지의 "그림 2개", 공개 URL의 그림 접근, 새 초안의 그림 제안(전략 v3)을 확인한다
   - 결과: 사이트 레포 `3d7ff5f`(작성자 Huninn, `content(ai)`), 커밋 본문에 "그림 2개: first-screens-map.svg, home-e.png", 글 폴더에 두 파일 복사, 공개 URL 글·그림 둘 다 200. 사이클 성공(툴 13회·오류 0, 추정 $0.24), state 커밋 `81117ed` push
 - [ ] IndexNow 실제 사용 (뒤로 미룸, 2026-10-07 결정): 키 파일 `site/static/<키>.txt`를 사이트 레포에 커밋·배포한 뒤 첫 소개글로 실제 색인 요청. 그 전까지 `request_indexing`은 키가 없다고 알리고 건너뛴다. 방법은 [indexnow.md](next/indexnow.md)

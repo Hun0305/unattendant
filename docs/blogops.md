@@ -157,7 +157,7 @@ IndexNow 키 파일은 사이트 루트에 공개로 둔다(IndexNow가 요구�
 | | 운영 레포 (`Hun0305/unattendant`) | 사이트 레포 (`Hun0305/unattendant.dev`) |
 | --- | --- | --- |
 | 작업실 (사람, 개발 세션) | `~/unattendant` | `~/unattendant/site` |
-| 매장 (Huninn) | `~/unattendant-live` | `~/unattendant-live/site` |
+| 매장 (Huninn) | `~/unattendant/live` | `~/unattendant/live/site` |
 
 **왜**: 한 폴더를 같이 쓰면 (1) Huninn의 push에 사람이 아직 push하지 않은 커밋이 같이 올라가고, (2) 고치는 중인 템플릿으로 Huninn이 사이트를 빌드해 그대로 공개되고, (3) 같은 파일을 동시에 고칠 수 있다. 나누면 실제 사이트에는 GitHub main에 올라간 것만 나간다.
 
@@ -172,9 +172,9 @@ IndexNow 키 파일은 사이트 루트에 공개로 둔다(IndexNow가 요구�
 - **동기화**: Huninn은 사이클을 시작할 때 두 레포를 `git pull --ff-only`로 받고, 사이트가 바뀌었으면 다시 빌드한다. 사람은 작업실에서 작업을 시작할 때 `git pull`을 먼저 한다.
 - **push가 겹치면**: 늦은 쪽이 거절된다. Huninn은 `git pull --rebase` 후 한 번 더 push하고, 그래도 실패하면 #긴급으로 알린다.
 - **구분**: deploy key는 레포마다 하나라 양쪽이 같은 키로 push한다. 누가 했는지는 커밋 작성자(`Huninn` / `Hun0305`)로 구분한다.
-- **Caddy**: `~/unattendant-live/site/public`을 서빙하도록 경로를 바꾼다.
+- **Caddy**: `~/unattendant/live/site/public`을 서빙하도록 경로를 바꾼다.
 - **비밀값**: 레포 밖 `~/.config/huninn/huninn.env`(600)로 옮겨, 두 폴더 어디에도 두지 않는다.
-- **settings.json**: `claudeMdExcludes`에 `~/unattendant-live`의 `CLAUDE.md`를 더한다.
+- **settings.json**: `claudeMdExcludes`에 `~/unattendant/live`의 `CLAUDE.md`를 더한다.
 - **매장 폴더도 pre-commit 훅을 거친다.** Huninn의 커밋도 비밀키 검사를 받는다.
 
 ## 8. 코드 구조
@@ -223,7 +223,7 @@ ops/caddy/Caddyfile   :8080 공개 사이트, :8081 미리보기
 
 ## 10. 결정 사항
 
-1. ~~운영 위치 분리~~ 결정 (2026-10-07): 작업실 `~/unattendant`와 매장 `~/unattendant-live`로 나눈다 (7절)
+1. ~~운영 위치 분리~~ 결정 (2026-10-07): 작업실 `~/unattendant`와 매장 `~/unattendant/live`로 나눈다 (7절)
 2. ~~발행 시점~~ 결정 (2026-10-07): 승인한 다음 날 사이클에서 발행한다
 3. ~~사이클 시각~~ 결정 (2026-10-07): 매일 14:00(KST). 운영자가 오전에는 깨어 있지 않은 날이 많아서
 

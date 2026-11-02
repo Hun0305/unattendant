@@ -20,3 +20,7 @@ __pycache__/
 
 # pip install -e 산출물
 *.egg-info/
+
+# 작업실 안의 매장 clone과 작업용 worktree
+live/
+.worktrees/

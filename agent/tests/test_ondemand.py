@@ -30,7 +30,7 @@ class WatcherTest(unittest.TestCase):
 
     def test_watching_another_checkout_is_not_ours(self):
         # 매장을 지켜보는 유닛은 작업실이나 시험용 임시 폴더의 요청 파일에는 반응하지 않는다
-        other = "/home/hun/unattendant-live/logs/.cycle-request"
+        other = "/home/hun/unattendant/live/logs/.cycle-request"
         self.assertFalse(ondemand.watcher_active(self.config, run=systemctl_output("active", other)))
 
     def test_inactive_or_not_installed(self):

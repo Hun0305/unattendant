@@ -191,10 +191,10 @@ CLAUDE_CONFIG_DIR=~/.config/huninn/claude CLAUDE_CODE_OAUTH_TOKEN=... \
 
 ## Huninn 타이머 (sudo)
 
-매장(`~/unattendant-live`)이 준비된 뒤 설치한다. 그 전에 켜면 `run-cycle.sh`가 없어 실패한다.
+매장(`~/unattendant/live`)이 준비된 뒤 설치한다. 그 전에 켜면 `run-cycle.sh`가 없어 실패한다.
 
 ```bash
-cd ~/unattendant-live
+cd ~/unattendant/live
 sudo install -m 644 ops/systemd/huninn-cycle.service ops/systemd/huninn-cycle.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl start huninn-cycle.service    # 손으로 한 번 돌려 확인 (실제 사이클이다: 초안·승인 요청, 승인된 글이 있으면 발행)
@@ -230,7 +230,7 @@ systemctl list-timers huninn-cycle.timer     # 다음 실행 시각
 켜는 순서 (PR이 main에 합쳐지고 매장이 `git pull`을 받은 뒤):
 
 ```bash
-cd ~/unattendant-live
+cd ~/unattendant/live
 git pull --ff-only
 # 1) 설정 검증 (서비스는 건드리지 않는다)
 ~/.local/bin/caddy validate --adapter caddyfile --config ops/caddy/Caddyfile
@@ -266,7 +266,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://unattendant.dev/               
 켜는 순서 (PR이 main에 합쳐지고 매장이 `git pull`을 받은 뒤):
 
 ```bash
-cd ~/unattendant-live
+cd ~/unattendant/live
 git pull --ff-only
 # 1) 검증 (서비스는 건드리지 않는다)
 ~/.local/bin/caddy validate --adapter caddyfile --config ops/caddy/Caddyfile
@@ -298,12 +298,12 @@ Caddy를 다시 시작하는 순간을 업타임 모니터가 잡으면 #긴급�
 디스코드 #승인 메시지의 [승인] [반려] [접기] 버튼을 받는 상시 프로세스 (`agent/blogops/bot.py`, 설계는 [blogops.md](../docs/blogops.md) 11절). 디스코드로 먼저 연결을 여는 방식이라 포트가 필요 없다. 봇 토큰, 운영자 ID, 채널 ID는 기존 `~/.config/huninn/huninn.env`에 이미 있다 (새 비밀값 없음).
 
 ```bash
-cd ~/unattendant-live
+cd ~/unattendant/live
 git pull --ff-only
 # discord.py 설치 (패키지 설치: discord.py, aiohttp 등 약 20MB, 선택 의존성 [bot])
 cd agent && .venv/bin/pip install -e ".[bot]" && cd ..
 # 접속만 확인한다 (메시지는 보내지 않는다. 봇이 2~3초 온라인으로 보인다)
-BLOGOPS_ROOT=~/unattendant-live agent/.venv/bin/python -m blogops.bot --check
+BLOGOPS_ROOT=~/unattendant/live agent/.venv/bin/python -m blogops.bot --check
 # 서비스 설치와 시작 (sudo)
 sudo install -m 644 ops/systemd/huninn-bot.service /etc/systemd/system/
 sudo systemctl daemon-reload
@@ -337,7 +337,7 @@ systemctl show huninn-bot -p MemoryCurrent -p MemoryMax
 운영자가 반려하거나 접으면 14:00을 기다리지 않고 사이클을 바로 한 번 더 돌린다 (하루 5회까지, 승인은 해당 없음). 설계는 [blogops.md](../docs/blogops.md) 12절. 봇이나 `review` 명령이 `logs/.cycle-request` 파일을 쓰면 path 유닛이 `huninn-cycle.service`를 시작하고, 서비스가 시작하며 그 파일을 지운다.
 
 ```bash
-cd ~/unattendant-live
+cd ~/unattendant/live
 git pull --ff-only
 # 바뀐 서비스(ExecStartPre 한 줄 추가)와 새 path 유닛을 설치한다 (sudo). 타이머는 그대로다
 sudo install -m 644 ops/systemd/huninn-cycle.service ops/systemd/huninn-cycle-now.path /etc/systemd/system/
@@ -350,7 +350,7 @@ systemctl list-timers huninn-cycle.timer            # 타이머는 그대로 다
 
 | 설정 | 값 | 이유 |
 | --- | --- | --- |
-| `PathExists` | `~/unattendant-live/logs/.cycle-request` | `logs/`는 git 제외다. `state/`에 두면 사이클 끝의 state 커밋에 딸려 올라간다 |
+| `PathExists` | `~/unattendant/live/logs/.cycle-request` | `logs/`는 git 제외다. `state/`에 두면 사이클 끝의 state 커밋에 딸려 올라간다 |
 | `ExecStartPre` (서비스) | `rm -f` 요청 파일 | 요청 하나에 한 번만 돈다. 도는 중에 새 요청이 오면 끝난 뒤 한 번 더 돈다. 타이머가 먼저 돌아도 그 실행이 요청을 처리한다. `cycle.py`도 시작할 때 같은 파일을 지운다(두 유닛 파일을 같이 설치할 것) |
 | `TriggerLimit` | 1시간에 8번 | 요청 파일이 지워지지 않는 고장이 나도 계속 돌지 않게 한다. 정상이면 하루 5번이 한도다(blogops가 센다) |
 | 하루 5회 상한 | `Config.ondemand_daily_limit` (KST) | 받아들인 요청을 `logs/YYYY-MM-DD.jsonl`의 `cycle_requested`로 센다. 넘으면 요청하지 않고 다음 14:00 사이클로 안내한다 |
@@ -425,7 +425,7 @@ grep memory /sys/fs/cgroup/cgroup.controllers                                   
 메모리가 모자라 커널 OOM killer가 돌 때 무엇이 먼저 죽을지 정한다. 밤 실험(`exp-night.service`)은 `OOMScoreAdjust=500`으로 먼저 죽고, 블로그(Caddy·터널)와 원격 접속(SSH)은 `-500`으로 남는다. 2026-10-07 확인으로는 셋 다 기본값 0이었다(2026-10-27 다시 확인해도 0, `huninn-bot`도 0).
 
 ```bash
-cd ~/unattendant-live && git pull --ff-only
+cd ~/unattendant/live && git pull --ff-only
 sudo bash ops/install-oom-guard.sh   # 유닛·드롭인 설치, daemon-reload, sshd -t, 세 서비스 재시작, 값 확인
 ```
 

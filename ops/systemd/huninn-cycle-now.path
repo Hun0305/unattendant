@@ -7,7 +7,7 @@
 Description=Run the Huninn cycle right away after the operator rejects or drops a draft
 
 [Path]
-PathExists=/home/hun/unattendant-live/logs/.cycle-request
+PathExists=/home/hun/unattendant/live/logs/.cycle-request
 Unit=huninn-cycle.service
 # 요청 파일이 지워지지 않는 고장이 나도 계속 돌지 않게 한다 (정상이면 하루 5회)
 TriggerLimitIntervalSec=1h

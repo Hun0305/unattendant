@@ -42,7 +42,7 @@ def watcher_active(config: Config, run: Optional[Runner] = None) -> bool:
         key, _, value = line.partition("=")
         if key == "ActiveState":
             state = value.strip()
-        elif key == "Paths":  # 예: /home/hun/unattendant-live/logs/.cycle-request (PathExists)
+        elif key == "Paths":  # 예: /home/hun/unattendant/live/logs/.cycle-request (PathExists)
             watched.append(os.path.realpath(re.sub(r"\s*\(\w+\)\s*$", "", value.strip())))
     return state == "active" and os.path.realpath(config.cycle_request_path) in watched
 
