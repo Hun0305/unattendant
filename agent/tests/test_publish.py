@@ -266,11 +266,33 @@ class BacklogTest(unittest.TestCase):
                 backlog.set_status(self.config, *args)
         backlog.set_status(self.config, "naming", "dropped", note="이미 첫 글에서 다뤘다")
         self.assertIn("이미 첫 글에서 다뤘다", backlog.items(self.config, "dropped")[0]["notes"])
-        item = backlog.add_item(self.config, item_id="rss-fix", title="RSS에 소개 페이지가 섞였던 일", series="ops-log")
+        item = backlog.add_item(self.config, item_id="rss-fix", title="RSS에 소개 페이지가 섞였던 일", series="ops-log",
+                                sources=["ops/README.md"])
         self.assertEqual(item["added_by"], "huninn")
         for kwargs in ({"item_id": "rss-fix"}, {"item_id": "Bad_ID"}, {"item_id": "x", "series": "nope"}):
             with self.assertRaises(backlog.BacklogError, msg=kwargs):
-                backlog.add_item(self.config, **{"title": "t", "series": "ops-log", **kwargs})
+                backlog.add_item(self.config, **{"title": "t", "series": "ops-log", "sources": ["ops/README.md"], **kwargs})
+
+    def test_huninn_items_need_readable_sources(self):
+        add = lambda item_id, **kw: backlog.add_item(self.config, item_id=item_id, title="t", series="ops-log", **kw)
+        for sources in (None, [], ["logs/x.jsonl"], ["docs/없는파일.md"], ["ops/README.md", ".env"]):
+            with self.assertRaises(backlog.BacklogError, msg=sources):
+                add("no-source", sources=sources)
+        # 경로 뒤 괄호 설명과 커밋 출처는 받는다. 운영자가 더하는 글감은 검사하지 않는다
+        self.assertEqual(add("with-note", sources=["docs/pre-commit.md (실험 기록 1~5)"])["status"], "idea")
+        self.assertEqual(add("from-commit", sources=["git:2c98020a1b2c"])["status"], "idea")
+        self.assertEqual(add("by-operator", added_by="operator")["sources"], [])
+
+    def test_idea_cap_applies_to_huninn_only(self):
+        for n in range(backlog.MAX_IDEAS):  # 시작할 때 idea가 1개(naming) 있다
+            backlog.add_item(self.config, item_id=f"x-{n}", title="t", series="ops-log", sources=["ops/README.md"],
+                             added_by="operator")
+        with self.assertRaises(backlog.BacklogError):
+            backlog.add_item(self.config, item_id="one-more", title="t", series="ops-log", sources=["ops/README.md"])
+        backlog.set_status(self.config, "x-0", "dropped", note="시험")
+        backlog.set_status(self.config, "x-1", "dropped", note="시험")
+        self.assertEqual(backlog.add_item(self.config, item_id="one-more", title="t", series="ops-log",
+                                          sources=["ops/README.md"])["id"], "one-more")
 
 
 if __name__ == "__main__":
