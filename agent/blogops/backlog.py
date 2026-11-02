@@ -4,11 +4,13 @@ from __future__ import annotations
 import re
 from typing import Optional
 
+from . import records
 from .config import SERIES, Config
 from .fileio import read_json, state_lock, write_json
 
 STATUSES = ("idea", "blocked", "drafting", "published", "dropped")
 ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+MAX_IDEAS = 8  # 쓸 수 있는 글감이 이만큼 쌓이면 더 더하지 않는다 (보충이 끝없이 늘지 않게)
 
 
 class BacklogError(Exception):
@@ -53,6 +55,18 @@ def set_status(config: Config, item_id: str, status: str, note: Optional[str] = 
     return item
 
 
+def _check_sources(config: Config, sources: Optional[list[str]]) -> None:
+    """Huninn이 더하는 글감은 읽을 수 있는 기록이나 커밋을 재료로 삼아야 한다.
+    경로 뒤의 괄호 설명은 무시한다. 커밋은 `git:<해시>`로 적는다(get_git_log로 읽는다)."""
+    if not sources:
+        raise BacklogError("재료(sources)가 필요하다: 읽을 수 있는 기록의 경로 또는 git:<커밋 해시>")
+    unreadable = [s for s in sources if not s.strip().startswith("git:")
+                  and not records.is_readable(config, re.split(r"\s+\(", s.strip(), maxsplit=1)[0])]
+    if unreadable:
+        raise BacklogError(f"read_record로 읽을 수 없는 경로다: {', '.join(unreadable)}. "
+                           "읽을 수 있는 기록은 read_record를 경로 없이 불러 목록으로 확인한다")
+
+
 def add_item(config: Config, *, item_id: str, title: str, series: str, notes: str = "",
              sources: Optional[list[str]] = None, added_by: str = "huninn") -> dict:
     if not ID_RE.match(item_id or ""):
@@ -61,10 +75,14 @@ def add_item(config: Config, *, item_id: str, title: str, series: str, notes: st
         raise BacklogError(f"없는 시리즈다: {series!r}")
     if not title.strip():
         raise BacklogError("제목이 필요하다")
+    if added_by == "huninn":
+        _check_sources(config, sources)
     with state_lock(config):
         data = load(config)
         if any(i["id"] == item_id for i in data["items"]):
             raise BacklogError(f"같은 ID의 글감이 이미 있다: {item_id}")
+        if added_by == "huninn" and sum(i["status"] == "idea" for i in data["items"]) >= MAX_IDEAS:
+            raise BacklogError(f"쓸 수 있는 글감(idea)이 이미 {MAX_IDEAS}개다. 먼저 그것부터 쓴다")
         item = {"id": item_id, "title": title.strip(), "series": series, "status": "idea",
                 "sources": list(sources or []), "notes": notes.strip(),
                 "added": config.now().date().isoformat(), "added_by": added_by}

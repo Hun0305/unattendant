@@ -37,6 +37,20 @@ class RecordsTest(unittest.TestCase):
             with self.assertRaises(RecordError, msg=path):
                 records.read_record(self.config, path)
 
+    def test_experiment_results_are_readable(self):
+        results = self.config.root / "experiments" / "results" / "llm-bench"
+        results.mkdir(parents=True)
+        (results / "summary.csv").write_text("run_id,model\n1,llama\n", encoding="utf-8")
+        (results / "raw.log").write_text("x", encoding="utf-8")
+        (self.config.root / "experiments" / "README.md").write_text("# experiments/\n", encoding="utf-8")
+        self.assertEqual(records.read_record(self.config, "experiments/results/llm-bench/summary.csv")["text"],
+                         "run_id,model\n1,llama\n")
+        listed = {r["path"] for r in records.list_records(self.config)}
+        self.assertIn("experiments/results/llm-bench/summary.csv", listed)
+        for path in ("experiments/results/llm-bench/raw.log", "experiments/models.toml", "experiments/runner/common.py"):
+            with self.assertRaises(RecordError, msg=path):
+                records.read_record(self.config, path)
+
     def test_symlink_escape(self):
         os.symlink(self.config.root / ".env", self.config.root / "docs" / "leak.md")
         with self.assertRaises(RecordError):

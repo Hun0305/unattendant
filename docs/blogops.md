@@ -11,7 +11,7 @@ systemd 타이머가 매일 14:00(KST)에 `claude -p`를 한 번 돌린다. 엔�
 1. **상태 점검**: `get_system_health`. 이상이 있으면 `notify_human`으로 알리고 새 글은 쓰지 않는다.
 2. **승인된 초안 발행**: `list_drafts`에서 승인된 초안이 있으면 `publish_post` → `request_indexing`. 이어서 영어판이 없는 글에 `get_post` → `add_english` → `request_indexing`(5절 뒤 "영어판 붙이기").
 3. **반려된 초안 고치기**: `get_approval_status`로 반려 사유를 읽고 `update_draft` → `check_quality` → `request_approval`.
-4. **새 초안**: 승인을 기다리는 초안이 없을 때만 쓴다. `get_strategy`, `get_backlog`, `read_record`, `get_git_log`로 글감과 재료를 고르고 `create_draft` → `check_quality`(실패하면 최대 2번 고친다) → `request_approval`. 일요일에는 `get_week_summary`로 주간 보고서를 쓴다(한국어만 승인받는다).
+4. **새 초안**: 승인을 기다리는 초안이 없을 때만 쓴다. `get_strategy`, `get_backlog`, `read_record`, `get_git_log`로 글감과 재료를 고르고(쓸 수 있는 글감 `idea`가 3개 미만이면 먼저 글감을 채운다: 13절) `create_draft` → `check_quality`(실패하면 최대 2번 고친다) → `request_approval`. 일요일에는 `get_week_summary`로 주간 보고서를 쓴다(한국어만 승인받는다).
 5. **마무리**: 그날 한 일을 `notify_human`(info)으로 #일일요약에 보낸다.
 
 사람은 #승인 알림의 [미리보기]로 발행될 모습 그대로 글을 읽고, 버튼으로 승인·반려·접기를 한다(11절). 폰이 아니어도 Pi에서 `review` 명령으로 같은 결정을 할 수 있다(4절). 승인한 글은 다음 날 14:00 사이클에서 발행된다. 14:00에 초안이 오면 그날 편할 때 승인하는 흐름이다. 반려하거나 접으면 14:00을 기다리지 않고 사이클을 바로 한 번 더 돌린다(하루 5회까지, 12절).
@@ -34,10 +34,10 @@ blogops가 강제하는 한도:
 | 관측 | `get_system_health` | 없음 | 디스크 여유, CPU 온도, 업타임, 사이트 응답, 마지막 빌드 결과(`problems`: 사이클을 멈춘다). 디스코드 봇 상태, Pi 상태 파일 갱신, 지난 사이클 실패(`notices`: 알리기만 하고 계속한다, 2026-10-27) | read |
 | 기획 | `get_strategy` | 없음 | `state/strategy.md`와 지난 반려 사유(`rejections`: 모든 초안, 최근 20건, 반려한 판의 제목). 사이클마다 기억 없이 깨어나므로 다른 초안에서 받은 반려도 쓰기 전에 보게 한다 (2026-10-27) | read |
 | 기획 | `get_backlog` | 상태(선택) | `state/backlog.json`의 글감 | read |
-| 기획 | `manage_backlog` | 추가·수정, 항목 | 글감 추가, 상태·메모 변경 (삭제 대신 `dropped`와 이유) | write |
+| 기획 | `manage_backlog` | 추가·수정, 항목 | 글감 추가, 상태·메모 변경 (삭제 대신 `dropped`와 이유). Huninn이 더하는 글감은 `sources`가 필수이고 `read_record`로 읽을 수 있는 경로나 `git:<해시>`여야 한다. `idea`가 8개면 더 받지 않는다 | write |
 | 기획 | `list_posts` | 시리즈(선택) | 발행된 글의 슬러그, 제목, 날짜, 시리즈 | read |
 | 기획 | `search_posts` | 검색어 | 제목·본문이 비슷한 기존 글 (중복 확인용) | read |
-| 기획 | `read_record` | 경로(없으면 목록) | 허용 목록에 있는 공개 기록만 읽는다: `docs/*.md`, `ops/README.md`, `site/README.md` | read |
+| 기획 | `read_record` | 경로(없으면 목록) | 허용 목록에 있는 공개 기록만 읽는다: `docs/*.md`, `ops/README.md`, `site/README.md`, `experiments/README.md`, `experiments/results/*/summary.csv` | read |
 | 기획 | `get_git_log` | 레포(ops·site), 기간, 개수 | 커밋 메시지만 (변경 내용 제외) | read |
 | 초안 | `create_draft` | 백로그 ID, 슬러그, 제목, 요약, 시리즈, 태그, 본문(ko, en), 출처 | 초안 폴더 생성 | write |
 | 초안 | `update_draft` | 초안 ID, 바꿀 내용, 고친 이유 | 초안 수정. 품질·승인 기록은 무효가 된다 | write |
@@ -300,3 +300,21 @@ request_approval ─▶ Hugo로 초안을 포함한 사이트 전체를 빌드 �
 - **알림**: 새 승인 요청이 오면 그 즉시 멘션이 간다. 밤에도 울린다.
 - **프롬프트**: "사이클은 매일 14:00에 한 번 돌고, 운영자가 반려하거나 접으면 바로 한 번 더 돈다(하루 5회까지)"를 `ops/huninn/prompt.md`에 더했다. 순서는 그대로다.
 - **알아 둘 것**: 접기는 `state/backlog.json`을 고치므로(미커밋) 바로 도는 사이클의 `git pull --ff-only`가 그 파일이 겹치는 커밋에는 막힌다. 평소에는 사이클 끝의 state 커밋이 정리한다. 설치는 [ops/README.md](../ops/README.md) "반려·접기 직후 바로 쓰기".
+
+## 13. 글감 보충 (2026-11-03)
+
+**문제**: 글감은 Huninn이 새 초안을 쓰려고 재료를 읽다가 우연히 더할 때만 늘었다. 글을 쓰지 못한 날에는 늘지 않아, 2026-10-30~31에 몰아서 쓴 뒤 `idea`가 둘만 남았고 둘 다 막혀(비교 결과 대기, 반려된 각도와 겹침) 11-02 사이클이 새 초안을 쓰지 못했다.
+
+**방법**: 사이클이 `idea` 3개 미만을 보면 새 초안을 쓰기 전에 글감을 채운다(`ops/huninn/prompt.md` "글감 보충"). 일요일은 건너뛴다. 툴 호출은 15회까지다.
+
+1. 최근 커밋 본문(`get_git_log`)과 최근 바뀐 기록(`read_record`)에서 일어난 일을 찾는다. 내가 겪은 일(사이클 실패, 반려와 사유)이 먼저다.
+2. 백로그 전체(`blocked`·`dropped` 포함), 초안, 발행된 글과 겹치는지 거른다. 접힌 각도와 반려 사유가 같은 각도는 뺀다.
+3. `manage_backlog`(add)로 2~3개 더하고 같은 사이클에 하나를 쓴다. 못 찾으면 어디를 뒤졌는지 `notify_human`(warn)으로 알리고 쓰지 않는다.
+
+**서버 쪽 한도** (`backlog.add_item`, Huninn이 더할 때만):
+
+- `sources`가 필수다. `read_record`로 읽을 수 있는 경로이거나 `git:<커밋 해시>`여야 한다. 읽을 수 없는 재료로 글감을 만들면 글을 쓸 수 없다.
+- `idea`가 8개면 더 받지 않는다. 글감이 끝없이 쌓이지 않게 한다.
+- 이를 위해 `read_record` 허용 목록에 `experiments/README.md`, `experiments/results/*/summary.csv`를 더했다(공개 레포의 결과 요약이다).
+
+**하지 않은 것**: 외부 RSS·API에서 글감을 가져오는 `get_trends`(todo.md)는 만들지 않았다. 이 블로그의 글감은 Huninn이 겪은 일이 먼저라서(전략 v2), 외부 소식은 소형 모델 출시 같은 실험 시리즈 신호가 필요해질 때 따로 정한다.

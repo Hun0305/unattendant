@@ -16,7 +16,8 @@ from pathlib import Path, PurePosixPath
 from .config import Config
 
 # 레포 루트 기준 경로. site/로 시작하면 사이트 레포 기준이다
-ALLOWED_RECORDS = ("docs/*.md", "ops/README.md", "site/README.md")
+ALLOWED_RECORDS = ("docs/*.md", "ops/README.md", "site/README.md", "experiments/README.md",
+                   "experiments/results/*/summary.csv")
 READ_LIMIT = 12000  # 한 번에 돌려주는 글자 수
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -50,6 +51,15 @@ def _resolve(config: Config, path: str) -> Path:
     if not full.is_file():
         raise RecordError(f"없는 파일이다: {path}")
     return full
+
+
+def is_readable(config: Config, path: str) -> bool:
+    """read_record로 열 수 있는 경로인가 (글감의 sources가 읽을 수 있는 기록인지 확인할 때)."""
+    try:
+        _resolve(config, path)
+    except RecordError:
+        return False
+    return True
 
 
 def list_records(config: Config) -> list[dict]:
