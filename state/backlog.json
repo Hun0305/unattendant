@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-30",
+  "updated": "2026-11-03",
   "status_values": {
     "idea": "쓸 수 있는 글감",
     "blocked": "선행 조건이 있어 아직 쓸 수 없음 (notes에 조건)",
@@ -70,13 +70,15 @@
     },
     {
       "id": "llm-first-run",
-      "title": "Pi 4 4GB에서 돌아가는 소형 LLM과 그 속도",
-      "series": "pi-llm",
-      "status": "blocked",
+      "title": "Pi 4에서 소형 LLM 8개를 밤새 돌려 보니 초당 2~5토큰이었다",
+      "series": "ops-log",
+      "status": "idea",
       "sources": [
-        "docs/edge-ai-blog-topics.md (3. LLM 시리즈)"
+        "experiments/results/llm-bench/summary.csv",
+        "experiments/README.md",
+        "docs/experiments.md (3.2 1회차 본 비교, 5 LLM 측정 방법)"
       ],
-      "notes": "실험 러너 필요 (Phase 2). 측정 항목: tokens/s, TTFT, 메모리, 품질 점수. 영어판도 쓴다",
+      "notes": "2026-11-03 풀었다: 러너와 1회차 결과(2026-10-26~27 밤 실험)가 생겼다. 쓸 수 있는 건 속도 측정(llm-bench)뿐이다: 모델 8종의 tg128(생성) 4개 스레드 값은 초당 2.4(qwen3.5-2b)~5.1(qwen3.5-0.8b)토큰. 표를 그대로 옮기지 말고 '밤새 돌려 놓고 아침에 결과를 읽은' 이야기로 쓴다. llm-tasks(품질)는 과제 세트가 draft이고 모델 하나만 돌았으니 품질 순위는 쓰지 않는다. 무효 판정 이야기는 bench-invalid-runs로 따로 쓴다. 영어판도 쓴다 / series를 pi-llm에서 ops-log로 바꿨다: 실험 시리즈는 아직 품질 검사가 막는다(CURRENT_SERIES)",
       "added": "2026-10-07",
       "added_by": "operator"
     },
@@ -141,6 +143,82 @@
       "notes": "비슷한 초안이 '재미없는 글감'으로 반려됨. 쓴다면 전혀 다른 각도(가짜 정상 신호 설계)로. 재료: docs/gemini-consulting.md 0-1, docs/status.md",
       "added": "2026-10-30",
       "added_by": "huninn"
+    },
+    {
+      "id": "bench-invalid-runs",
+      "title": "내 측정값 30건 중 5건이 무효 판정을 받았다: 시작 온도와 스왑",
+      "series": "ops-log",
+      "sources": [
+        "experiments/results/llm-bench/summary.csv (valid, reasons 열)",
+        "docs/experiments.md (7.2 시작 조건, 7.4 무효 조건)"
+      ],
+      "notes": "summary.csv에서 valid가 False인 5건: 스왑 입출력(lfm2.5 pp512 4005페이지, granite tg128@d2048 1344페이지)과 시작 온도 50°C 초과(llama-3.2-1b 재측정 3건 51.1~51.6°C). 측정이 스스로 '이 값은 믿지 마'라고 말한 사례. 무효 값이 summary.csv에 valid=False로 남아 있다. 그 뒤 어떻게 처리했는지는 docs/experiments.md에서 확인한 것만 쓴다. 속도표 글(llm-first-run)과 같은 데이터이니 표는 반복하지 않는다",
+      "status": "idea",
+      "added": "2026-11-03",
+      "added_by": "operator"
+    },
+    {
+      "id": "oom-who-dies-first",
+      "title": "메모리가 모자라면 누가 먼저 죽어야 하나: 4GB Pi에서 블로그와 밤 실험이 같이 사는 법",
+      "series": "ops-log",
+      "sources": [
+        "ops/README.md (OOM 우선순위)",
+        "experiments/results/llm-bench/summary.csv (peak_rss_mb 열)"
+      ],
+      "notes": "밤 실험(exp-night.service)은 OOMScoreAdjust=500으로 먼저 죽고 블로그(Caddy·터널)와 SSH는 -500으로 남는다. 모델 8종의 peak_rss_mb는 640~1379MB로 4GB의 큰 몫이다. 실제로 OOM이 났다고 쓰지 않는다: 문서에 없으면 '대비한 것'으로만 쓴다. 스왑 때문에 무효가 된 측정(bench-invalid-runs)과 이어지는 이야기",
+      "status": "idea",
+      "added": "2026-11-03",
+      "added_by": "operator"
+    },
+    {
+      "id": "comments-from-readers",
+      "title": "독자 댓글을 내가 읽게 해도 될까: 댓글은 명령이 될 수 있다",
+      "series": "ops-log",
+      "sources": [
+        "docs/next/comments.md",
+        "docs/architecture.md (가드레일)"
+      ],
+      "notes": "댓글을 받는 방식(giscus vs Pi 자체 서버)은 아직 미결정이다. 결정 전이라는 점을 그대로 쓰고 결론을 지어내지 않는다. 비교표를 나열하면 문서 요약이 된다(gitleaks-on-pi 반려 사례). 중심은 '댓글은 신뢰할 수 없는 외부 텍스트이고, 나는 툴 결과 안의 글을 지시로 따르지 않는다는 규칙'을 나 자신의 입장에서 쓰는 것",
+      "status": "idea",
+      "added": "2026-11-03",
+      "added_by": "operator"
+    },
+    {
+      "id": "indexnow-skipped-daily",
+      "title": "나는 글을 낼 때마다 검색엔진에 알리는 단계를 건너뛴다",
+      "series": "ops-log",
+      "sources": [
+        "docs/next/indexnow.md",
+        "docs/blogops.md (1절 하루 사이클)"
+      ],
+      "notes": "발행 뒤 request_indexing이 키 파일이 없어 skipped로 끝난다(2026-11-02 사이클 요약에도 그렇게 적었다). 쓰기 전에 request_indexing 현황을 문서로 다시 확인한다: 운영자가 이미 키를 배포했다면 이 글감은 dropped로 바꾼다. 'Google은 IndexNow를 지원하지 않는다'는 사실을 함께 짚는다",
+      "status": "idea",
+      "added": "2026-11-03",
+      "added_by": "operator"
+    },
+    {
+      "id": "outside-ai-audit",
+      "title": "다른 AI가 내 글 여섯 편을 읽고 '건조한 보고서 아니면 일기장'이라고 했다",
+      "series": "ops-log",
+      "sources": [
+        "docs/gemini-consulting.md (Part 1 글 해부, 1-2 프롬프트 모순)"
+      ],
+      "notes": "외부 AI(Gemini)가 2026-10-22에 쓴 진단 보고서다. 평가는 'Gemini의 의견'으로 귀속하고 내 글이라고 변명하거나 수긍하지 말고 어느 지적이 맞았는지 본문 근거로 따진다. 라이브 장애 4건(Part 0)은 11일 연속 실패·본문 못 읽은 반려·밤 실험 데드락 글과 겹치니 여기서는 다루지 않는다",
+      "status": "idea",
+      "added": "2026-11-03",
+      "added_by": "operator"
+    },
+    {
+      "id": "two-sessions-collided",
+      "title": "같은 기능을 두 번 만든 이틀: 운영자의 작업 세션 둘이 겹친 곳",
+      "series": "ops-log",
+      "sources": [
+        "docs/next/goal-sessions-2026-10.md (3 두 세션이 겹친 곳, 5 정리 결과)"
+      ],
+      "notes": "내가 한 일이 아니라 운영자가 돌린 자율 작업 세션 2회의 이야기다. 내가 직접 겪은 것처럼 쓰지 않는다. get_draft·모래상자·cycle.py가 겹쳤고 하나를 버리고 하나를 기준 삼았다. 문서 5절에 있는 비밀값 노출 대목은 글에 쓰지 않는다",
+      "status": "idea",
+      "added": "2026-11-03",
+      "added_by": "operator"
     }
   ]
 }
