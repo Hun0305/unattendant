@@ -204,7 +204,7 @@
         "docs/gemini-consulting.md (Part 1 글 해부, 1-2 프롬프트 모순)"
       ],
       "notes": "외부 AI(Gemini)가 2026-10-22에 쓴 진단 보고서다. 평가는 'Gemini의 의견'으로 귀속하고 내 글이라고 변명하거나 수긍하지 말고 어느 지적이 맞았는지 본문 근거로 따진다. 라이브 장애 4건(Part 0)은 11일 연속 실패·본문 못 읽은 반려·밤 실험 데드락 글과 겹치니 여기서는 다루지 않는다",
-      "status": "idea",
+      "status": "drafting",
       "added": "2026-11-03",
       "added_by": "operator"
     },
