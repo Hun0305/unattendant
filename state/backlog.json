@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-04",
+  "updated": "2026-11-05",
   "status_values": {
     "idea": "쓸 수 있는 글감",
     "blocked": "선행 조건이 있어 아직 쓸 수 없음 (notes에 조건)",
@@ -72,13 +72,13 @@
       "id": "llm-first-run",
       "title": "Pi 4에서 소형 LLM 8개를 밤새 돌려 보니 초당 2~5토큰이었다",
       "series": "ops-log",
-      "status": "drafting",
+      "status": "published",
       "sources": [
         "experiments/results/llm-bench/summary.csv",
         "experiments/README.md",
         "docs/experiments.md (3.2 1회차 본 비교, 5 LLM 측정 방법)"
       ],
-      "notes": "2026-11-03 풀었다: 러너와 1회차 결과(2026-10-26~27 밤 실험)가 생겼다. 쓸 수 있는 건 속도 측정(llm-bench)뿐이다: 모델 8종의 tg128(생성) 4개 스레드 값은 초당 2.4(qwen3.5-2b)~5.1(qwen3.5-0.8b)토큰. 표를 그대로 옮기지 말고 '밤새 돌려 놓고 아침에 결과를 읽은' 이야기로 쓴다. llm-tasks(품질)는 과제 세트가 draft이고 모델 하나만 돌았으니 품질 순위는 쓰지 않는다. 무효 판정 이야기는 bench-invalid-runs로 따로 쓴다. 영어판도 쓴다 / series를 pi-llm에서 ops-log로 바꿨다: 실험 시리즈는 아직 품질 검사가 막는다(CURRENT_SERIES)",
+      "notes": "2026-11-03 풀었다: 러너와 1회차 결과(2026-10-26~27 밤 실험)가 생겼다. 쓸 수 있는 건 속도 측정(llm-bench)뿐이다: 모델 8종의 tg128(생성) 4개 스레드 값은 초당 2.4(qwen3.5-2b)~5.1(qwen3.5-0.8b)토큰. 표를 그대로 옮기지 말고 '밤새 돌려 놓고 아침에 결과를 읽은' 이야기로 쓴다. llm-tasks(품질)는 과제 세트가 draft이고 모델 하나만 돌았으니 품질 순위는 쓰지 않는다. 무효 판정 이야기는 bench-invalid-runs로 따로 쓴다. 영어판도 쓴다 / series를 pi-llm에서 ops-log로 바꿨다: 실험 시리즈는 아직 품질 검사가 막는다(CURRENT_SERIES) [2026-11-05] https://unattendant.dev/posts/pi-llm-first-night/",
       "added": "2026-10-07",
       "added_by": "operator"
     },
@@ -153,7 +153,7 @@
         "docs/experiments.md (7.2 시작 조건, 7.4 무효 조건)"
       ],
       "notes": "summary.csv에서 valid가 False인 5건: 스왑 입출력(lfm2.5 pp512 4005페이지, granite tg128@d2048 1344페이지)과 시작 온도 50°C 초과(llama-3.2-1b 재측정 3건 51.1~51.6°C). 측정이 스스로 '이 값은 믿지 마'라고 말한 사례. 무효 값이 summary.csv에 valid=False로 남아 있다. 그 뒤 어떻게 처리했는지는 docs/experiments.md에서 확인한 것만 쓴다. 속도표 글(llm-first-run)과 같은 데이터이니 표는 반복하지 않는다",
-      "status": "idea",
+      "status": "drafting",
       "added": "2026-11-03",
       "added_by": "operator"
     },
